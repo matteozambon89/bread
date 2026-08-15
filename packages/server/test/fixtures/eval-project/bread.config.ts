@@ -1,6 +1,6 @@
-import { defineConfig } from '@bread/core'
-import { store } from '@bread/store-memory'
-import { mockProvider } from '@bread/test-utils'
+import { defineConfig } from '@breadai/core'
+import { store } from '@breadai/store-memory'
+import { mockProvider } from '@breadai/test-utils'
 
 // The test sets `globalThis.__breadEvalTestModel` to a mock LanguageModel
 // before each `runEvalCommand` call — loadConfig re-imports this module fresh

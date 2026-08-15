@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 import type { Hono } from 'hono'
-import { defineTestAgent, makeServer, mockTextModel } from '@bread/test-utils'
+import { defineTestAgent, makeServer, mockTextModel } from '@breadai/test-utils'
 
 describe('body-size limit', () => {
   let app: Hono

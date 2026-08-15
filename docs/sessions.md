@@ -38,7 +38,7 @@ bread sessions cleanup --older-than 30 --tag plan=free
 ## ⚠️ Cleanup with a SQLite store
 
 With the Postgres store, `bread sessions cleanup` and a running server share the database safely.
-With a SQLite store (`@bread/store-sqlite`), the CLI opens its **own writable**
+With a SQLite store (`@breadai/store-sqlite`), the CLI opens its **own writable**
 connection to the same file as a running `bread dev`/`bread start` server, and concurrent writes can
 raise `SQLITE_BUSY`. Run cleanup when the server is stopped, or schedule it during a quiet window.
 (WAL mode reduces but does not eliminate the contention.)

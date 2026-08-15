@@ -1,9 +1,9 @@
 import { afterEach, describe, expect, test } from 'bun:test'
-import type { AgentRegistry, AuthIdentity, BreadAuthStrategy, BreadConfig } from '@bread/core'
-import { authPlugin, startServer } from '@bread/server'
-import { store } from '@bread/store-memory'
-import { defineTestAgent, mockProvider, mockTextModel } from '@bread/test-utils'
-import { transport } from '@bread/transport-http-chunked'
+import type { AgentRegistry, AuthIdentity, BreadAuthStrategy, BreadConfig } from '@breadai/core'
+import { authPlugin, startServer } from '@breadai/server'
+import { store } from '@breadai/store-memory'
+import { defineTestAgent, mockProvider, mockTextModel } from '@breadai/test-utils'
+import { transport } from '@breadai/transport-http-chunked'
 
 // SEC-03: GET /runs/:runId/stream must respect an opt-in authorizeStream hook.
 // Real Bun.serve() + authPlugin() round trip — not a unit call into the
@@ -50,7 +50,7 @@ async function runAsAlice(url: string): Promise<string> {
   return (JSON.parse(firstLine).runId as string) ?? ''
 }
 
-describe('@bread/transport-http-chunked — GET /runs/:runId/stream authorizeStream', () => {
+describe('@breadai/transport-http-chunked — GET /runs/:runId/stream authorizeStream', () => {
   let stops: Array<() => Promise<void>> = []
 
   afterEach(async () => {

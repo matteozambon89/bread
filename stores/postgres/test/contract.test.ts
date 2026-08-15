@@ -1,6 +1,6 @@
 import { afterAll, beforeAll } from 'bun:test'
-import { store } from '@bread/store-postgres'
-import { type PgliteHandle, runStoreContract, withPglite } from '@bread/test-utils'
+import { store } from '@breadai/store-postgres'
+import { type PgliteHandle, runStoreContract, withPglite } from '@breadai/test-utils'
 
 // Hermetic Postgres: an in-process pglite (real Postgres in WASM) behind a socket
 // server speaking the wire protocol, so `store({ url })` connects to it

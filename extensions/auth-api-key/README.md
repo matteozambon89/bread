@@ -4,17 +4,17 @@
   </a>
 </p>
 
-# @bread/auth-api-key
+# @breadai/auth-api-key
 
 API-key auth for bread — `authStrategy()` verifies an incoming request's key timing-safely,
 `signer()` attaches a key to outgoing requests. Same options shape for both.
 
 ```bash
-bun add @bread/auth-api-key   # or: npm i @bread/auth-api-key
+bun add @breadai/auth-api-key   # or: npm i @breadai/auth-api-key
 ```
 
 ```ts
-import { authStrategy, signer } from '@bread/auth-api-key'
+import { authStrategy, signer } from '@breadai/auth-api-key'
 
 const strategy = authStrategy({
   scheme: 'Bearer',              // omit for a raw x-api-key-style header
@@ -24,7 +24,7 @@ const strategy = authStrategy({
 })
 ```
 
-Pass `strategy` to `@bread/server`'s `authPlugin()` to guard a running server.
+Pass `strategy` to `@breadai/server`'s `authPlugin()` to guard a running server.
 
 Part of **[bread](https://github.com/matteozambon89/bread)** — an explicit-by-design framework for AI agents.
 Docs: [auth](https://github.com/matteozambon89/bread/blob/HEAD/docs/auth.md) ·

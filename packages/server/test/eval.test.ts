@@ -1,7 +1,7 @@
 import { join } from 'node:path'
 import { afterEach, describe, expect, spyOn, test } from 'bun:test'
-import { runEvalCommand } from '@bread/server'
-import { mockTextModel } from '@bread/test-utils'
+import { runEvalCommand } from '@breadai/server'
+import { mockTextModel } from '@breadai/test-utils'
 
 const projectRoot = join(import.meta.dir, 'fixtures', 'eval-project')
 const emptyRoot = join(import.meta.dir, 'fixtures', 'eval-project-empty')

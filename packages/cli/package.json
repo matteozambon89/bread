@@ -1,5 +1,5 @@
 {
-  "name": "@bread/cli",
+  "name": "@breadai/cli",
   "version": "0.1.0",
   "description": "The `bread` command-line interface — dev server, build, eval, and session management.",
   "license": "MIT",
@@ -33,15 +33,15 @@
     "build": "bun build ./src/bin.ts --outdir dist --target node --format esm --packages external && tsc --emitDeclarationOnly --outDir dist"
   },
   "dependencies": {
-    "@bread/server": "workspace:*",
+    "@breadai/server": "workspace:*",
     "commander": "^14.0.0"
   },
   "devDependencies": {
-    "@bread/core": "workspace:*",
-    "@bread/store-memory": "workspace:*",
-    "@bread/test-utils": "workspace:*",
-    "@bread/transport-http-chunked": "workspace:*",
-    "@bread/transport-stdout": "workspace:*",
+    "@breadai/core": "workspace:*",
+    "@breadai/store-memory": "workspace:*",
+    "@breadai/test-utils": "workspace:*",
+    "@breadai/transport-http-chunked": "workspace:*",
+    "@breadai/transport-stdout": "workspace:*",
     "@types/bun": "latest",
     "typescript": "^5.8.3",
     "zod": "^4.4.3"

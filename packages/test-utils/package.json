@@ -1,5 +1,5 @@
 {
-  "name": "@bread/test-utils",
+  "name": "@breadai/test-utils",
   "version": "0.1.0",
   "description": "Internal test harness for the bread monorepo — mock LLM models, an in-memory bread/server bootstrap, and a shared BreadStore contract suite. Not published.",
   "private": true,
@@ -16,10 +16,10 @@
   },
   "dependencies": {
     "@ai-sdk/provider": "^3.0.10",
-    "@bread/core": "workspace:*",
-    "@bread/server": "workspace:*",
-    "@bread/store-memory": "workspace:*",
-    "@bread/transport-http-sse": "workspace:*",
+    "@breadai/core": "workspace:*",
+    "@breadai/server": "workspace:*",
+    "@breadai/store-memory": "workspace:*",
+    "@breadai/transport-http-sse": "workspace:*",
     "ai": "^6.0.208",
     "postgres": "^3.4.5",
     "uuid": "^11.1.0",

@@ -1,5 +1,5 @@
 // A2A's streaming frames are JSON-RPC-wrapped ({jsonrpc,id,result}), unlike
-// the {type,payload} wire format @bread/test-utils' parseSse/readSse are
+// the {type,payload} wire format @breadai/test-utils' parseSse/readSse are
 // typed around — a one-off parser here beats retyping a shared test helper
 // for a single caller.
 export function parseJsonRpcSse(body: string): Array<{ jsonrpc: '2.0'; id: unknown; result: unknown }> {

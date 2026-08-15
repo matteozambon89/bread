@@ -1,5 +1,5 @@
 import { timingSafeEqual } from 'node:crypto'
-import type { BreadAuthStrategy, BreadSigner, CredentialProvider } from '@bread/core'
+import type { BreadAuthStrategy, BreadSigner, CredentialProvider } from '@breadai/core'
 
 export interface ApiKeyOptions {
   /** Header to read/write. Default `authorization`. */

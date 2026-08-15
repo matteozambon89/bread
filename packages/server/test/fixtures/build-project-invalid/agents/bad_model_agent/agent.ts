@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { defineAgent } from '@bread/core'
+import { defineAgent } from '@breadai/core'
 
 export default defineAgent({
   // Empty model id — hits runBuild's "incomplete model config" branch.

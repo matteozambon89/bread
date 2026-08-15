@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import type { Tracer } from '@opentelemetry/api'
-import { defineHumanTool, defineTool } from '@bread/core'
-import type { PipelineStep } from '@bread/core'
+import { defineHumanTool, defineTool } from '@breadai/core'
+import type { PipelineStep } from '@breadai/core'
 import {
   collect,
   defineTestAgent,
@@ -13,9 +13,9 @@ import {
   mockTextModel,
   mockToolCallModel,
   runCollect,
-} from '@bread/test-utils'
-import type { ScriptStep } from '@bread/test-utils'
-import { otel } from '@bread/otel'
+} from '@breadai/test-utils'
+import type { ScriptStep } from '@breadai/test-utils'
+import { otel } from '@breadai/otel'
 import { z } from 'zod'
 
 interface FakeSpan {

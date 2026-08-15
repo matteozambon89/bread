@@ -1,4 +1,4 @@
-# AG-UI — `@bread/protocol-ag-ui`
+# AG-UI — `@breadai/protocol-ag-ui`
 
 Bridges bread's crumb stream to [AG-UI protocol](https://ag-ui.com) events for frontend
 integrations. The mapping is **stateful** — that's what produces spec-conformant text framing:
@@ -41,8 +41,8 @@ JSON-RPC wrapping).
 
 ```ts
 // bread.config.ts
-import { defineConfig } from '@bread/core'
-import { agUi } from '@bread/protocol-ag-ui'
+import { defineConfig } from '@breadai/core'
+import { agUi } from '@breadai/protocol-ag-ui'
 
 export default defineConfig({
   entrypoints: ['assistant'],
@@ -112,8 +112,8 @@ registers no route at all (output-mapper-only, the original behavior):
 
 ```ts
 // bread.config.ts
-import { defineConfig } from '@bread/core'
-import { agUi } from '@bread/protocol-ag-ui'
+import { defineConfig } from '@breadai/core'
+import { agUi } from '@breadai/protocol-ag-ui'
 
 export default defineConfig({
   entrypoints: ['assistant'],
@@ -128,7 +128,7 @@ per-connection stream (one transformer per SSE/WebSocket client), build on the e
 transformer instead — it's stateful, so use one instance per stream:
 
 ```ts
-import { createAgUiTransformer } from '@bread/protocol-ag-ui'
+import { createAgUiTransformer } from '@breadai/protocol-ag-ui'
 
 const transform = createAgUiTransformer()
 for await (const crumb of bread.run('assistant', input, { mode: 'stream' })) {

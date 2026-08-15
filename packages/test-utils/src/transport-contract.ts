@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import type { BreadTransport, BusFrame } from '@bread/core'
+import type { BreadTransport, BusFrame } from '@breadai/core'
 
 // A behavioral contract every duplex BreadTransport implementation must
 // satisfy, expressed as runner-agnostic cases (node:assert) like the store

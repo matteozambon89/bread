@@ -488,7 +488,7 @@ export interface BreadSigner {
 // `routes`. (Storage is config-level via `BreadConfig.store`, model providers via
 // `BreadConfig.providers`/`AgentConfig.providers` — neither is a plugin concern.
 // Auth is not a special plugin concept either — an auth strategy attaches like any
-// other middleware, e.g. via `@bread/server`'s `authPlugin()`.)
+// other middleware, e.g. via `@breadai/server`'s `authPlugin()`.)
 export interface BreadPlugin {
   name: string
   init?(bread: BreadInstanceRef): Promise<void>
@@ -795,7 +795,7 @@ export type CheckpointParent = PipelineCheckpointParent | SupervisorCheckpointPa
 // ---------------------------------------------------------------------------
 
 // A registered remote agent: the object a transport's remoteAgent(opts) returns
-// (e.g. `@bread/transport-http-chunked`'s remoteAgent({ url, headers?, auth? })).
+// (e.g. `@breadai/transport-http-chunked`'s remoteAgent({ url, headers?, auth? })).
 // `config.remoteAgents` holds these; the runner relays their crumb stream as if
 // local. `init`/`close` bracket the instance lifecycle (bread.start/stop) for
 // remote agents that hold connections (event-bus brokers, persistent sockets).
@@ -825,7 +825,7 @@ export interface BreadConfig {
   // interactive fallback. Optional here only so a partial config can be built
   // up before `bread.start()`/`createServer()` validate it.
   store?: BreadStore
-  // Optional binary-content storage (e.g. @bread/store-s3), consumed by
+  // Optional binary-content storage (e.g. @breadai/store-s3), consumed by
   // features that need to persist file bytes — currently A2A's inline
   // FilePart handling. Unlike `store`, unset is not an error; a feature that
   // needs it and finds it missing fails with its own clear, feature-specific
@@ -833,13 +833,13 @@ export interface BreadConfig {
   blobStore?: BlobStore
   // Named model-provider instances, keyed by the name `model.provider` refers
   // to (e.g. `{ anthropic, 'anthropic-eu': createAnthropic({ baseURL }) }`).
-  // Core has no built-ins of its own — install @bread/provider-catalog for the
+  // Core has no built-ins of its own — install @breadai/provider-catalog for the
   // common @ai-sdk/* set, or hand-write factories. An agent's own `providers`
   // (AgentConfig.providers) is checked first and wins on a name collision.
   providers?: ProviderRegistry
   // The crumb fabric between replicas of this app. Defaults to the embedded
   // Stream transport (single container); set a distributed implementation
-  // (e.g. @bread/transport-redis) so passive subscribers on other replicas
+  // (e.g. @breadai/transport-redis) so passive subscribers on other replicas
   // see live runs.
   transport?: BreadTransport
   plugins?: BreadPlugin[]

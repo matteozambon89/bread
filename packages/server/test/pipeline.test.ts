@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 import type { Hono } from 'hono'
-import { defineTestAgent, makeServer, mockTextModel, readSse } from '@bread/test-utils'
+import { defineTestAgent, makeServer, mockTextModel, readSse } from '@breadai/test-utils'
 
 describe('server — pipeline route', () => {
   let app: Hono

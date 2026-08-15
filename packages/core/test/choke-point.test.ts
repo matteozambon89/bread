@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import { z } from 'zod'
-import { defineHumanTool, defineTool } from '@bread/core'
-import type { BreadCrumb, BreadTransport, BusFrame, HumanRequiredEvent, PipelineStep } from '@bread/core'
+import { defineHumanTool, defineTool } from '@breadai/core'
+import type { BreadCrumb, BreadTransport, BusFrame, HumanRequiredEvent, PipelineStep } from '@breadai/core'
 import {
   collect,
   defineTestAgent,
@@ -12,7 +12,7 @@ import {
   mockToolCallModel,
   runCollect,
   stream,
-} from '@bread/test-utils'
+} from '@breadai/test-utils'
 
 // A BreadTransport that records every published frame — the assertion surface
 // for "the transport view equals the client-visible stream".

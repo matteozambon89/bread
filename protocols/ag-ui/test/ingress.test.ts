@@ -1,9 +1,9 @@
 import { describe, expect, test } from 'bun:test'
 import { z } from 'zod'
-import { defineTool } from '@bread/core'
-import { defineTestAgent, makeServer, mockErrorModel, mockStreamingToolCallModel, mockTextModel } from '@bread/test-utils'
-import { agUi } from '@bread/protocol-ag-ui'
-import type { AgUiEvent } from '@bread/protocol-ag-ui'
+import { defineTool } from '@breadai/core'
+import { defineTestAgent, makeServer, mockErrorModel, mockStreamingToolCallModel, mockTextModel } from '@breadai/test-utils'
+import { agUi } from '@breadai/protocol-ag-ui'
+import type { AgUiEvent } from '@breadai/protocol-ag-ui'
 
 // AG-UI's ingress frames are bare `data: {event json}\n\n` — no JSON-RPC
 // envelope, unlike a2a-server's wire format.

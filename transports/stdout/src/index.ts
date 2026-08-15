@@ -1,5 +1,5 @@
-import { isFileOutput } from '@bread/core'
-import type { BreadTransport, BusFrame, ToolCallCrumb } from '@bread/core'
+import { isFileOutput } from '@breadai/core'
+import type { BreadTransport, BusFrame, ToolCallCrumb } from '@breadai/core'
 
 const DIM = '\x1b[2m'
 const RESET = '\x1b[0m'
@@ -9,7 +9,7 @@ function dim(text: string): string {
 }
 
 // Small, deliberate duplicate of packages/server/src/commands/render.ts's
-// formatToolCall — a transports/* package must not depend on @bread/server.
+// formatToolCall — a transports/* package must not depend on @breadai/server.
 function formatToolCall(crumb: ToolCallCrumb): string {
   const args = typeof crumb.args === 'string' ? crumb.args : JSON.stringify(crumb.args)
   return dim(`↳ ${crumb.toolName}(${args})`)

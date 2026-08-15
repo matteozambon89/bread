@@ -5,7 +5,7 @@ import { z } from 'zod'
 // A minimal MCP server spawned over stdio by the client test. Its three tools
 // produce the distinct content shapes that exercise the client's flattenContent:
 // a single text block, multiple text blocks, and an error result. Hand-rolled
-// directly against the MCP SDK (not @bread/protocol-mcp-server) — this fixture tests
+// directly against the MCP SDK (not @breadai/protocol-mcp-server) — this fixture tests
 // the *client* package, so it must not depend on the server package.
 const server = new McpServer({ name: 'fixture', version: '0.0.0' })
 

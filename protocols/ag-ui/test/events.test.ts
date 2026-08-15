@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import { z } from 'zod'
-import { BreadError, defineTask, defineTool } from '@bread/core'
-import type { BreadCrumb } from '@bread/core'
+import { BreadError, defineTask, defineTool } from '@breadai/core'
+import type { BreadCrumb } from '@breadai/core'
 import {
   defineTestAgent,
   makeBread,
@@ -14,8 +14,8 @@ import {
   mockTextModel,
   mockToolCallModel,
   runCollect,
-} from '@bread/test-utils'
-import { type AgUiEvent, agUi, createAgUiTransformer } from '@bread/protocol-ag-ui'
+} from '@breadai/test-utils'
+import { type AgUiEvent, agUi, createAgUiTransformer } from '@breadai/protocol-ag-ui'
 
 describe('agUi plugin — live run', () => {
   test('frames text with TEXT_MESSAGE_START/END and maps the full tool lifecycle', async () => {

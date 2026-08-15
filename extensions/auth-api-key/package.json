@@ -1,5 +1,5 @@
 {
-  "name": "@bread/auth-api-key",
+  "name": "@breadai/auth-api-key",
   "version": "0.1.0",
   "description": "API-key auth for bread — verify incoming requests, sign outgoing ones.",
   "license": "MIT",
@@ -40,7 +40,7 @@
     "build": "bun build ./src/index.ts --outdir dist --target node --format esm --packages external && tsc --emitDeclarationOnly --outDir dist"
   },
   "dependencies": {
-    "@bread/core": "workspace:*"
+    "@breadai/core": "workspace:*"
   },
   "devDependencies": {
     "@types/bun": "latest",

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
-import type { BreadCrumb, BreadInstance, RemoteAgent } from '@bread/core'
-import { store as sqliteStore } from '@bread/store-sqlite'
-import { collect, defineTestAgent, makeBread, mockTextModel, stream } from '@bread/test-utils'
+import type { BreadCrumb, BreadInstance, RemoteAgent } from '@breadai/core'
+import { store as sqliteStore } from '@breadai/store-sqlite'
+import { collect, defineTestAgent, makeBread, mockTextModel, stream } from '@breadai/test-utils'
 
 describe('runner — remote agents', () => {
   let bread: BreadInstance
@@ -55,7 +55,7 @@ describe('runner — remote agents', () => {
 })
 
 describe('runner — remote agent crumb persistence', () => {
-  // A real, FK-enforcing store (unlike @bread/store-memory, the harness
+  // A real, FK-enforcing store (unlike @breadai/store-memory, the harness
   // default): crumbs.session_id references sessions(id), so this reproduces
   // what a real RemoteAgent.run() relay looks like — crumbs stamped with a
   // sessionId that only exists on the remote replica, never created locally.

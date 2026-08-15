@@ -1,4 +1,4 @@
-# A2A server — `@bread/protocol-a2a-server`
+# A2A server — `@breadai/protocol-a2a-server`
 
 Expose a bread agent as an [A2A](https://a2a-protocol.org) (Agent-to-Agent) endpoint: an Agent Card
 clients can discover, and a JSON-RPC method that invokes the agent synchronously and returns a
@@ -6,7 +6,7 @@ spec-shaped response. Hand-rolled against the raw spec (no `@a2a-js/sdk` depende
 building blocks are Express-specific and don't fit bread's Hono-based plugin model).
 
 ```bash
-bun add @bread/protocol-a2a-server
+bun add @breadai/protocol-a2a-server
 ```
 
 ## Choosing a spec version
@@ -15,7 +15,7 @@ A2A has two live wire formats today. `a2aServer(...)` speaks either, picked per 
 `specVersion`:
 
 ```ts
-import { a2aServer } from '@bread/protocol-a2a-server'
+import { a2aServer } from '@breadai/protocol-a2a-server'
 
 a2aServer({ agentId: 'researcher', url: 'https://api.example.com/a2a', cardPath: '/.well-known/agent-card.json' })                                    // v0.3.x (default)
 a2aServer({ agentId: 'researcher', url: 'https://api.example.com/a2a-v1', specVersion: '1.0', cardPath: '/.well-known/agent-card-v1.json' })          // v1.0
@@ -113,9 +113,9 @@ whether it arrived by reference or as inline bytes:
   base64 payload exceeds a 10 MB decoded-size limit (checked before decoding) — either way, the
   error names which case applies.
 
-`@bread/core`'s runner JSON-serializes any non-string `input` into the model prompt automatically
+`@breadai/core`'s runner JSON-serializes any non-string `input` into the model prompt automatically
 (`typeof input === 'string' ? input : JSON.stringify(input)`) — the same path
-`@bread/protocol-mcp-server` already uses for structured input — so passing an object or array here
+`@breadai/protocol-mcp-server` already uses for structured input — so passing an object or array here
 needs no protocol-specific serialization code. If a model prefers a different format than JSON (CSV,
 XML, ...), a per-agent `beforeRun` hook can reformat `input` into a string before it reaches this
 step; see [agents.md](./agents.md) — no `a2a-server`-specific config exists for this.
@@ -125,7 +125,7 @@ step; see [agents.md](./agents.md) — no `a2a-server`-specific config exists fo
 An agent can hand back a file two ways:
 
 - **A model generates one directly** — a multimodal model (e.g. `gemini-2.5-flash-image-preview`)
-  emitting an image as part of its own generation, independent of any tool call. `@bread/core`'s
+  emitting an image as part of its own generation, independent of any tool call. `@breadai/core`'s
   runner stores it automatically via `config.blobStore` and emits a `file:generated` crumb per file
   (see [store.md](./store.md#blob-storage)); a run with no `blobStore` configured throws
   `BLOB_STORE_NOT_CONFIGURED` rather than silently dropping the file.
@@ -165,7 +165,7 @@ status update. **JSON/data output still doesn't stream** — the agent's increme
 output remains the only *text* content surfaced as artifact updates, and there's still no "final
 structured output" crumb for a non-file, non-string result, so a `'json'`-format agent's structured
 result still isn't representable over this event sequence. That narrower gap is unchanged — a
-`@bread/core` runner limitation, not something this protocol package can work around.
+`@breadai/core` runner limitation, not something this protocol package can work around.
 
 The event sequence is always: one initial `Task` (`kind:'task'` for v0.3, `{task:{...}}` for v1.0,
 `status.state` "working"/`TASK_STATE_WORKING`), then zero or more artifact updates as the agent's
@@ -255,7 +255,7 @@ doesn't wait for the crumb log to catch up with the abort. The still-open `messa
 `SendStreamingMessage` connection's own final `status-update`/`statusUpdate` event reflects the same
 `canceled`/`TASK_STATE_CANCELED` state once the run actually unwinds (distinguished from a generic
 `failed`/`TASK_STATE_FAILED` by the underlying `BreadError`'s `RUN_CANCELLED` code — see
-[agents.md](./agents.md)'s Cancellation section for the `@bread/core` mechanism this rides on). A
+[agents.md](./agents.md)'s Cancellation section for the `@breadai/core` mechanism this rides on). A
 follow-up `tasks/get`/`GetTask` call confirms the same state once that lands.
 
 ## Errors

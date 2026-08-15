@@ -1,4 +1,4 @@
-# A2UI — `@bread/a2ui`
+# A2UI — `@breadai/a2ui`
 
 Bridges bread's crumb stream to Google's [A2UI](https://github.com/google-a2ui/a2ui) declarative UI
 spec (`v1.0-candidate`) — a client-agnostic way to render agent activity (progress, streamed text,
@@ -13,8 +13,8 @@ silently dropped (`default: return null`).
 
 ```ts
 // bread.config.ts
-import { defineConfig } from '@bread/core'
-import { a2ui } from '@bread/a2ui'
+import { defineConfig } from '@breadai/core'
+import { a2ui } from '@breadai/a2ui'
 
 export default defineConfig({
   entrypoints: ['assistant'],

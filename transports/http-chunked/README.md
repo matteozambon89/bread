@@ -1,4 +1,4 @@
-# @bread/transport-http-chunked
+# @breadai/transport-http-chunked
 
 HTTP (chunked NDJSON) [`BreadTransport`](../../docs/transports.md) for [bread](https://github.com/matteozambon89/bread) —
 a `mount()`-able server ingress plus a `remoteAgent()` client, speaking the Bread protocol
@@ -8,14 +8,14 @@ transport for `bread dev`/`bread start`.
 ## Install
 
 ```bash
-bun add @bread/transport-http-chunked
+bun add @breadai/transport-http-chunked
 ```
 
 ## Usage
 
 ```ts
 // bread.config.ts
-import { transport } from '@bread/transport-http-chunked'
+import { transport } from '@breadai/transport-http-chunked'
 
 export default defineConfig({
   entrypoints: ['writer'],
@@ -26,7 +26,7 @@ export default defineConfig({
 
 ```ts
 // Consuming a remote bread instance's mounted routes (config.remoteAgents)
-import { remoteAgent } from '@bread/transport-http-chunked'
+import { remoteAgent } from '@breadai/transport-http-chunked'
 
 export default defineConfig({
   entrypoints: ['local'],
@@ -59,7 +59,7 @@ status stays 200 once headers are sent. Blank lines are heartbeats (skip them).
 ## Semantics
 
 - `transport()`'s pub/sub + bounded replay is the embedded `streamTransport()` — single-process
-  only. Cross-replica fan-out is `@bread/transport-redis`'s job, not this package's; combining
+  only. Cross-replica fan-out is `@breadai/transport-redis`'s job, not this package's; combining
   Redis fan-out with HTTP ingress on the same `config.transport` slot isn't supported yet (see
   `docs/transports.md`'s known gap).
 - `remoteAgent()`'s `run()` is a plain NDJSON line reader — no reconnect/replay logic of its own

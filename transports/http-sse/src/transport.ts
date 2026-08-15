@@ -1,7 +1,7 @@
 import type { Hono } from 'hono'
 import { stream as honoStream } from 'hono/streaming'
-import type { AuthIdentity, BreadCrumb, BreadInstance, BreadTransport, BusFrame } from '@bread/core'
-import { fromWireCrumb, streamTransport } from '@bread/core'
+import type { AuthIdentity, BreadCrumb, BreadInstance, BreadTransport, BusFrame } from '@breadai/core'
+import { fromWireCrumb, streamTransport } from '@breadai/core'
 import { type SseEvent, toClientError, toSseEvent, writeSseEvent } from './sse.js'
 
 export interface TransportOptions {

@@ -6,7 +6,7 @@ and discovered by convention.
 
 ```ts
 // agents/writer/agent.ts
-import { defineAgent } from '@bread/core'
+import { defineAgent } from '@breadai/core'
 import { z } from 'zod'
 
 export default defineAgent({
@@ -64,7 +64,7 @@ A full `*` globs one segment: `plugin:mcp_client/*`, `skill:*`, `core:*`. A segm
 zero or more `[a-z0-9_]` characters. Bare `*` is not a selector, and an unknown scope or malformed
 segment **fails at config load** (`INVALID_PERMISSION`) — a typo'd deny must break the boot, not
 silently allow. All names are lowercase snake_case (`INVALID_NAME` otherwise). The `leafName` /
-`permId` helpers exported from `@bread/core` compute a tool's model-facing name and its selector
+`permId` helpers exported from `@breadai/core` compute a tool's model-facing name and its selector
 id from an origin, for building permission lists programmatically.
 
 ```ts

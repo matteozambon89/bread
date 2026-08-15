@@ -1,12 +1,12 @@
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
-import { runTransportContract } from '@bread/test-utils'
-import { transport } from '@bread/transport-redis'
+import { runTransportContract } from '@breadai/test-utils'
+import { transport } from '@breadai/transport-redis'
 import { v7 as uuidv7 } from 'uuid'
 import { spawnRedisForTest } from './redis-server'
 
 // Doesn't need a live Redis at all — requireStarted() throws synchronously
 // before any connection is touched, for both publish() and subscribe().
-describe('@bread/transport-redis — requireStarted()', () => {
+describe('@breadai/transport-redis — requireStarted()', () => {
   test('publish() before init() throws "not started"', async () => {
     const t = transport({ url: 'redis://127.0.0.1:1' })
     expect(t.publish({ runId: 'r1', seq: 1, crumb: { type: 'agent:run:start' } as never })).rejects.toThrow(
@@ -45,7 +45,7 @@ if (envUrl || binary) {
 }
 
 runTransportContract(
-  '@bread/transport-redis (Redis Streams)',
+  '@breadai/transport-redis (Redis Streams)',
   // Short block timeout so subscription pickup doesn't dominate test time. A
   // fresh keyPrefix per case isolates it in Redis's own persisted keyspace —
   // unlike streamTransport()'s in-memory Map, real Redis data outlives one

@@ -15,7 +15,7 @@ skills, pipelines, supervisors, evals, and a plugin system built in.
 
 ```ts
 // agents/echo/agent.ts
-import { defineAgent } from '@bread/core'
+import { defineAgent } from '@breadai/core'
 import { z } from 'zod'
 
 export default defineAgent({
@@ -28,10 +28,10 @@ export default defineAgent({
 
 ```ts
 // bread.config.ts — the store/transport/providers above are never inferred
-import { defineConfig } from '@bread/core'
-import { store } from '@bread/store-sqlite'
-import { transport } from '@bread/transport-http-chunked'
-import { providerCatalog } from '@bread/provider-catalog'
+import { defineConfig } from '@breadai/core'
+import { store } from '@breadai/store-sqlite'
+import { transport } from '@breadai/transport-http-chunked'
+import { providerCatalog } from '@breadai/provider-catalog'
 
 export default defineConfig({
   entrypoints: ['echo'],
@@ -51,21 +51,21 @@ curl -N -X POST localhost:3000/agents/echo/run -d '{"input":"hello"}'
 ## Install
 
 ```bash
-bun add @bread/core      # SDK
-bun add -d @bread/cli    # dev server + `bread` CLI
+bun add @breadai/core      # SDK
+bun add -d @breadai/cli    # dev server + `bread` CLI
 ```
 
 Core has no built-in model providers — register them explicitly via `providers` in
-`bread.config.ts`. `@bread/provider-catalog` packages the 18 common `@ai-sdk/*` built-ins (each
+`bread.config.ts`. `@breadai/provider-catalog` packages the 18 common `@ai-sdk/*` built-ins (each
 still an optional peer dep, installed only if you use it):
 
 ```bash
-bun add @bread/provider-catalog
+bun add @breadai/provider-catalog
 bun add @ai-sdk/anthropic       # provider: 'anthropic'
 ```
 
 ```ts
-import { providerCatalog } from '@bread/provider-catalog'
+import { providerCatalog } from '@breadai/provider-catalog'
 
 export default defineConfig({
   entrypoints: ['echo'],
@@ -75,7 +75,7 @@ export default defineConfig({
 
 ### Runtime
 
-`bread` runs on **Bun** — the `@bread/store-sqlite` store (`bun:sqlite`) works out of the box.
+`bread` runs on **Bun** — the `@breadai/store-sqlite` store (`bun:sqlite`) works out of the box.
 
 ## Project layout
 
@@ -96,14 +96,14 @@ agents/
 
 ```ts
 // bread.config.ts
-import { defineConfig } from '@bread/core'
-import { store } from '@bread/store-sqlite'
-import { transport } from '@bread/transport-http-chunked'
+import { defineConfig } from '@breadai/core'
+import { store } from '@breadai/store-sqlite'
+import { transport } from '@breadai/transport-http-chunked'
 
 export default defineConfig({
   entrypoints: ['researcher', 'writer'],
   // Both are required, explicitly — no auto-wired fallback. Swap for the
-  // Postgres store() (reads DATABASE_URL) and @bread/transport-http-sse
+  // Postgres store() (reads DATABASE_URL) and @breadai/transport-http-sse
   // (SSE/browser-EventSource) as needed.
   store: store({ path: './bread.db' }),
   transport: transport(),
@@ -141,18 +141,18 @@ export default defineConfig({
 | `GET /tasks` · `GET /tasks/:id` | List task runs (`?task` `?session` `?agent` `?status` `?limit`) · a task run |
 
 The four streaming routes are mounted by whichever `config.transport` you pick — pick
-`@bread/transport-http-sse` for SSE (`id: <seq>` + `data: { "type": <crumb type>, "payload": <crumb>
-}`) or `@bread/transport-http-chunked` for NDJSON (one Bread protocol `CrumbFrame` JSON line per
+`@breadai/transport-http-sse` for SSE (`id: <seq>` + `data: { "type": <crumb type>, "payload": <crumb>
+}`) or `@breadai/transport-http-chunked` for NDJSON (one Bread protocol `CrumbFrame` JSON line per
 chunk) — see [`docs/http-api.md`](./docs/http-api.md). Scale horizontally by sharing one store and
-one cross-replica transport (e.g. `@bread/transport-redis`) across replicas — see
+one cross-replica transport (e.g. `@breadai/transport-redis`) across replicas — see
 [`docs/transports.md`](./docs/transports.md).
 
 ## Plugins
 
 ```ts
-import { defineConfig } from '@bread/core'
-import { otel } from '@bread/otel'
-import { agUi } from '@bread/protocol-ag-ui'
+import { defineConfig } from '@breadai/core'
+import { otel } from '@breadai/otel'
+import { agUi } from '@breadai/protocol-ag-ui'
 
 export default defineConfig({
   entrypoints: ['researcher'],
@@ -160,13 +160,13 @@ export default defineConfig({
 })
 ```
 
-Available: `@bread/otel`, `@bread/protocol-ag-ui`, `@bread/protocol-a2a-server`, `@bread/a2ui`,
-`@bread/protocol-mcp-client`, `@bread/protocol-mcp-server`. Write your own by implementing
-`BreadPlugin` — see [`docs/plugins.md`](./docs/plugins.md). `@bread/auth-api-key`/`-jwt`/`-oauth2`
+Available: `@breadai/otel`, `@breadai/protocol-ag-ui`, `@breadai/protocol-a2a-server`, `@breadai/a2ui`,
+`@breadai/protocol-mcp-client`, `@breadai/protocol-mcp-server`. Write your own by implementing
+`BreadPlugin` — see [`docs/plugins.md`](./docs/plugins.md). `@breadai/auth-api-key`/`-jwt`/`-oauth2`
 are standalone auth strategy/signer factories, not plugins themselves — wrap one with
-`@bread/server`'s `authPlugin()` to attach it (see [`docs/auth.md`](./docs/auth.md)). Transports
-are config-level, not plugins: `@bread/transport-http-chunked`/`@bread/transport-http-sse` (HTTP
-ingress + remote agents), `@bread/transport-redis` (cross-replica fan-out), `@bread/transport-stdout`
+`@breadai/server`'s `authPlugin()` to attach it (see [`docs/auth.md`](./docs/auth.md)). Transports
+are config-level, not plugins: `@breadai/transport-http-chunked`/`@breadai/transport-http-sse` (HTTP
+ingress + remote agents), `@breadai/transport-redis` (cross-replica fan-out), `@breadai/transport-stdout`
 (CLI rendering) — see [`docs/transports.md`](./docs/transports.md).
 
 ## Documentation

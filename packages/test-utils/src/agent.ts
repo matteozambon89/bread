@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import type { AgentConfig, AgentDefinition, ToolDefinition } from '@bread/core'
+import type { AgentConfig, AgentDefinition, ToolDefinition } from '@breadai/core'
 import { MOCK_PROVIDER } from './mock-plugin.js'
 
 // Loosely typed: matches the runner's `_humanTools` shape without re-importing

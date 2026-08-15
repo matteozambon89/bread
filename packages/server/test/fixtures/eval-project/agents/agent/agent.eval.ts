@@ -1,4 +1,4 @@
-import { defineEval } from '@bread/core'
+import { defineEval } from '@breadai/core'
 
 // One passing case (exact match) and one failing case — exercises both the
 // pass and fail branches of `bread eval`'s summary in a single suite.

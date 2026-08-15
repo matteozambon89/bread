@@ -1,5 +1,5 @@
 {
-  "name": "@bread/auth-jwt",
+  "name": "@breadai/auth-jwt",
   "version": "0.1.0",
   "description": "JWT auth for bread — verify incoming bearer tokens (HS256 secret or remote JWKS).",
   "license": "MIT",
@@ -40,7 +40,7 @@
     "build": "bun build ./src/index.ts --outdir dist --target node --format esm --packages external && tsc --emitDeclarationOnly --outDir dist"
   },
   "dependencies": {
-    "@bread/core": "workspace:*",
+    "@breadai/core": "workspace:*",
     "jose": "^5.9.6"
   },
   "devDependencies": {

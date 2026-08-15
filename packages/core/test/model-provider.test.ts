@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
-import { resolveModel } from '@bread/core'
-import { mockTextModel } from '@bread/test-utils'
+import { resolveModel } from '@breadai/core'
+import { mockTextModel } from '@breadai/test-utils'
 
 describe('resolveModel', () => {
   test('resolves a provider registered in a passed registry', async () => {

@@ -1,5 +1,5 @@
-import { BreadError } from '@bread/core'
-import type { BreadStore } from '@bread/core'
+import { BreadError } from '@breadai/core'
+import type { BreadStore } from '@breadai/core'
 import { loadConfig } from '../loader.js'
 
 export interface SessionListOptions {
@@ -20,7 +20,7 @@ async function requireStore(cwd: string): Promise<BreadStore> {
   if (!store) {
     throw new BreadError(
       "No store configured. Set `store` in bread.config.ts — e.g. `store({ path: './bread.db' })` " +
-        "from `@bread/store-sqlite`, or `store()` from `@bread/store-postgres` (reads DATABASE_URL).",
+        "from `@breadai/store-sqlite`, or `store()` from `@breadai/store-postgres` (reads DATABASE_URL).",
       'STORE_NOT_CONFIGURED',
     )
   }

@@ -1,5 +1,5 @@
 {
-  "name": "@bread/transport-http-chunked",
+  "name": "@breadai/transport-http-chunked",
   "version": "0.1.0",
   "type": "module",
   "exports": {
@@ -10,13 +10,13 @@
     }
   },
   "dependencies": {
-    "@bread/core": "workspace:*",
+    "@breadai/core": "workspace:*",
     "hono": "^4.8.4"
   },
   "devDependencies": {
-    "@bread/server": "workspace:*",
-    "@bread/store-memory": "workspace:*",
-    "@bread/test-utils": "workspace:*",
+    "@breadai/server": "workspace:*",
+    "@breadai/store-memory": "workspace:*",
+    "@breadai/test-utils": "workspace:*",
     "@types/bun": "latest",
     "typescript": "^5.8.3",
     "zod": "^4.4.3"

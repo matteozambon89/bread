@@ -1,9 +1,9 @@
 import { describe, expect, test } from 'bun:test'
 import { z } from 'zod'
-import { defineHumanTool } from '@bread/core'
-import type { BreadStore } from '@bread/core'
-import { store } from '@bread/store-memory'
-import { transport as httpSseTransport } from '@bread/transport-http-sse'
+import { defineHumanTool } from '@breadai/core'
+import type { BreadStore } from '@breadai/core'
+import { store } from '@breadai/store-memory'
+import { transport as httpSseTransport } from '@breadai/transport-http-sse'
 import {
   defineTestAgent,
   makeServer,
@@ -11,7 +11,7 @@ import {
   mockToolCallModel,
   parseSse,
   readSse,
-} from '@bread/test-utils'
+} from '@breadai/test-utils'
 
 const json = { 'content-type': 'application/json' }
 

@@ -4,18 +4,18 @@
   </a>
 </p>
 
-# @bread/auth-oauth2
+# @breadai/auth-oauth2
 
 OAuth 2.0 auth for bread — two independent factories, each its own option shape: `authStrategy()`
-validates an incoming bearer token as a JWT (reusing `@bread/auth-jwt`), `signer()` runs the
+validates an incoming bearer token as a JWT (reusing `@breadai/auth-jwt`), `signer()` runs the
 client-credentials grant with token caching.
 
 ```bash
-bun add @bread/auth-oauth2   # or: npm i @bread/auth-oauth2
+bun add @breadai/auth-oauth2   # or: npm i @breadai/auth-oauth2
 ```
 
 ```ts
-import { authStrategy, signer } from '@bread/auth-oauth2'
+import { authStrategy, signer } from '@breadai/auth-oauth2'
 
 // server side: validate incoming bearer tokens
 const strategy = authStrategy({

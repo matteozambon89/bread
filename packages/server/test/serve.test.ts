@@ -1,9 +1,9 @@
 import { afterEach, describe, expect, test } from 'bun:test'
-import type { AgentRegistry, BreadConfig } from '@bread/core'
-import { startServer } from '@bread/server'
-import { store } from '@bread/store-memory'
-import { transport } from '@bread/transport-http-sse'
-import { defineTestAgent, mockProvider, mockTextModel } from '@bread/test-utils'
+import type { AgentRegistry, BreadConfig } from '@breadai/core'
+import { startServer } from '@breadai/server'
+import { store } from '@breadai/store-memory'
+import { transport } from '@breadai/transport-http-sse'
+import { defineTestAgent, mockProvider, mockTextModel } from '@breadai/test-utils'
 
 // Smoke tests for the port-binding path (`bread dev`/`bread start` both call
 // startServer, which binds via Bun.serve).

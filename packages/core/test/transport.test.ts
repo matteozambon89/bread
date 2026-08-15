@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
-import { BreadError, fromWireCrumb, streamTransport, toWireCrumb } from '@bread/core'
-import type { BreadCrumb, BusFrame, ToolErrorCrumb } from '@bread/core'
+import { BreadError, fromWireCrumb, streamTransport, toWireCrumb } from '@breadai/core'
+import type { BreadCrumb, BusFrame, ToolErrorCrumb } from '@breadai/core'
 
 const crumb = (runId: string): BreadCrumb => ({
   type: 'agent:run:start',

@@ -1,7 +1,7 @@
 import { join } from 'node:path'
 import { describe, expect, test } from 'bun:test'
-import { BreadError, envProvider, injectSkillPrompt, loadSkill, loadSkillMeta } from '@bread/core'
-import type { ToolContext } from '@bread/core'
+import { BreadError, envProvider, injectSkillPrompt, loadSkill, loadSkillMeta } from '@breadai/core'
+import type { ToolContext } from '@breadai/core'
 // Runner-internal helpers not on the public surface — import from source.
 import { createLoadSkillTool, loadSkillTools, skillSummary } from '../src/skills.js'
 

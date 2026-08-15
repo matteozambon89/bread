@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import type { BlobStore } from '@bread/core'
+import type { BlobStore } from '@breadai/core'
 
 // A behavioral contract every BlobStore implementation must satisfy,
 // expressed as runner-agnostic cases (node:assert), like the store and

@@ -1,4 +1,4 @@
-# OpenTelemetry — `@bread/otel`
+# OpenTelemetry — `@breadai/otel`
 
 Traces every run. The plugin subscribes to the crumb bus and maps each crumb type to a span:
 
@@ -21,8 +21,8 @@ not a parent `runId`). `close()` ends any spans a crashed run left open.
 
 ```ts
 // bread.config.ts
-import { defineConfig } from '@bread/core'
-import { otel } from '@bread/otel'
+import { defineConfig } from '@breadai/core'
+import { otel } from '@breadai/otel'
 
 export default defineConfig({
   entrypoints: ['researcher'],

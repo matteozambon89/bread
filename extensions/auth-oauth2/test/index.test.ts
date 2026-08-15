@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { SignJWT } from 'jose'
-import { authStrategy, signer } from '@bread/auth-oauth2'
+import { authStrategy, signer } from '@breadai/auth-oauth2'
 
 const SECRET = 'oauth-verify-secret'
 

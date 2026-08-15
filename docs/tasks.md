@@ -16,7 +16,7 @@ A task lives in `tasks/<id>.ts` and is created with `defineTask`. The loader reg
 `name` (the tool name the model sees).
 
 ```ts
-import { defineTask } from '@bread/core'
+import { defineTask } from '@breadai/core'
 import { z } from 'zod'
 
 export default defineTask({
@@ -101,7 +101,7 @@ agent's tool set. An unknown id fails the run with `TASK_NOT_FOUND`.
 Every task invocation is both streamed and recorded:
 
 - **Crumbs** — `task:start` and `task:end` (with `taskRunId`, `taskId`, model, `durationMs`, token
-  `usage`, and `status`) flow on the agent run's stream, SSE, and OpenTelemetry (via `@bread/otel`).
+  `usage`, and `status`) flow on the agent run's stream, SSE, and OpenTelemetry (via `@breadai/otel`).
 - **Durable audit** — a `TaskRunRecord` (input, output, model, usage, timing, status) is persisted
   via the store's optional `createTaskRun`/`finishTaskRun` methods and queryable after the fact.
 

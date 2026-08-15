@@ -1,5 +1,5 @@
-import type { BreadCrumb } from '@bread/core'
-import { isFileOutput } from '@bread/core'
+import type { BreadCrumb } from '@breadai/core'
+import { isFileOutput } from '@breadai/core'
 import { v7 as uuidv7 } from 'uuid'
 import { jsonRpcError } from '../jsonrpc.js'
 import { formatJsonRpcSseEvent, toClientError } from '../sse.js'
@@ -150,7 +150,7 @@ async function* runToA2AEventsV1(
     }
   } catch (err) {
     const id = state.taskId || uuidv7()
-    // continueRun (@bread/core) yields the agent:error crumb (already mapped
+    // continueRun (@breadai/core) yields the agent:error crumb (already mapped
     // to TASK_STATE_CANCELED/TASK_STATE_FAILED above by crumbToEventV1) and
     // *then* throws, so this catch's own statusUpdate must agree with that
     // mapping rather than always saying FAILED.

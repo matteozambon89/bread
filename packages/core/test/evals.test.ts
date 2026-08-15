@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { defineEval, runEvals } from '@bread/core'
+import { defineEval, runEvals } from '@breadai/core'
 import { MockLanguageModelV3 } from 'ai/test'
 
 // llmJudge drives `generateText` (non-streaming, `doGenerate`) — unlike the

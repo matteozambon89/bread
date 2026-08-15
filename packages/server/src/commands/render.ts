@@ -1,4 +1,4 @@
-import type { ToolCallCrumb } from '@bread/core'
+import type { ToolCallCrumb } from '@breadai/core'
 
 const DIM = '\x1b[2m'
 const RESET = '\x1b[0m'

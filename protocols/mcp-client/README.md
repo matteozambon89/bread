@@ -4,7 +4,7 @@
   </a>
 </p>
 
-# @bread/protocol-mcp-client
+# @breadai/protocol-mcp-client
 
 Consume [Model Context Protocol](https://modelcontextprotocol.io) servers from bread agents:
 config-level `servers` (stdio or Streamable HTTP, with automatic legacy-SSE fallback) shared
@@ -13,12 +13,12 @@ tools are snake_case-sanitized, namespaced `<server>__<tool>`, permission-tagged
 `plugin:mcp_client/…`, and auth-signed per request (expiring tokens refresh naturally).
 
 ```bash
-bun add @bread/protocol-mcp-client   # or: npm i @bread/protocol-mcp-client
+bun add @breadai/protocol-mcp-client   # or: npm i @breadai/protocol-mcp-client
 ```
 
 ```ts
-import { defineConfig } from '@bread/core'
-import { mcpClient } from '@bread/protocol-mcp-client'
+import { defineConfig } from '@breadai/core'
+import { mcpClient } from '@breadai/protocol-mcp-client'
 
 export default defineConfig({
   entrypoints: ['researcher'],

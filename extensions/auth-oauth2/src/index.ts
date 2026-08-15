@@ -1,5 +1,5 @@
-import type { BreadAuthStrategy, BreadSigner } from '@bread/core'
-import { authStrategy as jwtAuthStrategy } from '@bread/auth-jwt'
+import type { BreadAuthStrategy, BreadSigner } from '@breadai/core'
+import { authStrategy as jwtAuthStrategy } from '@breadai/auth-jwt'
 
 export interface VerifyOptions {
   /** HS256 symmetric secret. */
@@ -10,9 +10,9 @@ export interface VerifyOptions {
   audience?: string
   /** Header to read. Default `authorization` (Bearer). */
   header?: string
-  /** Mirrors `@bread/auth-jwt`'s `JwtOptions.algorithms` — see there for the default. */
+  /** Mirrors `@breadai/auth-jwt`'s `JwtOptions.algorithms` — see there for the default. */
   algorithms?: string[]
-  /** Mirrors `@bread/auth-jwt`'s `JwtOptions.allowUnverifiedIssuerAudience`. */
+  /** Mirrors `@breadai/auth-jwt`'s `JwtOptions.allowUnverifiedIssuerAudience`. */
   allowUnverifiedIssuerAudience?: boolean
 }
 
@@ -27,7 +27,7 @@ export interface ClientCredentialsOptions {
 
 /**
  * OAuth 2.0 bearer-token verification (the MCP standard for HTTP transports):
- * validates an incoming access token as a JWT, reusing `@bread/auth-jwt`.
+ * validates an incoming access token as a JWT, reusing `@breadai/auth-jwt`.
  */
 export function authStrategy(opts: VerifyOptions): BreadAuthStrategy {
   const jwtStrategy = jwtAuthStrategy(opts)

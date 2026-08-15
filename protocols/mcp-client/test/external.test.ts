@@ -1,8 +1,8 @@
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js'
-import { defineTestAgent, makeBread, mockScript, runCollect } from '@bread/test-utils'
-import { mcpClient } from '@bread/protocol-mcp-client'
+import { defineTestAgent, makeBread, mockScript, runCollect } from '@breadai/test-utils'
+import { mcpClient } from '@breadai/protocol-mcp-client'
 
 // A fixture MCP HTTP server that counts how many times a fresh session was
 // established (one per `initialize` request), so cache-dedup can be asserted

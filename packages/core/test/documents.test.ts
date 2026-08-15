@@ -1,8 +1,8 @@
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
-import { createDocTools, envProvider } from '@bread/core'
-import type { BreadStore, ToolContext, ToolDefinition } from '@bread/core'
-import { store } from '@bread/store-memory'
+import { createDocTools, envProvider } from '@breadai/core'
+import type { BreadStore, ToolContext, ToolDefinition } from '@breadai/core'
+import { store } from '@breadai/store-memory'
 
 const ctx: ToolContext = {
   agentId: 'a',

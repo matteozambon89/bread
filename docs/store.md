@@ -8,8 +8,8 @@ bundles a database driver — you choose a backend and set it explicitly.
 Set `store` in `bread.config.ts`:
 
 ```ts
-import { defineConfig } from '@bread/core'
-import { store } from '@bread/store-sqlite'
+import { defineConfig } from '@breadai/core'
+import { store } from '@breadai/store-sqlite'
 
 export default defineConfig({
   entrypoints: ['writer'],
@@ -21,7 +21,7 @@ export default defineConfig({
 touches it). `DATABASE_URL` is a Postgres concern owned by the Postgres store, not by bread.
 
 ```ts
-import { store } from '@bread/store-postgres'
+import { store } from '@breadai/store-postgres'
 
 export default defineConfig({
   entrypoints: ['writer'],
@@ -56,9 +56,9 @@ them).
 
 | Package | Backend | When to use |
 |---------|---------|-------------|
-| `@bread/store-postgres` | PostgreSQL | Recommended for production; `store()` reads `DATABASE_URL` |
-| `@bread/store-sqlite` | SQLite via `bun:sqlite` | Local dev — works out of the box, no external service |
-| `@bread/store-memory` | In-memory | Unit tests, ephemeral runs |
+| `@breadai/store-postgres` | PostgreSQL | Recommended for production; `store()` reads `DATABASE_URL` |
+| `@breadai/store-sqlite` | SQLite via `bun:sqlite` | Local dev — works out of the box, no external service |
+| `@breadai/store-memory` | In-memory | Unit tests, ephemeral runs |
 
 All three implement the same flat `BreadStore`, so swapping is a one-line change to `store`. See the
 [`store-showcase`](../examples/store-showcase) example for all three side by side.
@@ -78,7 +78,7 @@ are embedded on write and searched by cosine similarity via [pgvector](https://g
 without it, search falls back to keyword (`ILIKE`) matching.
 
 ```ts
-import { store } from '@bread/store-postgres'
+import { store } from '@breadai/store-postgres'
 import { openai } from '@ai-sdk/openai'
 
 store: store({
@@ -100,9 +100,9 @@ reasonably implement `BreadStore`'s session/checkpoint/loop contract; `BlobStore
 `BreadTransport` as bread's other pluggable seam, not a bolt-on to `store`.
 
 ```ts
-import { defineConfig } from '@bread/core'
-import { store } from '@bread/store-postgres'
-import { store as blobStore } from '@bread/store-s3'
+import { defineConfig } from '@breadai/core'
+import { store } from '@breadai/store-postgres'
+import { store as blobStore } from '@breadai/store-s3'
 
 export default defineConfig({
   entrypoints: ['assistant'],
@@ -116,9 +116,9 @@ A feature that needs it fails with its own clear, feature-specific error only wh
 used without one configured, the same way `BreadStore`'s optional knowledge/document methods
 degrade gracefully rather than crashing at startup. Current consumers:
 
-- `@bread/protocol-a2a-server`'s inline `FilePart` handling (input-side) and output-side `FilePart`
+- `@breadai/protocol-a2a-server`'s inline `FilePart` handling (input-side) and output-side `FilePart`
   mapping (see [a2a.md](./a2a.md#files)).
-- `@bread/core`'s runner — a model that generates a file directly (e.g. an image-generation-capable
+- `@breadai/core`'s runner — a model that generates a file directly (e.g. an image-generation-capable
   model) is stored automatically via `blobStore.put()`; a run with none configured throws a runtime
   `BreadError('BLOB_STORE_NOT_CONFIGURED', ...)` the moment the model actually produces a file, not
   at startup.
@@ -126,6 +126,6 @@ degrade gracefully rather than crashing at startup. Current consumers:
   store a file it generates or fetches; see [tools.md](./tools.md#toolcontext).
 
 `BlobStore.put()` generates its own key (like `ingestDocument` generates its own document id) and
-returns a retrievable `url` — for `@bread/store-s3`, a presigned GET URL. There's no
-`@bread/store-*` in-memory blob implementation published (unlike `BreadStore`'s
-`@bread/store-memory`) since nothing besides tests currently needs one.
+returns a retrievable `url` — for `@breadai/store-s3`, a presigned GET URL. There's no
+`@breadai/store-*` in-memory blob implementation published (unlike `BreadStore`'s
+`@breadai/store-memory`) since nothing besides tests currently needs one.

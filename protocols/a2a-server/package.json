@@ -1,5 +1,5 @@
 {
-  "name": "@bread/protocol-a2a-server",
+  "name": "@breadai/protocol-a2a-server",
   "version": "0.1.0",
   "type": "module",
   "exports": {
@@ -10,12 +10,12 @@
     }
   },
   "dependencies": {
-    "@bread/core": "workspace:*",
+    "@breadai/core": "workspace:*",
     "uuid": "^11.1.0"
   },
   "devDependencies": {
-    "@bread/server": "workspace:*",
-    "@bread/test-utils": "workspace:*",
+    "@breadai/server": "workspace:*",
+    "@breadai/test-utils": "workspace:*",
     "@types/bun": "latest",
     "hono": "^4.8.4",
     "typescript": "^5.8.3",

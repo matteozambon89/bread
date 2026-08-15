@@ -1,4 +1,4 @@
-import { defineEval } from '@bread/core'
+import { defineEval } from '@breadai/core'
 
 export default defineEval({
   agentId: 'writer',

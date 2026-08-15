@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 import { z } from 'zod'
-import type { AgentRunEndCrumb, BreadInstance } from '@bread/core'
-import { defineTestAgent, makeBread, mockObjectModel, runCollect } from '@bread/test-utils'
+import type { AgentRunEndCrumb, BreadInstance } from '@breadai/core'
+import { defineTestAgent, makeBread, mockObjectModel, runCollect } from '@breadai/test-utils'
 
 describe('runner — structured (json) output', () => {
   let bread: BreadInstance

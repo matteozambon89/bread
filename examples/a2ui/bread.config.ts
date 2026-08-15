@@ -1,8 +1,8 @@
-import { defineConfig } from '@bread/core'
-import { a2ui } from '@bread/a2ui'
-import { providerCatalog } from '@bread/provider-catalog'
-import { store } from '@bread/store-sqlite'
-import { transport } from '@bread/transport-http-chunked'
+import { defineConfig } from '@breadai/core'
+import { a2ui } from '@breadai/a2ui'
+import { providerCatalog } from '@breadai/provider-catalog'
+import { store } from '@breadai/store-sqlite'
+import { transport } from '@breadai/transport-http-chunked'
 
 export default defineConfig({
   entrypoints: ['assistant'],

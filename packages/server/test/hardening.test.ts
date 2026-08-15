@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
-import type { BreadInstance } from '@bread/core'
+import type { BreadInstance } from '@breadai/core'
 import type { Hono } from 'hono'
-import { defineTestAgent, makeServer, mockErrorModel, mockTextModel, readSse } from '@bread/test-utils'
+import { defineTestAgent, makeServer, mockErrorModel, mockTextModel, readSse } from '@breadai/test-utils'
 
 describe('SSE error sanitization', () => {
   let app: Hono

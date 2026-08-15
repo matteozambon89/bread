@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
 import { SignJWT, type KeyLike, exportJWK, generateKeyPair } from 'jose'
-import { authStrategy } from '@bread/auth-jwt'
+import { authStrategy } from '@breadai/auth-jwt'
 
 const SECRET = 'super-secret-signing-key'
 

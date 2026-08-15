@@ -1,8 +1,8 @@
-import { defineConfig } from '@bread/core'
-import { otel } from '@bread/otel'
-import { providerCatalog } from '@bread/provider-catalog'
-import { store } from '@bread/store-sqlite'
-import { transport } from '@bread/transport-http-chunked'
+import { defineConfig } from '@breadai/core'
+import { otel } from '@breadai/otel'
+import { providerCatalog } from '@breadai/provider-catalog'
+import { store } from '@breadai/store-sqlite'
+import { transport } from '@breadai/transport-http-chunked'
 import {
   ConsoleSpanExporter,
   NodeTracerProvider,

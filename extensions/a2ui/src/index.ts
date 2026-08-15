@@ -1,5 +1,5 @@
-import { isFileOutput } from '@bread/core'
-import type { BreadCrumb, BreadInstanceRef, BreadPlugin } from '@bread/core'
+import { isFileOutput } from '@breadai/core'
+import type { BreadCrumb, BreadInstanceRef, BreadPlugin } from '@breadai/core'
 
 // A2UI (Agent-to-UI) — Google A2UI declarative UI spec v1.0-candidate
 export type A2UIComponentType = 'text' | 'markdown' | 'card' | 'form' | 'progress' | 'error' | 'file'

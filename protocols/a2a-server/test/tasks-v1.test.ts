@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import { z } from 'zod'
-import { defineHumanTool } from '@bread/core'
+import { defineHumanTool } from '@breadai/core'
 import {
   collect,
   defineTestAgent,
@@ -9,7 +9,7 @@ import {
   mockTextModel,
   mockToolCallModel,
   runCollect,
-} from '@bread/test-utils'
+} from '@breadai/test-utils'
 import { a2aServer } from '../src/index.js'
 import { parseJsonRpcSse, readBodyToEnd, readBodyUntil } from './sse-helpers.js'
 

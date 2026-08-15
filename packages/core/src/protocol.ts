@@ -9,8 +9,8 @@ import { fromWireCrumb, toWireCrumb } from './transport.js'
 // to request replay from a given point.
 //
 // This module defines the envelope and its encoder/decoder; concrete
-// conformers are @bread/transport-http-chunked (NDJSON CrumbFrame lines) and,
-// for the SSE wire format specifically, @bread/transport-http-sse's own ad
+// conformers are @breadai/transport-http-chunked (NDJSON CrumbFrame lines) and,
+// for the SSE wire format specifically, @breadai/transport-http-sse's own ad
 // hoc `{ type, payload }` framing predates this module and isn't rewritten
 // onto it (a deliberate wire-compatibility choice — see that package).
 

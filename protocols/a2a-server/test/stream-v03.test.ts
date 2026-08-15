@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { defineTestAgent, makeServer, memoryBlobStore, mockErrorModel, mockFileGeneratingModel, mockTextModel } from '@bread/test-utils'
+import { defineTestAgent, makeServer, memoryBlobStore, mockErrorModel, mockFileGeneratingModel, mockTextModel } from '@breadai/test-utils'
 import { a2aServer } from '../src/index.js'
 import { parseJsonRpcSse } from './sse-helpers.js'
 

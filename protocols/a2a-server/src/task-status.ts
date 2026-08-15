@@ -1,4 +1,4 @@
-import type { CrumbLogEntry } from '@bread/core'
+import type { CrumbLogEntry } from '@breadai/core'
 
 // No persisted task registry — status is always derived fresh from the
 // run's own crumb log, the way transport-http-sse's passive stream route

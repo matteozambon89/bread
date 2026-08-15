@@ -1,5 +1,5 @@
 {
-  "name": "@bread/protocol-mcp-client",
+  "name": "@breadai/protocol-mcp-client",
   "version": "0.1.0",
   "description": "MCP client plugin for bread — connect agents to MCP servers (config-level or per-agent) over stdio, Streamable HTTP, or legacy SSE, with credential-aware auth signing.",
   "license": "MIT",
@@ -42,12 +42,12 @@
     "build": "bun build ./src/index.ts --outdir dist --target node --format esm --packages external && tsc --emitDeclarationOnly --outDir dist"
   },
   "dependencies": {
-    "@bread/core": "workspace:*",
+    "@breadai/core": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@bread/test-utils": "workspace:*",
+    "@breadai/test-utils": "workspace:*",
     "@types/bun": "latest",
     "typescript": "^5.8.3"
   }

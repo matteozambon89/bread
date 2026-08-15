@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict'
 import { afterAll, beforeAll, afterEach, test } from 'bun:test'
-import type { CrumbLogEntry } from '@bread/core'
-import { store } from '@bread/store-postgres'
-import { type PgliteHandle, withPglite } from '@bread/test-utils'
+import type { CrumbLogEntry } from '@breadai/core'
+import { store } from '@breadai/store-postgres'
+import { type PgliteHandle, withPglite } from '@breadai/test-utils'
 
 // STA-03: appendCrumbs must be all-or-nothing. A batch where one entry
 // violates a constraint (here: an FK to a nonexistent session) must leave no

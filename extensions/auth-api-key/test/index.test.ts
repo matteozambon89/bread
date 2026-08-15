@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { authStrategy, signer } from '@bread/auth-api-key'
+import { authStrategy, signer } from '@breadai/auth-api-key'
 
 function reqWith(headers: Record<string, string>): Request {
   return new Request('http://x/agents', { headers })

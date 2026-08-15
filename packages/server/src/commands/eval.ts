@@ -1,6 +1,6 @@
-import { runEvals } from '@bread/core'
+import { runEvals } from '@breadai/core'
 import { loadAgents, loadConfig, loadEvals, loadTasks } from '../loader.js'
-import { createBread } from '@bread/core'
+import { createBread } from '@breadai/core'
 
 export interface EvalCommandOptions {
   cwd: string

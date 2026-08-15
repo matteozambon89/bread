@@ -1,4 +1,4 @@
-import { defineAgent } from '@bread/core'
+import { defineAgent } from '@breadai/core'
 import { z } from 'zod'
 
 // Loop host: composes ticket-lookup -> policy-check, judges the result, and iterates

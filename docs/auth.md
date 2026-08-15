@@ -1,4 +1,4 @@
-# Auth — `@bread/auth-api-key`, `@bread/auth-jwt`, `@bread/auth-oauth2`
+# Auth — `@breadai/auth-api-key`, `@breadai/auth-jwt`, `@breadai/auth-oauth2`
 
 Auth for bread splits into two roles, each its own core type:
 
@@ -7,23 +7,23 @@ Auth for bread splits into two roles, each its own core type:
 - **client side** — a `BreadSigner`'s `sign(headers)` attaches credentials to an outgoing request.
 
 Three packages, one per mechanism, each exporting the half(s) it supports. To attach a strategy to
-a running server, pass it to `@bread/server`'s `authPlugin()` — see
+a running server, pass it to `@breadai/server`'s `authPlugin()` — see
 [Guarding the server](#guarding-the-server) below.
 
 | Package | `authStrategy(opts)` | `signer(opts)` |
 |---|---|---|
-| `@bread/auth-api-key` | yes | yes |
-| `@bread/auth-jwt` | yes | — (verification only) |
-| `@bread/auth-oauth2` | yes (`VerifyOptions`) | yes (`ClientCredentialsOptions`, distinct shape) |
+| `@breadai/auth-api-key` | yes | yes |
+| `@breadai/auth-jwt` | yes | — (verification only) |
+| `@breadai/auth-oauth2` | yes (`VerifyOptions`) | yes (`ClientCredentialsOptions`, distinct shape) |
 
 ```bash
-bun add @bread/auth-api-key   # or auth-jwt / auth-oauth2
+bun add @breadai/auth-api-key   # or auth-jwt / auth-oauth2
 ```
 
 ## API key
 
 ```ts
-import { authStrategy, signer } from '@bread/auth-api-key'
+import { authStrategy, signer } from '@breadai/auth-api-key'
 
 const strategy = authStrategy({
   header: 'authorization',     // default
@@ -40,7 +40,7 @@ attaches the first key.
 ## JWT
 
 ```ts
-import { authStrategy } from '@bread/auth-jwt'
+import { authStrategy } from '@breadai/auth-jwt'
 
 const strategy = authStrategy({
   secret: process.env.JWT_SECRET,        // HS256, or:
@@ -53,7 +53,7 @@ const strategy = authStrategy({
 
 Verification uses [`jose`](https://github.com/panva/jose). The resolved identity carries the full
 claims: `{ subject: String(payload.sub ?? 'jwt'), claims: payload }` — `subject` falls back to the
-literal string `'jwt'` when the token has no `sub` claim. `@bread/auth-jwt` is verification-only —
+literal string `'jwt'` when the token has no `sub` claim. `@breadai/auth-jwt` is verification-only —
 no `signer`; a static preconfigured token to attach was its weakest capability and isn't carried
 over.
 
@@ -73,9 +73,9 @@ The MCP standard for HTTP transports. Two independent factories, each with its o
 not one call conditionally shaped by which fields you pass.
 
 ```ts
-import { authStrategy, signer } from '@bread/auth-oauth2'
+import { authStrategy, signer } from '@breadai/auth-oauth2'
 
-// server side: validate incoming bearer tokens as JWTs (reuses @bread/auth-jwt internally)
+// server side: validate incoming bearer tokens as JWTs (reuses @breadai/auth-jwt internally)
 const strategy = authStrategy({
   jwksUri: 'https://issuer/.well-known/jwks.json',
   issuer: 'https://issuer/',
@@ -92,9 +92,9 @@ const sign = signer({
 
 `ClientCredentialsOptions` requires `tokenUrl`/`clientId`/`clientSecret` at the type level — an
 incomplete client config is a compile error, not a construction-time throw. `VerifyOptions` mirrors
-`@bread/auth-jwt`'s `JwtOptions` field-for-field (including `algorithms` and
+`@breadai/auth-jwt`'s `JwtOptions` field-for-field (including `algorithms` and
 `allowUnverifiedIssuerAudience`), and `authStrategy()` inherits the same construction-time
-validation described above, since it delegates straight to `@bread/auth-jwt`.
+validation described above, since it delegates straight to `@breadai/auth-jwt`.
 
 `clientSecret` is an ordinary string option: it lives in whatever loaded your config (typically
 an env var, as above) and is sent form-encoded to `tokenUrl` over whatever transport that URL
@@ -105,7 +105,7 @@ it before calling `signer(...)` (e.g. via a core `CredentialProvider` like `vaul
 
 Bread has no built-in opinion on auth — a server with no auth plugin serves every request, no
 gate. Configuring auth (or any other posture: a reverse proxy, a network boundary, your own
-middleware) is entirely up to you. `@bread/server`'s `authPlugin()` turns one or more strategies
+middleware) is entirely up to you. `@breadai/server`'s `authPlugin()` turns one or more strategies
 into a `BreadPlugin` you drop into `config.plugins`, same as any other plugin: it rejects any
 request none of the strategies authenticate (`401`), and stashes the identity on the request
 context.
@@ -120,9 +120,9 @@ silences it.
 
 ```ts
 // bread.config.ts
-import { defineConfig } from '@bread/core'
-import { authStrategy } from '@bread/auth-api-key'
-import { authPlugin } from '@bread/server'
+import { defineConfig } from '@breadai/core'
+import { authStrategy } from '@breadai/auth-api-key'
+import { authPlugin } from '@breadai/server'
 
 export default defineConfig({
   entrypoints: ['researcher'],
@@ -132,7 +132,7 @@ export default defineConfig({
 
 A direct `createServer()` consumer (no `bread.config.ts`) wires this the same way, since plugins
 are just part of `config.plugins`. `authMiddleware(strategies)` (also exported from
-`@bread/server`) is the lower-level building block `authPlugin()` is built on, if you'd rather
+`@breadai/server`) is the lower-level building block `authPlugin()` is built on, if you'd rather
 apply it to a Hono app yourself instead of going through the plugin system.
 
 ## Signing outgoing requests

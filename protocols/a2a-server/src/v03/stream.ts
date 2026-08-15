@@ -1,5 +1,5 @@
-import type { BreadCrumb } from '@bread/core'
-import { isFileOutput } from '@bread/core'
+import type { BreadCrumb } from '@breadai/core'
+import { isFileOutput } from '@breadai/core'
 import { v7 as uuidv7 } from 'uuid'
 import { jsonRpcError } from '../jsonrpc.js'
 import { formatJsonRpcSseEvent, toClientError } from '../sse.js'
@@ -156,7 +156,7 @@ async function* runToA2AEventsV03(
     }
   } catch (err) {
     const id = state.taskId || uuidv7()
-    // continueRun (@bread/core) yields the agent:error crumb (already mapped
+    // continueRun (@breadai/core) yields the agent:error crumb (already mapped
     // to 'canceled'/'failed' above by crumbToEventV03) and *then* throws, so
     // this catch's own status-update must agree with that mapping rather
     // than always saying 'failed' — otherwise a cancelled run's terminal

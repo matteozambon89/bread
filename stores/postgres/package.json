@@ -1,5 +1,5 @@
 {
-  "name": "@bread/store-postgres",
+  "name": "@breadai/store-postgres",
   "version": "0.1.0",
   "description": "PostgreSQL BreadStore for bread — the default backend. Persists sessions, checkpoints, the knowledge graph, and documents; optional pgvector semantic search via an embed function.",
   "license": "MIT",
@@ -40,12 +40,12 @@
     "build": "bun build ./src/index.ts --outdir dist --target node --format esm --packages external && tsc --emitDeclarationOnly --outDir dist"
   },
   "dependencies": {
-    "@bread/core": "workspace:*",
+    "@breadai/core": "workspace:*",
     "postgres": "^3.4.5",
     "uuid": "^11.1.0"
   },
   "devDependencies": {
-    "@bread/test-utils": "workspace:*",
+    "@breadai/test-utils": "workspace:*",
     "@types/bun": "latest",
     "typescript": "^5.8.3"
   }

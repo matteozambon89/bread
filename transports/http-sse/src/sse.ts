@@ -1,5 +1,5 @@
-import type { BreadCrumb } from '@bread/core'
-import { BreadError } from '@bread/core'
+import type { BreadCrumb } from '@breadai/core'
+import { BreadError } from '@breadai/core'
 
 // Today's SSE wire format, relocated verbatim (wire-compatible, not a
 // redesign) from packages/server/src/server.ts: `data: {type,payload}\n\n`,

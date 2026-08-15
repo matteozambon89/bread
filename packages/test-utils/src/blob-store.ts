@@ -1,7 +1,7 @@
 import { v7 as uuidv7 } from 'uuid'
-import type { BlobStore } from '@bread/core'
+import type { BlobStore } from '@breadai/core'
 
-// A minimal, ephemeral BlobStore for tests — mirrors @bread/store-memory's
+// A minimal, ephemeral BlobStore for tests — mirrors @breadai/store-memory's
 // role for BreadStore. Not published; lives here only.
 export function memoryBlobStore(): BlobStore {
   const blobs = new Map<string, { data: Uint8Array; mimeType?: string }>()

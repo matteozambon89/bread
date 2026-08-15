@@ -1,5 +1,5 @@
 import { type JWTPayload, type JWTVerifyGetKey, createRemoteJWKSet, jwtVerify } from 'jose'
-import type { BreadAuthStrategy } from '@bread/core'
+import type { BreadAuthStrategy } from '@breadai/core'
 
 // Default allowlist for asymmetric (JWKS) mode — the common RS/PS/ES families. Overridable via
 // `algorithms`; a caller using a narrower key set should pin it explicitly.

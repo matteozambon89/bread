@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
-import { BreadError } from '@bread/core'
-import type { BusFrame } from '@bread/core'
+import { BreadError } from '@breadai/core'
+import type { BusFrame } from '@breadai/core'
 import { transport } from '../src/index.js'
 
 function frame(overrides: Partial<BusFrame> & Pick<BusFrame, 'crumb'>): BusFrame {
@@ -30,7 +30,7 @@ function captureWrites(fn: () => void): { out: string; err: string } {
   return { out, err }
 }
 
-describe('@bread/transport-stdout', () => {
+describe('@breadai/transport-stdout', () => {
   test('capability is sink — no subscribe', () => {
     expect(transport().capability).toBe('sink')
     expect(transport().subscribe).toBeUndefined()

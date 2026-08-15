@@ -1,7 +1,7 @@
-import { defineConfig } from '@bread/core'
-import { store } from '@bread/store-memory'
-import { transport } from '@bread/transport-http-chunked'
-import { mockProvider, mockTextModel } from '@bread/test-utils'
+import { defineConfig } from '@breadai/core'
+import { store } from '@breadai/store-memory'
+import { transport } from '@breadai/transport-http-chunked'
+import { mockProvider, mockTextModel } from '@breadai/test-utils'
 
 // Fixture for packages/cli/test/serve.test.ts — a mount-capable transport
 // (required by `bread start`/`bread dev`), with config.server.port set so

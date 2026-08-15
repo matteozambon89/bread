@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 import { z } from 'zod'
-import { defineTool } from '@bread/core'
-import type { CredentialProvider, HumanRequiredCrumb } from '@bread/core'
-import { collect, defineTestAgent, makeBread, mockScript, runCollect } from '@bread/test-utils'
+import { defineTool } from '@breadai/core'
+import type { CredentialProvider, HumanRequiredCrumb } from '@breadai/core'
+import { collect, defineTestAgent, makeBread, mockScript, runCollect } from '@breadai/test-utils'
 
 function makeCredentialTool(
   captured: Array<string | undefined>,

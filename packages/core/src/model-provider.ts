@@ -19,7 +19,7 @@ export interface ModelRef {
 // A named-instance registry: keys are provider names as referenced by
 // `model.provider`, values are callable AI SDK provider instances (or any
 // custom factory) — e.g. `{ anthropic, 'anthropic-eu': createAnthropic({...}) }`.
-// A factory may resolve asynchronously (see @bread/provider-catalog, which
+// A factory may resolve asynchronously (see @breadai/provider-catalog, which
 // lazy-imports each @ai-sdk/* package on first use).
 export type ProviderRegistry = Record<
   string,
@@ -42,7 +42,7 @@ export function modelCallOptions(ref: ModelRef): CallSettings & {
 // Callers pass the most specific registry first (e.g. an agent's own
 // `cfg.providers` ahead of the global `config.providers`), so resolution is
 // agent → global → error. Core has no built-in providers of its own; install
-// `@bread/provider-catalog` for the common @ai-sdk/* set, or register your own.
+// `@breadai/provider-catalog` for the common @ai-sdk/* set, or register your own.
 export async function resolveModel(
   ref: ModelRef,
   registries?: (ProviderRegistry | undefined)[],
@@ -56,7 +56,7 @@ export async function resolveModel(
   throw new BreadError(
     `Unknown model provider: "${ref.provider}". ` +
       (known.length ? `Registered: ${known.join(', ')}. ` : 'No providers are registered. ') +
-      'Set `providers` in bread.config.ts (see @bread/provider-catalog for the built-in AI SDK ' +
+      'Set `providers` in bread.config.ts (see @breadai/provider-catalog for the built-in AI SDK ' +
       "providers), or override per-agent via the agent's `providers`.",
     'UNKNOWN_PROVIDER',
     { provider: ref.provider },

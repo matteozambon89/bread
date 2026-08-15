@@ -1,10 +1,10 @@
 import { afterEach, describe, expect, test } from 'bun:test'
-import type { AgentRegistry, BreadConfig, BreadCrumb } from '@bread/core'
-import { BreadError } from '@bread/core'
-import { startServer } from '@bread/server'
-import { store } from '@bread/store-memory'
-import { defineTestAgent, mockChunkedTextModel, mockProvider } from '@bread/test-utils'
-import { remoteAgent, transport } from '@bread/transport-http-chunked'
+import type { AgentRegistry, BreadConfig, BreadCrumb } from '@breadai/core'
+import { BreadError } from '@breadai/core'
+import { startServer } from '@breadai/server'
+import { store } from '@breadai/store-memory'
+import { defineTestAgent, mockChunkedTextModel, mockProvider } from '@breadai/test-utils'
+import { remoteAgent, transport } from '@breadai/transport-http-chunked'
 
 // A real Bun.serve() smoke test: aborting the client-side remoteAgent().run()
 // call must (a) surface as a RUN_CANCELLED BreadError locally — not a silent
@@ -50,7 +50,7 @@ async function waitForCrumbType(
   return undefined
 }
 
-describe('@bread/transport-http-chunked — remoteAgent() cancellation', () => {
+describe('@breadai/transport-http-chunked — remoteAgent() cancellation', () => {
   let stops: Array<() => Promise<void>> = []
 
   afterEach(async () => {

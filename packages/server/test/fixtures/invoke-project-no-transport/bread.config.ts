@@ -1,6 +1,6 @@
-import { defineConfig } from '@bread/core'
-import { store } from '@bread/store-memory'
-import { mockProvider } from '@bread/test-utils'
+import { defineConfig } from '@breadai/core'
+import { store } from '@breadai/store-memory'
+import { mockProvider } from '@breadai/test-utils'
 
 // A store but no transport — exercises runInvoke's own TRANSPORT_NOT_CONFIGURED
 // guard (distinct from createServer's).

@@ -5,14 +5,14 @@ question, has its own contract, and scales independently:
 
 | Seam | Question it answers | Direction | Interface | Reference implementation |
 |------|--------------------|-----------|-----------|--------------------------|
-| **Ingress** | How do callers reach an instance? | outside → instance | the public `BreadInstance` API | `config.transport.mount()` (HTTP), `@bread/protocol-mcp-server` (MCP) |
+| **Ingress** | How do callers reach an instance? | outside → instance | the public `BreadInstance` API | `config.transport.mount()` (HTTP), `@breadai/protocol-mcp-server` (MCP) |
 | **Remote agents** | How does one bread call agents on *another* bread? | instance → peer | `RemoteAgent` via `config.remoteAgents` | a transport's own `remoteAgent()` |
-| **Transport** | How do replicas of the *same* app share live crumbs? | replica ↔ replica | `BreadTransport` via `config.transport` | embedded Stream default; `@bread/transport-redis` |
+| **Transport** | How do replicas of the *same* app share live crumbs? | replica ↔ replica | `BreadTransport` via `config.transport` | embedded Stream default; `@breadai/transport-redis` |
 
-The HTTP ingress is no longer `@bread/server`-owned code: `createServer()` mounts whichever
+The HTTP ingress is no longer `@breadai/server`-owned code: `createServer()` mounts whichever
 mount-capable transport `config.transport` names (`config.transport.mount(app, bread)`) —
 implemented purely against the public instance surface, the same discipline a fully external
-ingress like `@bread/protocol-mcp-server` already follows. `@bread/server` itself keeps only what's
+ingress like `@breadai/protocol-mcp-server` already follows. `@breadai/server` itself keeps only what's
 genuinely transport-agnostic: auth, plugin routes, and the non-streaming routes (`/agents`
 listing, `/sessions*`, `/loops*`, `/tasks*`). Remote agents and transports are **config-level
 providers**, like `store`.
@@ -26,10 +26,10 @@ RemoteAgent`.
 
 | Package | Capability | Exports | Notes |
 |---|---|---|---|
-| `@bread/transport-stdout` | `sink` | `transport(opts?)` | Renders crumbs to the terminal for `bread chat`/`bread invoke`. No `mount` — can't serve HTTP ingress. |
-| `@bread/transport-redis` | `duplex` | `transport(opts?)` | Redis Streams cross-replica fan-out. No `mount` — see the known gap below. |
-| `@bread/transport-http-chunked` | `duplex` + `mount` | `transport(opts?)`, `remoteAgent(opts)` | NDJSON (Bread protocol `CrumbFrame` lines). Recommended default. |
-| `@bread/transport-http-sse` | `duplex` + `mount` | `transport(opts?)`, `remoteAgent(opts)` | SSE — browser-`EventSource`-friendly; wire-compatible with bread's original hand-rolled SSE routes. |
+| `@breadai/transport-stdout` | `sink` | `transport(opts?)` | Renders crumbs to the terminal for `bread chat`/`bread invoke`. No `mount` — can't serve HTTP ingress. |
+| `@breadai/transport-redis` | `duplex` | `transport(opts?)` | Redis Streams cross-replica fan-out. No `mount` — see the known gap below. |
+| `@breadai/transport-http-chunked` | `duplex` + `mount` | `transport(opts?)`, `remoteAgent(opts)` | NDJSON (Bread protocol `CrumbFrame` lines). Recommended default. |
+| `@breadai/transport-http-sse` | `duplex` + `mount` | `transport(opts?)`, `remoteAgent(opts)` | SSE — browser-`EventSource`-friendly; wire-compatible with bread's original hand-rolled SSE routes. |
 
 ## The logical envelope
 
@@ -69,7 +69,7 @@ with `seq >=` (bounded to one in-flight window of duplication).
 
 ### Mappings
 
-| Envelope | `@bread/transport-http-chunked` | `@bread/transport-http-sse` | `@bread/transport-redis` |
+| Envelope | `@breadai/transport-http-chunked` | `@breadai/transport-http-sse` | `@breadai/transport-redis` |
 |----------|--------------------------------|------------------------------|--------------------------|
 | Run request | `POST /agents/:id/run` body | `POST /agents/:id/run` body | — (execution is ingress-local) |
 | Crumb frame | one Bread protocol `CrumbFrame` JSON line per NDJSON chunk | SSE `id: <seq>` + `data: {type, payload}`; catch-up via `Last-Event-ID` on `GET /runs/:runId/stream` | `XADD bread:run:{<runId>} … frame <json>` |
@@ -78,8 +78,8 @@ with `seq >=` (bounded to one in-flight window of duplication).
 ## The Bread protocol
 
 `packages/core/src/protocol.ts` formalizes the wire envelope a **duplex** transport speaks once a
-crumb frame crosses a network boundary, reusable for any encoding. `@bread/transport-http-chunked`
-is its reference conformer (NDJSON `CrumbFrame` lines). `@bread/transport-http-sse` deliberately
+crumb frame crosses a network boundary, reusable for any encoding. `@breadai/transport-http-chunked`
+is its reference conformer (NDJSON `CrumbFrame` lines). `@breadai/transport-http-sse` deliberately
 does **not** speak it — its SSE `{type, payload}` framing predates this module and is kept
 byte-compatible with bread's original hand-rolled SSE routes rather than rewritten onto the
 versioned envelope; see that package's own README for the wire-compatibility rationale.
@@ -99,7 +99,7 @@ shape to handle.
 
 Every transport declares a `capability`:
 
-- **`sink`** — publish-only. Nothing subscribes to a sink (`@bread/transport-stdout` renders crumbs
+- **`sink`** — publish-only. Nothing subscribes to a sink (`@breadai/transport-stdout` renders crumbs
   to the terminal — there's no "tailing" stdout).
 - **`duplex`** — publish **and** `subscribe(runId, afterSeq, handler)`, with a replay guarantee:
   frames with `seq > afterSeq` still within the transport's own retention window are replayed
@@ -154,18 +154,18 @@ known gap below, since no single package in the current family is both today.
 
 ### Known gap: Redis fan-out doesn't compose with HTTP ingress
 
-`@bread/transport-redis`'s `transport()` has no `mount` — it is fan-out-only. `createServer()`
-requires `config.transport.mount`, so a `config.transport: transport()` (from `@bread/transport-redis`)
-config cannot serve HTTP ingress on the same slot; conversely, `@bread/transport-http-chunked`/`-http-sse`'s `transport()`
+`@breadai/transport-redis`'s `transport()` has no `mount` — it is fan-out-only. `createServer()`
+requires `config.transport.mount`, so a `config.transport: transport()` (from `@breadai/transport-redis`)
+config cannot serve HTTP ingress on the same slot; conversely, `@breadai/transport-http-chunked`/`-http-sse`'s `transport()`
 mounts fine but its pub/sub is in-memory and does not fan out across replicas. **Composing "Redis
 fan-out across replicas" with "HTTP ingress on each replica" is out of scope for this package
 family today** — `config.transport` is one slot, and no package fills both roles at once. The same
-limitation applies to `@bread/transport-stdout` (a `sink`, so no `mount` either) — it can back
+limitation applies to `@breadai/transport-stdout` (a `sink`, so no `mount` either) — it can back
 `bread chat`/`bread invoke`, but not `bread dev`/`bread start` on the same config.
 
 ## Bring your own ingress
 
-Neither `@bread/server` nor a transport's `mount()` is a privileged ingress — both compile against
+Neither `@breadai/server` nor a transport's `mount()` is a privileged ingress — both compile against
 the public `BreadInstance` API alone, and that is a guarantee, not an accident. A custom ingress
 (JSON-RPC, gRPC, a queue consumer, …) needs only:
 
@@ -183,7 +183,7 @@ bread.agents / bread.tasks             // registries, for discovery surfaces
 ```
 
 Map your protocol's request onto the envelope above, relay crumb frames in your encoding, and
-keep the dedup rule for reconnects. `@bread/protocol-mcp-server` is a second worked example (agents and
+keep the dedup rule for reconnects. `@breadai/protocol-mcp-server` is a second worked example (agents and
 tasks exposed as MCP tools).
 
 ## Contracts & limits

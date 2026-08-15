@@ -1,4 +1,4 @@
-import { defineTask } from '@bread/core'
+import { defineTask } from '@breadai/core'
 import { z } from 'zod'
 
 // A one-shot task compiled to the `doc_extract_entities` tool. `beforeRun`

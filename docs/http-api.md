@@ -2,15 +2,15 @@
 
 `bread dev` and `bread start` serve a Hono app. The four streaming routes below (`/agents/:id/run`,
 `/pipelines/:id/run`, `/resume/:checkpointId`, `/runs/:runId/stream`) are mounted by whichever
-`config.transport` you pick — the wire format follows from that choice, not from `@bread/server`
+`config.transport` you pick — the wire format follows from that choice, not from `@breadai/server`
 itself:
 
-- **`@bread/transport-http-sse`** (recommended if you need browser `EventSource` support, and the
+- **`@breadai/transport-http-sse`** (recommended if you need browser `EventSource` support, and the
   wire-compatible choice if you're relying on bread's original hand-rolled SSE routes): each
   message is `data: { "type": <crumbType>, "payload": <crumb> }\n\n`, preceded by an `id: <seq>`
   field — the crumb's per-run monotonic log position, usable as `Last-Event-ID` on the passive run
   stream below. The examples on this page use this format.
-- **`@bread/transport-http-chunked`** (recommended default otherwise): each line of the response
+- **`@breadai/transport-http-chunked`** (recommended default otherwise): each line of the response
   body is one Bread protocol `CrumbFrame` — `{ "v": 1, "type": "crumb", "runId", "seq", "crumb"
   }\n` — NDJSON, not SSE. See that package's README for its exact shape.
 
@@ -20,7 +20,7 @@ transport-agnostic and behaves identically either way.
 ## Authentication
 
 Bread applies no default posture — a server with no auth plugin serves every request unguarded.
-Add one via `@bread/server`'s `authPlugin()` (see [auth.md](./auth.md)) if you want every route
+Add one via `@breadai/server`'s `authPlugin()` (see [auth.md](./auth.md)) if you want every route
 below to require it. Binding a non-loopback host with no `middleware`-registering plugin at all
 prints a loud startup warning (never a gate) — see
 [auth.md#guarding-the-server](./auth.md#guarding-the-server).
@@ -47,7 +47,7 @@ pre-validate ids against the config, so the failure surfaces in the stream inste
 data: {"type":"error","payload":{"code":"UNKNOWN_PROVIDER","message":"..."}}
 ```
 
-`@bread/transport-http-chunked` carries the same failure as a synthetic `agent:error` `CrumbFrame`
+`@breadai/transport-http-chunked` carries the same failure as a synthetic `agent:error` `CrumbFrame`
 instead of a `type:'error'` sidecar — everything on that wire is a real `BreadCrumb`.
 
 `agent:error` / `tool:error` crumb payloads carry the same sanitized `error` shape. Non-streaming
@@ -104,8 +104,8 @@ transport. Missed history is replayed from the durable crumb log, then live fram
   frames only (no catch-up) and the server logs a notice at startup. All first-party stores
   support the log. Conversely, a `sink`-capability transport (no `subscribe`) has no live frames
   to offer — the route serves the store's replay only, then closes.
-- **Authorization**: opt-in via `transport({ authorizeStream })` (both `@bread/transport-http-chunked`
-  and `@bread/transport-http-sse`). `authorizeStream(identity, runId)` receives whatever
+- **Authorization**: opt-in via `transport({ authorizeStream })` (both `@breadai/transport-http-chunked`
+  and `@breadai/transport-http-sse`). `authorizeStream(identity, runId)` receives whatever
   `authMiddleware`/`authPlugin()` stashed as the caller's `AuthIdentity` (`undefined` if no auth
   ran) and the requested `runId`; returning/resolving `false` responds `403` before any crumb is
   read. No `authorizeStream` configured → unchanged, unauthorized-by-default behavior — this route

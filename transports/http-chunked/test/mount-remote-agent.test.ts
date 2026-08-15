@@ -1,13 +1,13 @@
 import { describe, expect, test } from 'bun:test'
 import { Hono } from 'hono'
 import { z } from 'zod'
-import { defineHumanTool } from '@bread/core'
-import { defineTestAgent, makeBread, mockTextModel, mockToolCallModel } from '@bread/test-utils'
-import { remoteAgent, transport } from '@bread/transport-http-chunked'
+import { defineHumanTool } from '@breadai/core'
+import { defineTestAgent, makeBread, mockTextModel, mockToolCallModel } from '@breadai/test-utils'
+import { remoteAgent, transport } from '@breadai/transport-http-chunked'
 
 // mount() + remoteAgent() driven together over an in-process Hono app
 // (app.request(...) — no port opened), per the plan's own test requirement.
-describe('@bread/transport-http-chunked — mount() + remoteAgent()', () => {
+describe('@breadai/transport-http-chunked — mount() + remoteAgent()', () => {
   test('remoteAgent().run relays a mounted agent run as real BreadCrumbs', async () => {
     const { bread, stop } = await makeBread({
       agents: { greeter: defineTestAgent() },

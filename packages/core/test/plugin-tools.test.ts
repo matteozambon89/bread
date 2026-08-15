@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 import { z } from 'zod'
-import { defineTool } from '@bread/core'
-import type { BreadInstance, BreadPlugin, ToolResultCrumb } from '@bread/core'
-import { defineTestAgent, makeBread, mockToolCallModel, runCollect } from '@bread/test-utils'
+import { defineTool } from '@breadai/core'
+import type { BreadInstance, BreadPlugin, ToolResultCrumb } from '@breadai/core'
+import { defineTestAgent, makeBread, mockToolCallModel, runCollect } from '@breadai/test-utils'
 
 describe('runner — global plugin tools', () => {
   let bread: BreadInstance

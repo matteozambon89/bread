@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { withRetry } from '@bread/core'
+import { withRetry } from '@breadai/core'
 
 // backoffMs: 0 keeps these fast — no real waiting between attempts.
 const fast = { attempts: 3, backoffMs: 0 }

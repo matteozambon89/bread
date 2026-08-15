@@ -4,19 +4,19 @@
   </a>
 </p>
 
-# @bread/store-memory
+# @breadai/store-memory
 
 In-memory `BreadStore` — ephemeral, zero-setup, gone when the process exits. The full store
 contract (sessions, messages, checkpoints, loops, task runs, knowledge graph, documents) for
 tests, examples, and quick local tries. Works on both Bun and Node.
 
 ```bash
-bun add @bread/store-memory   # or: npm i @bread/store-memory
+bun add @breadai/store-memory   # or: npm i @breadai/store-memory
 ```
 
 ```ts
-import { defineConfig } from '@bread/core'
-import { store } from '@bread/store-memory'
+import { defineConfig } from '@breadai/core'
+import { store } from '@breadai/store-memory'
 
 export default defineConfig({
   entrypoints: ['echo'],
@@ -25,7 +25,7 @@ export default defineConfig({
 ```
 
 For anything that should survive a restart, use
-[`@bread/store-postgres`](https://www.npmjs.com/package/@bread/store-postgres) or one of the
+[`@breadai/store-postgres`](https://www.npmjs.com/package/@breadai/store-postgres) or one of the
 SQLite stores.
 
 Part of **[bread](https://github.com/matteozambon89/bread)** — an explicit-by-design framework for AI agents.

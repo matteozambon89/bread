@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 import { z } from 'zod'
-import { defineHumanTool } from '@bread/core'
-import type { BreadInstance } from '@bread/core'
+import { defineHumanTool } from '@breadai/core'
+import type { BreadInstance } from '@breadai/core'
 import type { Hono } from 'hono'
-import { defineTestAgent, makeServer, mockToolCallModel, readSse } from '@bread/test-utils'
+import { defineTestAgent, makeServer, mockToolCallModel, readSse } from '@breadai/test-utils'
 
 describe('server — HITL resume route', () => {
   let app: Hono

@@ -11,7 +11,7 @@ import {
   assertName,
   loadSkillMeta,
   parseSelector,
-} from '@bread/core'
+} from '@breadai/core'
 
 // ---------------------------------------------------------------------------
 // Config loader

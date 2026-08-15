@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import { z } from 'zod'
-import { defineHumanTool, defineTask, defineTool } from '@bread/core'
-import type { PipelineStep } from '@bread/core'
+import { defineHumanTool, defineTask, defineTool } from '@breadai/core'
+import type { PipelineStep } from '@breadai/core'
 import {
   collect,
   defineTestAgent,
@@ -14,8 +14,8 @@ import {
   mockTextModel,
   mockToolCallModel,
   runCollect,
-} from '@bread/test-utils'
-import { type A2UISpec, a2ui } from '@bread/a2ui'
+} from '@breadai/test-utils'
+import { type A2UISpec, a2ui } from '@breadai/a2ui'
 
 describe('a2ui plugin', () => {
   test('emits declarative UI specs for run progress and text', async () => {

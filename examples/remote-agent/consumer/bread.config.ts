@@ -1,8 +1,8 @@
-import { defineConfig } from '@bread/core'
-import { signer } from '@bread/auth-api-key'
-import { providerCatalog } from '@bread/provider-catalog'
-import { store } from '@bread/store-sqlite'
-import { remoteAgent, transport } from '@bread/transport-http-chunked'
+import { defineConfig } from '@breadai/core'
+import { signer } from '@breadai/auth-api-key'
+import { providerCatalog } from '@breadai/provider-catalog'
+import { store } from '@breadai/store-sqlite'
+import { remoteAgent, transport } from '@breadai/transport-http-chunked'
 
 // The consumer: `researcher` is NOT a local agent — it dispatches over HTTP to
 // the provider (see ../provider), signed per request with the shared API key.

@@ -1,4 +1,4 @@
-import { defineAgent } from '@bread/core'
+import { defineAgent } from '@breadai/core'
 import { z } from 'zod'
 
 // Entrypoint, driven over AG-UI (see bread.config.ts). Delegates to `investigator` with

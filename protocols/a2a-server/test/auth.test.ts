@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
-import type { BreadAuthStrategy } from '@bread/core'
-import { authPlugin } from '@bread/server'
+import type { BreadAuthStrategy } from '@breadai/core'
+import { authPlugin } from '@breadai/server'
 import type { Hono } from 'hono'
-import { defineTestAgent, makeServer, mockTextModel } from '@bread/test-utils'
+import { defineTestAgent, makeServer, mockTextModel } from '@breadai/test-utils'
 import { a2aServer } from '../src/index.js'
 
 // Same pattern as protocols/mcp-server/test/auth.test.ts: a2a_server adds no

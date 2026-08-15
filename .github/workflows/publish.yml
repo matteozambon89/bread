@@ -26,7 +26,7 @@ jobs:
               continue
             fi
             echo "→ publishing $dir"
-            # devDependencies reference the private @bread/test-utils via
+            # devDependencies reference the private @breadai/test-utils via
             # workspace:*, which would publish as a dangling version — strip
             # them from the manifest (tests never ship anyway).
             (cd "$dir" && npm pkg delete devDependencies && bun publish --access public) || exit 1

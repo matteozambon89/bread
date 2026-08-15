@@ -1,9 +1,9 @@
 import { describe, expect, test } from 'bun:test'
 import { z } from 'zod'
-import { defineHumanTool } from '@bread/core'
-import type { BreadCrumb, BreadStore } from '@bread/core'
-import { store } from '@bread/store-memory'
-import { collect, defineTestAgent, makeBread, mockTextModel, mockToolCallModel, runCollect } from '@bread/test-utils'
+import { defineHumanTool } from '@breadai/core'
+import type { BreadCrumb, BreadStore } from '@breadai/core'
+import { store } from '@breadai/store-memory'
+import { collect, defineTestAgent, makeBread, mockTextModel, mockToolCallModel, runCollect } from '@breadai/test-utils'
 import { createCrumbLogWriter } from '../src/crumb-log.js'
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))

@@ -1,9 +1,9 @@
 import { describe, expect, test } from 'bun:test'
 import { z } from 'zod'
-import { defineHumanTool, defineTool } from '@bread/core'
-import type { BreadCrumb, HumanRequiredCrumb } from '@bread/core'
-import { store } from '@bread/store-memory'
-import { collect, defineTestAgent, makeBread, mockToolCallModel, runCollect } from '@bread/test-utils'
+import { defineHumanTool, defineTool } from '@breadai/core'
+import type { BreadCrumb, HumanRequiredCrumb } from '@breadai/core'
+import { store } from '@breadai/store-memory'
+import { collect, defineTestAgent, makeBread, mockToolCallModel, runCollect } from '@breadai/test-utils'
 
 const approve = defineHumanTool('approve', z.object({ question: z.string() }))
 const gateAgents = { gate: defineTestAgent({ humanTools: [approve] }) }

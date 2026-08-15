@@ -1,4 +1,4 @@
-# @bread/transport-redis
+# @breadai/transport-redis
 
 Redis Streams [`BreadTransport`](../../docs/transports.md) for [bread](https://github.com/matteozambon89/bread) —
 the crumb fabric between replicas of one app. With it, `GET /runs/:runId/stream` and
@@ -9,14 +9,14 @@ replica can tail it live. The store stays the source of truth (catch-up/replay).
 ## Install
 
 ```bash
-bun add @bread/transport-redis ioredis
+bun add @breadai/transport-redis ioredis
 ```
 
 ## Usage
 
 ```ts
 // bread.config.ts — same config on every replica
-import { transport } from '@bread/transport-redis'
+import { transport } from '@breadai/transport-redis'
 
 export default defineConfig({
   entrypoints: ['writer'],

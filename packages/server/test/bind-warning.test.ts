@@ -1,9 +1,9 @@
 import { afterEach, describe, expect, spyOn, test } from 'bun:test'
-import type { AgentRegistry, BreadConfig } from '@bread/core'
-import { authPlugin, startServer } from '@bread/server'
-import { store } from '@bread/store-memory'
-import { transport } from '@bread/transport-http-sse'
-import { defineTestAgent, mockProvider, mockTextModel } from '@bread/test-utils'
+import type { AgentRegistry, BreadConfig } from '@breadai/core'
+import { authPlugin, startServer } from '@breadai/server'
+import { store } from '@breadai/store-memory'
+import { transport } from '@breadai/transport-http-sse'
+import { defineTestAgent, mockProvider, mockTextModel } from '@breadai/test-utils'
 
 // Reversal of the 2026-07-05 "consumer's job, not the framework's" decision,
 // narrowed to a warning (not a gate): binding non-loopback with zero plugin

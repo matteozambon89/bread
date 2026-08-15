@@ -13,8 +13,8 @@ import type {
 // required (the runner always needs them); knowledge-graph and document methods
 // are optional framework features a store may omit.
 //
-// Concrete implementations live in their own packages (@bread/store-postgres,
-// @bread/store-sqlite, @bread/store-memory). Postgres is the recommended
+// Concrete implementations live in their own packages (@breadai/store-postgres,
+// @breadai/store-sqlite, @breadai/store-memory). Postgres is the recommended
 // backend, but nothing is wired implicitly — `config.store` must always be set
 // explicitly (unset throws STORE_NOT_CONFIGURED).
 

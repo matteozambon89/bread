@@ -1,14 +1,14 @@
 import { describe, expect, test } from 'bun:test'
 import { z } from 'zod'
-import { defineTool } from '@bread/core'
-import type { HumanRequiredCrumb, ToolErrorCrumb, ToolResultCrumb, ToolResultPartialCrumb } from '@bread/core'
+import { defineTool } from '@breadai/core'
+import type { HumanRequiredCrumb, ToolErrorCrumb, ToolResultCrumb, ToolResultPartialCrumb } from '@breadai/core'
 import {
   collect,
   defineTestAgent,
   makeBread,
   mockToolCallModel,
   runCollect,
-} from '@bread/test-utils'
+} from '@breadai/test-utils'
 
 // The beforeRun/afterRun/onError contract at Tool scope (docs/tools.md#hooks),
 // and the tool:error crumb this phase introduced. A live model-driven tool call

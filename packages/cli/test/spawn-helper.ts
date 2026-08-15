@@ -2,7 +2,7 @@ import { resolve } from 'node:path'
 
 // Shared plumbing for driving the real `bread` binary as a subprocess — these
 // tests exercise `src/bin.ts`/`src/cli.ts` exactly as a user's terminal would,
-// not the `@bread/server` command functions directly (those are already
+// not the `@breadai/server` command functions directly (those are already
 // covered in packages/server/test). `--conditions bread-source` mirrors the
 // package's own `dev` script — running TS source, not a built dist.
 const binPath = resolve(import.meta.dir, '../src/bin.ts')

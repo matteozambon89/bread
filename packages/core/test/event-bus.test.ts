@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from 'bun:test'
-import type { BreadCrumb } from '@bread/core'
+import type { BreadCrumb } from '@breadai/core'
 // BreadEventBus is an internal class (not re-exported from the package entry).
 import { BreadEventBus } from '../src/event-bus.js'
 

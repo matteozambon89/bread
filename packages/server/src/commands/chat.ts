@@ -1,7 +1,7 @@
 import * as readline from 'node:readline/promises'
-import { BreadError, createBread } from '@bread/core'
+import { BreadError, createBread } from '@breadai/core'
 import { v7 as uuidv7 } from 'uuid'
-import type { BreadCrumb } from '@bread/core'
+import type { BreadCrumb } from '@breadai/core'
 import { loadAgents, loadConfig, loadTasks } from '../loader.js'
 import { dim, parseHumanResponse } from './render.js'
 
@@ -38,7 +38,7 @@ export async function runChat(opts: ChatOptions): Promise<void> {
   if (!config.transport) {
     throw new BreadError(
       'No transport configured. Set `transport` in bread.config.ts — e.g. ' +
-        "`transport: transport()` from `@bread/transport-stdout` to render the conversation.",
+        "`transport: transport()` from `@breadai/transport-stdout` to render the conversation.",
       'TRANSPORT_NOT_CONFIGURED',
     )
   }
@@ -63,7 +63,7 @@ export async function runChat(opts: ChatOptions): Promise<void> {
   )
 
   // text:delta/tool:call/error rendering is handled automatically by
-  // config.transport via the crumb choke point (see @bread/transport-stdout).
+  // config.transport via the crumb choke point (see @breadai/transport-stdout).
   // This loop only handles what a sink can't: blocking for human input. On
   // human:required, prompt and recurse into the continuation stream returned
   // by resume (which may itself suspend again).

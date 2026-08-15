@@ -1,7 +1,7 @@
 # a2a
 
 Two bread apps, same `assistant` agent, exposed under each live A2A spec generation via
-`@bread/protocol-a2a-server`'s `a2aServer()`: **v03** speaks v0.3.x (`message/send`, the
+`@breadai/protocol-a2a-server`'s `a2aServer()`: **v03** speaks v0.3.x (`message/send`, the
 interoperable default), **v1** speaks v1.0 (`SendMessage`, PascalCase/gRPC-style). See
 [docs/a2a.md](../../docs/a2a.md) for the full protocol writeup.
 

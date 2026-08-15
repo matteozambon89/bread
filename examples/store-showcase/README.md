@@ -7,9 +7,9 @@ valid ones.
 
 | `STORE` | Package | Notes |
 |---------|---------|-------|
-| `memory` | `@bread/store-memory` | Ephemeral, no setup. Great for a quick try or tests. |
-| `sqlite-bun` | `@bread/store-sqlite` | Persists to `./bread.db` via Bun's built-in `bun:sqlite`. |
-| `postgres` | `@bread/store-postgres` | The recommended backend. Needs `DATABASE_URL`. |
+| `memory` | `@breadai/store-memory` | Ephemeral, no setup. Great for a quick try or tests. |
+| `sqlite-bun` | `@breadai/store-sqlite` | Persists to `./bread.db` via Bun's built-in `bun:sqlite`. |
+| `postgres` | `@breadai/store-postgres` | The recommended backend. Needs `DATABASE_URL`. |
 
 ```bash
 STORE=memory      bread dev     # zero setup

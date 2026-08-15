@@ -1,8 +1,8 @@
 import { describe, expect, test } from 'bun:test'
 import { z } from 'zod'
-import { defineTool } from '@bread/core'
-import type { BreadCrumb, BreadPlugin, HumanRequiredCrumb, HumanResumedCrumb, ToolResultCrumb } from '@bread/core'
-import { collect, defineTestAgent, makeBread, mockScript, mockTextModel, runCollect } from '@bread/test-utils'
+import { defineTool } from '@breadai/core'
+import type { BreadCrumb, BreadPlugin, HumanRequiredCrumb, HumanResumedCrumb, ToolResultCrumb } from '@breadai/core'
+import { collect, defineTestAgent, makeBread, mockScript, mockTextModel, runCollect } from '@breadai/test-utils'
 
 function makeAddTool(calls: Array<{ a: number; b: number }>) {
   return defineTool({

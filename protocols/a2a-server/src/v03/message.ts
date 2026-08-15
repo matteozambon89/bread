@@ -1,4 +1,4 @@
-import type { BlobStore, FileOutput } from '@bread/core'
+import type { BlobStore, FileOutput } from '@breadai/core'
 
 interface TextPart {
   kind: 'text'

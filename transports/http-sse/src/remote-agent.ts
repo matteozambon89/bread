@@ -1,5 +1,5 @@
-import type { BreadCrumb, BreadSigner, RemoteAgent, RunOptions } from '@bread/core'
-import { BreadError, fromWireCrumb } from '@bread/core'
+import type { BreadCrumb, BreadSigner, RemoteAgent, RunOptions } from '@breadai/core'
+import { BreadError, fromWireCrumb } from '@breadai/core'
 
 export interface HttpSseRemoteAgentOptions {
   url: string
@@ -17,9 +17,9 @@ function isTerminalCrumb(crumb: BreadCrumb): boolean {
   return crumb.type === 'agent:run:end' || crumb.type === 'agent:error'
 }
 
-// Signal-aware, like @bread/core's retry.ts sleep — duplicated rather than
+// Signal-aware, like @breadai/core's retry.ts sleep — duplicated rather than
 // imported, since this package deliberately has no runtime deps beyond
-// @bread/core.
+// @breadai/core.
 function sleep(ms: number, signal?: AbortSignal): Promise<void> {
   if (signal?.aborted) return Promise.resolve()
   return new Promise((resolve) => {

@@ -5,13 +5,13 @@
   "type": "module",
   "scripts": { "dev": "bread dev", "build": "bread build" },
   "dependencies": {
-    "@bread/core": "workspace:*",
-    "@bread/cli": "workspace:*",
-    "@bread/auth-api-key": "workspace:*",
-    "@bread/provider-catalog": "workspace:*",
-    "@bread/server": "workspace:*",
-    "@bread/store-sqlite": "workspace:*",
-    "@bread/transport-http-chunked": "workspace:*",
+    "@breadai/core": "workspace:*",
+    "@breadai/cli": "workspace:*",
+    "@breadai/auth-api-key": "workspace:*",
+    "@breadai/provider-catalog": "workspace:*",
+    "@breadai/server": "workspace:*",
+    "@breadai/store-sqlite": "workspace:*",
+    "@breadai/transport-http-chunked": "workspace:*",
     "ollama-ai-provider-v2": "^3.6.0",
     "zod": "^4.4.3"
   }

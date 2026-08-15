@@ -11,7 +11,7 @@ export type { BreadProtocolFrame, CrumbFrame, SubscribeFrame } from './protocol.
 export { BREAD_PROTOCOL_VERSION, encodeFrame, decodeFrame } from './protocol.js'
 
 // Storage — the single BreadStore interface, implemented by store packages
-// (@bread/store-postgres, @bread/store-sqlite, @bread/store-memory).
+// (@breadai/store-postgres, @breadai/store-sqlite, @breadai/store-memory).
 export type {
   BreadStore,
   CheckpointRecord,
@@ -27,7 +27,7 @@ export type {
 } from './storage/store.js'
 
 // Blob storage — a separate, optional seam for binary content (config.blobStore),
-// implemented by e.g. @bread/store-s3. FileOutput/isFileOutput are the agent-output-side
+// implemented by e.g. @breadai/store-s3. FileOutput/isFileOutput are the agent-output-side
 // convention for handing back a reference to a stored/generated file.
 export type { BlobStore, FileOutput } from './storage/blob-store.js'
 export { isFileOutput } from './storage/blob-store.js'

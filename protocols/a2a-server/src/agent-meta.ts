@@ -1,4 +1,4 @@
-import type { BreadInstance } from '@bread/core'
+import type { BreadInstance } from '@breadai/core'
 
 // The slice of the public BreadInstance both spec-version handlers consume.
 // store/transport/crumbFilter back the read-only task-lifecycle handlers

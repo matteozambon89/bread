@@ -5,7 +5,7 @@ with `bread eval`.
 
 ```ts
 // agents/writer/evals/quality.eval.ts
-import { defineEval } from '@bread/core'
+import { defineEval } from '@breadai/core'
 
 export default defineEval({
   agentId: 'writer',

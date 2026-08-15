@@ -1,4 +1,4 @@
-import { defineTool } from '@bread/core'
+import { defineTool } from '@breadai/core'
 import { z } from 'zod'
 
 // Self-contained mock dataset — no external API, so the example runs offline like

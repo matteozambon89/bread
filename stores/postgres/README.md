@@ -4,7 +4,7 @@
   </a>
 </p>
 
-# @bread/store-postgres
+# @breadai/store-postgres
 
 Postgres `BreadStore` — bread's production-default persistence: sessions, messages, checkpoints,
 loops, task runs, knowledge graph, and documents, with optional
@@ -12,12 +12,12 @@ loops, task runs, knowledge graph, and documents, with optional
 function.
 
 ```bash
-bun add @bread/store-postgres   # or: npm i @bread/store-postgres
+bun add @breadai/store-postgres   # or: npm i @breadai/store-postgres
 ```
 
 ```ts
-import { defineConfig } from '@bread/core'
-import { store } from '@bread/store-postgres'
+import { defineConfig } from '@breadai/core'
+import { store } from '@breadai/store-postgres'
 
 export default defineConfig({
   entrypoints: ['researcher'],

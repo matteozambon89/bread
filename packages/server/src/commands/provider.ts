@@ -1,5 +1,5 @@
-import { BreadError } from '@bread/core'
-import { providerEntries } from '@bread/provider-catalog'
+import { BreadError } from '@breadai/core'
+import { providerEntries } from '@breadai/provider-catalog'
 
 export interface ProviderListOptions {
   cwd: string

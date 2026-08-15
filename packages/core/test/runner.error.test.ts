@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 import { z } from 'zod'
-import { BreadError, defineHumanTool, defineTool } from '@bread/core'
-import type { AgentErrorCrumb, BreadCrumb, BreadInstance, HumanRequiredCrumb } from '@bread/core'
-import { store } from '@bread/store-memory'
+import { BreadError, defineHumanTool, defineTool } from '@breadai/core'
+import type { AgentErrorCrumb, BreadCrumb, BreadInstance, HumanRequiredCrumb } from '@breadai/core'
+import { store } from '@breadai/store-memory'
 import {
   collect,
   defineTestAgent,
@@ -13,7 +13,7 @@ import {
   mockTextModel,
   runCollect,
   stream,
-} from '@bread/test-utils'
+} from '@breadai/test-utils'
 
 // The runner catches errors thrown during a run — here a model-resolution
 // failure (unknown provider) — emits an `agent:error` crumb, and rethrows.

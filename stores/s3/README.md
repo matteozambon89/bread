@@ -4,20 +4,20 @@
   </a>
 </p>
 
-# @bread/store-s3
+# @breadai/store-s3
 
 S3-backed `BlobStore` for bread — binary/file content storage via presigned URLs. Works against
 AWS S3 or any S3-compatible service (Cloudflare R2, MinIO, ...) via a custom `endpoint`. A separate,
 optional seam from `BreadStore` — plug it in as `config.blobStore`, not `config.store`.
 
 ```bash
-bun add @bread/store-s3
+bun add @breadai/store-s3
 ```
 
 ```ts
-import { defineConfig } from '@bread/core'
-import { store } from '@bread/store-postgres'
-import { store as blobStore } from '@bread/store-s3'
+import { defineConfig } from '@breadai/core'
+import { store } from '@breadai/store-postgres'
+import { store as blobStore } from '@breadai/store-s3'
 
 export default defineConfig({
   entrypoints: ['assistant'],

@@ -8,11 +8,11 @@
     "build": "bread build"
   },
   "dependencies": {
-    "@bread/cli": "workspace:*",
-    "@bread/core": "workspace:*",
-    "@bread/provider-catalog": "workspace:*",
-    "@bread/store-sqlite": "workspace:*",
-    "@bread/transport-http-sse": "workspace:*",
+    "@breadai/cli": "workspace:*",
+    "@breadai/core": "workspace:*",
+    "@breadai/provider-catalog": "workspace:*",
+    "@breadai/store-sqlite": "workspace:*",
+    "@breadai/transport-http-sse": "workspace:*",
     "ollama-ai-provider-v2": "^3.6.0",
     "zod": "^4.4.3"
   }

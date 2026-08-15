@@ -1,17 +1,17 @@
-# MCP server — `@bread/protocol-mcp-server`
+# MCP server — `@breadai/protocol-mcp-server`
 
 Expose selected bread agents, tasks, tools, and agent+skill combinations as
 [Model Context Protocol](https://modelcontextprotocol.io) tools, over stdio or Streamable HTTP, built
 on the official `@modelcontextprotocol/sdk`.
 
 ```bash
-bun add @bread/protocol-mcp-server
+bun add @breadai/protocol-mcp-server
 ```
 
 ## Exposing agents and skills
 
 ```ts
-import { mcpServer } from '@bread/protocol-mcp-server'
+import { mcpServer } from '@breadai/protocol-mcp-server'
 
 mcpServer({
   transport: 'stdio',
@@ -87,7 +87,7 @@ you want it. Connect with the SDK's `StreamableHTTPClientTransport`.
 ## Building blocks
 
 ```ts
-import { buildMcpServer, serveStdio, handleHttpRequest } from '@bread/protocol-mcp-server'
+import { buildMcpServer, serveStdio, handleHttpRequest } from '@breadai/protocol-mcp-server'
 ```
 
 `mcpServer(expose)` is a thin plugin wrapper around these — reach for them directly only if you need

@@ -20,7 +20,7 @@ guarantee for duplex transports. `seq` is the crumb's per-run monotonic position
 **crumb log** (`text:delta`s carry the last durable seq as a watermark), which is what
 `Last-Event-ID` catch-up replays. The store is the durable, unbounded source of truth; a
 transport's own replay is a bounded convenience on top. Default is the embedded Stream transport;
-`@bread/transport-redis` is the distributed implementation. See [transports.md](./transports.md).
+`@breadai/transport-redis` is the distributed implementation. See [transports.md](./transports.md).
 
 ## Plugin (`BreadPlugin`) — formerly *Spread*
 

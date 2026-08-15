@@ -1,5 +1,5 @@
 // Lockstep version bump: sets `version` on every publishable package (skips
-// private ones). All @bread/* packages release together under one version —
+// private ones). All @breadai/* packages release together under one version —
 // workspace:* cross-references need no rewriting (bun resolves them to the
 // packaged version at publish time).
 //

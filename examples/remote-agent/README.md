@@ -1,7 +1,7 @@
 # remote-agent
 
 Two bread apps: a **provider** serving a `researcher` agent behind an API-key gate, and a
-**consumer** that dispatches to it via `@bread/transport-http-chunked`'s `remoteAgent()` —
+**consumer** that dispatches to it via `@breadai/transport-http-chunked`'s `remoteAgent()` —
 registered under `remoteAgents`, signed per request with the shared key.
 
 ```bash
@@ -24,7 +24,7 @@ curl -X POST localhost:4001/agents/researcher/run -d '{"input":"hi"}'   # → 40
 ```
 
 `researcher` is not in the consumer's local registry — `remoteAgents` shadows it. Signing runs
-on **every** outgoing request (`signer` accepts any `BreadSigner`, incl. `@bread/auth-oauth2`'s
+on **every** outgoing request (`signer` accepts any `BreadSigner`, incl. `@breadai/auth-oauth2`'s
 `signer(...)` whose cached token then refreshes naturally). Set `RESEARCH_TOKEN` to change the
 shared key, `RESEARCH_URL` to point the consumer elsewhere. See
 [docs/remote-agents.md](../../docs/remote-agents.md).

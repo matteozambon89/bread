@@ -1,4 +1,4 @@
-import type { BreadSigner, ToolDefinition } from '@bread/core'
+import type { BreadSigner, ToolDefinition } from '@breadai/core'
 import { type ConnectedServer, connectServer } from './client.js'
 
 // Inline per-agent MCP server, declared directly on an agent's own config

@@ -11,7 +11,7 @@ import {
   runProviderAdd,
   runProviderList,
   runStart,
-} from '@bread/server'
+} from '@breadai/server'
 
 async function readStdin(): Promise<string> {
   const chunks: Buffer[] = []

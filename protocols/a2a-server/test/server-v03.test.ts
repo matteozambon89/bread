@@ -7,7 +7,7 @@ import {
   mockObjectModel,
   mockRecordingTextModel,
   mockTextModel,
-} from '@bread/test-utils'
+} from '@breadai/test-utils'
 import { a2aServer } from '../src/index.js'
 
 async function setup() {

@@ -1,13 +1,13 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
-import { defineHumanTool } from '@bread/core'
+import { defineHumanTool } from '@breadai/core'
 import type {
   BreadCrumb,
   BreadInstance,
   HumanRequiredCrumb,
   PipelineStep,
   PipelineStepEndCrumb,
-} from '@bread/core'
-import { store as memoryStore } from '@bread/store-memory'
+} from '@breadai/core'
+import { store as memoryStore } from '@breadai/store-memory'
 import {
   collect,
   defineTestAgent,
@@ -15,7 +15,7 @@ import {
   mockErrorModel,
   mockTextModel,
   mockToolCallModel,
-} from '@bread/test-utils'
+} from '@breadai/test-utils'
 import type { MockLanguageModelV3 } from 'ai/test'
 import { z } from 'zod'
 

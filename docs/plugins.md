@@ -10,8 +10,8 @@ pages: [otel](./otel.md) · [ag-ui](./ag-ui.md) · [MCP client](./mcp-client.md)
 
 ```ts
 // bread.config.ts
-import { otel } from '@bread/otel'
-import { agUi } from '@bread/protocol-ag-ui'
+import { otel } from '@breadai/otel'
+import { agUi } from '@breadai/protocol-ag-ui'
 
 export default defineConfig({
   entrypoints: ['researcher'],
@@ -58,22 +58,22 @@ interface BreadPlugin {
   what an agent puts under `cfg.plugins.<your-plugin-name>` — that key is entirely yours to define and
   read back inside this hook. Returned tools get the same `plugin:<your-plugin-name>/<tool>`
   provenance and permission treatment as static `tools`, including the collision check if a name
-  clashes. [`@bread/protocol-mcp-client`](./mcp-client.md) is the reference implementation — it reads
+  clashes. [`@breadai/protocol-mcp-client`](./mcp-client.md) is the reference implementation — it reads
   `cfg.plugins.mcp_client` to resolve MCP servers a specific agent asked to connect to.
 - **`middleware`** — register middleware on the server's Hono app, applied before any routes (this
   plugin's own or another plugin's) so it can wrap everything downstream regardless of plugin
   registration order. Typed as `unknown` for the same reason as `routes` below. Auth is the
-  motivating case — `@bread/server`'s `authPlugin()` builds a `BreadPlugin` whose `middleware` gates
+  motivating case — `@breadai/server`'s `authPlugin()` builds a `BreadPlugin` whose `middleware` gates
   every request — but the mechanism is fully generic; any plugin can use it (rate limiting, CORS,
   request logging, …). See [auth.md](./auth.md).
 - **`routes`** — register extra HTTP routes on the server's Hono app (e.g.
-  [`@bread/protocol-mcp-server`](./mcp-server.md)'s HTTP exposure). Typed as `unknown` so core stays Hono-free;
+  [`@breadai/protocol-mcp-server`](./mcp-server.md)'s HTTP exposure). Typed as `unknown` so core stays Hono-free;
   the CLI server passes the real `Hono`.
 
 ## Writing a plugin
 
 ```ts
-import type { BreadPlugin } from '@bread/core'
+import type { BreadPlugin } from '@breadai/core'
 
 export function metrics(): BreadPlugin {
   let count = 0
@@ -96,19 +96,19 @@ export function metrics(): BreadPlugin {
 First-party plugins are split across two workspace folders — a naming/discovery convention, not a
 second plugin mechanism; both implement the same `BreadPlugin` interface above:
 
-- **`protocols/`** (`@bread/protocol-ag-ui`, `@bread/protocol-a2a-server`,
-  `@bread/protocol-mcp-client`, `@bread/protocol-mcp-server`) — adapters for a specific wire
+- **`protocols/`** (`@breadai/protocol-ag-ui`, `@breadai/protocol-a2a-server`,
+  `@breadai/protocol-mcp-client`, `@breadai/protocol-mcp-server`) — adapters for a specific wire
   protocol (AG-UI, A2A, MCP).
-- **`extensions/`** (`@bread/otel`, `@bread/a2ui`) — everything else that attaches as a
-  `BreadPlugin`: observability, UI generation. (`@bread/auth-api-key`/`-jwt`/`-oauth2` also live
+- **`extensions/`** (`@breadai/otel`, `@breadai/a2ui`) — everything else that attaches as a
+  `BreadPlugin`: observability, UI generation. (`@breadai/auth-api-key`/`-jwt`/`-oauth2` also live
   under `extensions/` but are standalone `BreadAuthStrategy`/`BreadSigner` factories, not
-  `BreadPlugin`s themselves — wrap one with `authPlugin()` from `@bread/server` to attach it, see
+  `BreadPlugin`s themselves — wrap one with `authPlugin()` from `@breadai/server` to attach it, see
   [auth.md](./auth.md).)
 
 See [architecture.md](./architecture.md#package-families) for the full five-family package map.
 
 ## Publishing
 
-The whole project lives under the **`@bread/`** scope — the core runtime and tooling
-(`@bread/core`, `@bread/server`, `@bread/cli`) alongside plugins (e.g. `@bread/foo`). Export a
+The whole project lives under the **`@breadai/`** scope — the core runtime and tooling
+(`@breadai/core`, `@breadai/server`, `@breadai/cli`) alongside plugins (e.g. `@breadai/foo`). Export a
 factory function that returns a `BreadPlugin`.

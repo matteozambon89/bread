@@ -128,8 +128,8 @@ export function createBread(
       if (!config.store) {
         throw new BreadError(
           'No store configured. Set `store` in your config — e.g. `store()` from ' +
-            '`@bread/store-postgres` (reads DATABASE_URL), `store({ path: \'./bread.db\' })` ' +
-            'from `@bread/store-sqlite`, or `store()` from `@bread/store-memory`.',
+            '`@breadai/store-postgres` (reads DATABASE_URL), `store({ path: \'./bread.db\' })` ' +
+            'from `@breadai/store-sqlite`, or `store()` from `@breadai/store-memory`.',
           'STORE_NOT_CONFIGURED',
         )
       }

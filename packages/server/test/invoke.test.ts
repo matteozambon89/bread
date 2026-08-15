@@ -1,7 +1,7 @@
 import { join } from 'node:path'
 import { afterEach, describe, expect, test } from 'bun:test'
-import { runInvoke } from '@bread/server'
-import { mockToolCallModel, mockTextModel } from '@bread/test-utils'
+import { runInvoke } from '@breadai/server'
+import { mockToolCallModel, mockTextModel } from '@breadai/test-utils'
 
 const projectRoot = join(import.meta.dir, 'fixtures', 'invoke-project')
 const noTransportRoot = join(import.meta.dir, 'fixtures', 'invoke-project-no-transport')

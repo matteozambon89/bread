@@ -1,4 +1,4 @@
-import { defineTool } from '@bread/core'
+import { defineTool } from '@breadai/core'
 import { z } from 'zod'
 
 // Fixed, deterministic mock policy — real usage would call a rules engine or a

@@ -1,6 +1,6 @@
 import { context, trace, type Span, type Tracer } from '@opentelemetry/api'
-import { isFileOutput } from '@bread/core'
-import type { BreadCrumb, BreadInstanceRef, BreadPlugin } from '@bread/core'
+import { isFileOutput } from '@breadai/core'
+import type { BreadCrumb, BreadInstanceRef, BreadPlugin } from '@breadai/core'
 
 export interface OtelOptions {
   serviceName?: string

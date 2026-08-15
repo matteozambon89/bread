@@ -1,4 +1,4 @@
-import { defineAgent } from '@bread/core'
+import { defineAgent } from '@breadai/core'
 import { z } from 'zod'
 
 // Host/judge agent. It composes a drafter -> critic pipeline at runtime, runs it,

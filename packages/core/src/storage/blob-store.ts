@@ -3,7 +3,7 @@
 // BreadStore's required session/checkpoint/loop contract, the same way
 // BreadTransport is its own seam rather than a BreadStore method group.
 //
-// Concrete implementations live in their own packages (@bread/store-s3, ...).
+// Concrete implementations live in their own packages (@breadai/store-s3, ...).
 export interface BlobStore {
   // Stores `data` and returns a generated key plus a retrievable URL — bread
   // never hands the caller a key to invent (mirrors BreadStore.ingestDocument

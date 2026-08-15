@@ -4,12 +4,12 @@
   </a>
 </p>
 
-# @bread/cli
+# @breadai/cli
 
 The `bread` command-line interface.
 
 ```bash
-bun add -g @bread/cli   # or: npm i -g @bread/cli
+bun add -g @breadai/cli   # or: npm i -g @breadai/cli
 ```
 
 | Command | What it does |
@@ -24,7 +24,7 @@ bun add -g @bread/cli   # or: npm i -g @bread/cli
 
 ## Requires Bun
 
-**`bread` requires [Bun](https://bun.sh).** It runs `bun:sqlite` (`@bread/store-sqlite`) with
+**`bread` requires [Bun](https://bun.sh).** It runs `bun:sqlite` (`@breadai/store-sqlite`) with
 zero flags. If Bun isn't installed, `bread` fails immediately.
 
 Part of **[bread](https://github.com/matteozambon89/bread)** — an explicit-by-design framework for AI agents.

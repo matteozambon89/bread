@@ -1,9 +1,9 @@
-import { defineConfig } from '@bread/core'
-import { authStrategy } from '@bread/auth-api-key'
-import { providerCatalog } from '@bread/provider-catalog'
-import { authPlugin } from '@bread/server'
-import { store } from '@bread/store-sqlite'
-import { transport } from '@bread/transport-http-chunked'
+import { defineConfig } from '@breadai/core'
+import { authStrategy } from '@breadai/auth-api-key'
+import { providerCatalog } from '@breadai/provider-catalog'
+import { authPlugin } from '@breadai/server'
+import { store } from '@breadai/store-sqlite'
+import { transport } from '@breadai/transport-http-chunked'
 
 // The provider: serves `researcher` behind an API-key gate. The consumer's
 // remoteAgent() signs its requests with the same strategy — see ../consumer.

@@ -1,5 +1,5 @@
-import type { BreadCrumb, BusFrame, CrumbLogEntry } from '@bread/core'
-import { fromWireCrumb } from '@bread/core'
+import type { BreadCrumb, BusFrame, CrumbLogEntry } from '@breadai/core'
+import { fromWireCrumb } from '@breadai/core'
 import { jsonRpcError, jsonRpcResult } from '../jsonrpc.js'
 import { formatJsonRpcSseEvent } from '../sse.js'
 import type { A2ABread } from '../agent-meta.js'

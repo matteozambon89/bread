@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import { z } from 'zod'
-import { BreadError } from '@bread/core'
-import type { AgentRunEndCrumb, BreadPlugin, HumanRequiredCrumb } from '@bread/core'
+import { BreadError } from '@breadai/core'
+import type { AgentRunEndCrumb, BreadPlugin, HumanRequiredCrumb } from '@breadai/core'
 import {
   collect,
   defineTestAgent,
@@ -12,7 +12,7 @@ import {
   mockScript,
   mockTextModel,
   runCollect,
-} from '@bread/test-utils'
+} from '@breadai/test-utils'
 
 // The full beforeRun/afterRun/onError/onSuspend contract at Agent+Bread scope:
 // chain ordering (agent -> plugin -> global), short-circuit, retry/recover/fail,

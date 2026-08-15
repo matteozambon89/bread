@@ -1,4 +1,4 @@
-import type { BreadPlugin } from '@bread/core'
+import type { BreadPlugin } from '@breadai/core'
 import { type A2ABread, type AgentSkillMeta } from './agent-meta.js'
 import { type AgentCardV03, buildAgentCardV03 } from './v03/agent-card.js'
 import { handleRpcRequestV03 } from './v03/rpc.js'

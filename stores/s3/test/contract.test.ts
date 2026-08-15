@@ -1,7 +1,7 @@
 import { GetObjectCommand, NoSuchKey, PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
 import { mockClient } from 'aws-sdk-client-mock'
-import { store } from '@bread/store-s3'
-import { runBlobContract } from '@bread/test-utils'
+import { store } from '@breadai/store-s3'
+import { runBlobContract } from '@breadai/test-utils'
 
 // aws-sdk-client-mock patches S3Client.prototype.send, so any client store()
 // constructs is automatically intercepted — no client injection needed.

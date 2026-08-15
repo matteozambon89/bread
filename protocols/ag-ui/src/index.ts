@@ -1,5 +1,5 @@
-import { isFileOutput } from '@bread/core'
-import type { AuthIdentity, BreadCrumb, BreadInstance, BreadInstanceRef, BreadPlugin } from '@bread/core'
+import { isFileOutput } from '@breadai/core'
+import type { AuthIdentity, BreadCrumb, BreadInstance, BreadInstanceRef, BreadPlugin } from '@breadai/core'
 
 // AG-UI protocol events (https://ag-ui.com), spec field names: `messageId`/
 // `delta` for text framing, `toolCallName` for tools, `threadId` = bread's

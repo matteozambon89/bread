@@ -8,8 +8,8 @@ Register remote agents under `remoteAgents` in your config, keyed by the id call
 
 ```ts
 // bread.config.ts
-import { remoteAgent } from '@bread/transport-http-chunked'
-import { signer } from '@bread/auth-api-key'
+import { remoteAgent } from '@breadai/transport-http-chunked'
+import { signer } from '@breadai/auth-api-key'
 
 export default defineConfig({
   entrypoints: ['planner'],
@@ -22,7 +22,7 @@ export default defineConfig({
 })
 ```
 
-`signer` accepts any `BreadSigner` — e.g. `@bread/auth-api-key`'s or `@bread/auth-oauth2`'s
+`signer` accepts any `BreadSigner` — e.g. `@breadai/auth-api-key`'s or `@breadai/auth-oauth2`'s
 `signer(...)`. Signing runs on **every outgoing request**, so refreshing credentials (e.g.
 oauth2's cached client-credentials token) stay valid across long-lived processes. Static
 `headers` are merged in before signing.
@@ -33,10 +33,10 @@ local registry and does **not** need a matching local agent — the lookup check
 ## How dispatch works
 
 A registered value is a `RemoteAgent` — anything with a `run(agentId, input, opts?)` that yields
-`BreadCrumb`s. `@bread/transport-http-chunked`'s `remoteAgent()` is the reference implementation: it
+`BreadCrumb`s. `@breadai/transport-http-chunked`'s `remoteAgent()` is the reference implementation: it
 `POST`s to the remote's `/agents/:id/run` endpoint (mounted there by the same package's `transport()`)
 and decodes each NDJSON line — one Bread protocol `CrumbFrame` per line — back into a crumb.
-`@bread/transport-http-sse`'s `remoteAgent()` is the SSE-wire equivalent, for a remote mounted with
+`@breadai/transport-http-sse`'s `remoteAgent()` is the SSE-wire equivalent, for a remote mounted with
 that package instead.
 
 ```mermaid
@@ -61,7 +61,7 @@ A transport's `remoteAgent()` is just one implementation. Any object satisfying 
 — e.g. a queue, gRPC, or in-process stub for tests:
 
 ```ts
-import type { RemoteAgent } from '@bread/core'
+import type { RemoteAgent } from '@breadai/core'
 
 const echo: RemoteAgent = {
   async *run(agentId, input) {
@@ -90,7 +90,7 @@ const run = bread.run('researcher', input, { signal: controller.signal })
 setTimeout(() => controller.abort(), 5000)
 ```
 
-Both `@bread/transport-http-chunked` and `@bread/transport-http-sse`'s `remoteAgent()` attach the
+Both `@breadai/transport-http-chunked` and `@breadai/transport-http-sse`'s `remoteAgent()` attach the
 signal to the underlying `fetch()`, and their `mount()`-ed run-initiating routes tie a client
 disconnect (or this same explicit abort) to an `AbortController` passed into the remote's own
 `bread.run(...)` — so cancelling reaches the remote the same way `RunOptions.signal` already works

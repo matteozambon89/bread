@@ -11,7 +11,7 @@ import type {
   Session,
   SessionMessage,
   TaskRunRecord,
-} from '@bread/core'
+} from '@breadai/core'
 
 interface KgNode {
   id: string

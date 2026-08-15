@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
-import { BreadError } from '@bread/core'
-import type { BreadCrumb } from '@bread/core'
+import { BreadError } from '@breadai/core'
+import type { BreadCrumb } from '@breadai/core'
 import {
   BREAD_PROTOCOL_VERSION,
   decodeFrame,

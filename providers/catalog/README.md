@@ -4,20 +4,20 @@
   </a>
 </p>
 
-# @bread/provider-catalog
+# @breadai/provider-catalog
 
 The 18 official `@ai-sdk/*` built-in providers, packaged as a ready-made `ProviderRegistry` for
 `config.providers`. Each entry is imported lazily on first use, so installing this package doesn't
 pull in every SDK — you still `bun add` only the ones you actually use.
 
 ```bash
-bun add @bread/provider-catalog
+bun add @breadai/provider-catalog
 bun add @ai-sdk/anthropic   # only the providers you use
 ```
 
 ```ts
-import { defineConfig } from '@bread/core'
-import { providerCatalog } from '@bread/provider-catalog'
+import { defineConfig } from '@breadai/core'
+import { providerCatalog } from '@breadai/provider-catalog'
 
 export default defineConfig({
   entrypoints: ['writer'],
@@ -38,7 +38,7 @@ different name:
 
 ```ts
 import { createAnthropic } from '@ai-sdk/anthropic'
-import { providerCatalog } from '@bread/provider-catalog'
+import { providerCatalog } from '@breadai/provider-catalog'
 
 providers: {
   ...providerCatalog,

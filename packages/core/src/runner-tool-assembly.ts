@@ -125,7 +125,7 @@ export async function assembleTools(
   }
 
   // Per-agent tools resolved dynamically by a plugin, driven by that agent's
-  // own cfg.plugins config (e.g. `@bread/protocol-mcp-client` reading cfg.plugins.mcp_client
+  // own cfg.plugins config (e.g. `@breadai/protocol-mcp-client` reading cfg.plugins.mcp_client
   // to connect servers this specific agent named). Opaque to core — a plugin
   // decides what its own config key means and what tools to return; core only
   // tags the result with that plugin's name for provenance/permission scoping,

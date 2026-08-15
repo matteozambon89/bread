@@ -1,4 +1,4 @@
-import type { AgentConfig, BreadPlugin, ToolDefinition } from '@bread/core'
+import type { AgentConfig, BreadPlugin, ToolDefinition } from '@breadai/core'
 import { type ConnectedServer, type McpServerConfig, connectServer } from './client.js'
 import { type McpExternalServerConfig, createExternalConnectionCache, namespaced } from './external.js'
 

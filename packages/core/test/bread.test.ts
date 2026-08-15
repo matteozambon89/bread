@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { z } from 'zod'
-import { BreadError, type BreadConfig, type BreadInstance, type BreadPlugin, createBread, defineTask } from '@bread/core'
-import { store } from '@bread/store-memory'
-import { defineTestAgent, mockErrorModel, mockObjectModel, mockProvider, mockTextModel } from '@bread/test-utils'
+import { BreadError, type BreadConfig, type BreadInstance, type BreadPlugin, createBread, defineTask } from '@breadai/core'
+import { store } from '@breadai/store-memory'
+import { defineTestAgent, mockErrorModel, mockObjectModel, mockProvider, mockTextModel } from '@breadai/test-utils'
 
 // A memory store augmented with the optional migrate/close hooks the lifecycle
 // calls — store itself defines neither, so these track the calls.

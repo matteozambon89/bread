@@ -5,7 +5,7 @@ Tools are functions an agent can call. Drop a `defineTool` (or `defineHumanTool`
 
 ```ts
 // agents/researcher/tools/web-search.ts
-import { defineTool } from '@bread/core'
+import { defineTool } from '@breadai/core'
 import { z } from 'zod'
 
 export default defineTool({
@@ -106,7 +106,7 @@ plugin-contributed hooks, then `BreadConfig.hooks` — see
 bread ships two `CredentialProvider`s:
 
 ```ts
-import { envProvider, vaultProvider } from '@bread/core'
+import { envProvider, vaultProvider } from '@breadai/core'
 
 envProvider()                                   // reads process.env[name]
 vaultProvider({ address, token })               // reads from HashiCorp Vault
@@ -167,7 +167,7 @@ If neither the tool nor `BreadConfig` sets a provider, `ctx.credentials.get()` f
 
 ```ts
 // agents/publisher/tools/approve.ts
-import { defineHumanTool } from '@bread/core'
+import { defineHumanTool } from '@breadai/core'
 import { z } from 'zod'
 
 export default defineHumanTool('approve_publish', z.object({ url: z.string() }))

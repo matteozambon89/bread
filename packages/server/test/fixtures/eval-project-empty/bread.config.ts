@@ -1,4 +1,4 @@
-import { defineConfig } from '@bread/core'
+import { defineConfig } from '@breadai/core'
 
 // No *.eval.ts anywhere under agents/ — exercises runEvalCommand's "No eval
 // files found" early-return branch. No store/providers needed: the command

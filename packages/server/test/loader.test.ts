@@ -1,6 +1,6 @@
 import { join } from 'node:path'
 import { describe, expect, test } from 'bun:test'
-import { loadAgents, loadConfig, loadEvals, loadTasks } from '@bread/server'
+import { loadAgents, loadConfig, loadEvals, loadTasks } from '@breadai/server'
 
 const fixturesRoot = join(import.meta.dir, 'fixtures')
 const projectRoot = join(fixturesRoot, 'project')

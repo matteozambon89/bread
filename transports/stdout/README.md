@@ -1,4 +1,4 @@
-# @bread/transport-stdout
+# @breadai/transport-stdout
 
 Terminal-rendering [`BreadTransport`](../../docs/transports.md) for [bread](https://github.com/matteozambon89/bread) —
 the default renderer for `bread chat`/`bread invoke`. It's a `sink`: publish-only, no
@@ -7,14 +7,14 @@ subscribe/replay, since nothing "tails" a terminal.
 ## Install
 
 ```bash
-bun add @bread/transport-stdout
+bun add @breadai/transport-stdout
 ```
 
 ## Usage
 
 ```ts
 // bread.config.ts
-import { transport } from '@bread/transport-stdout'
+import { transport } from '@breadai/transport-stdout'
 
 export default defineConfig({
   entrypoints: ['assistant'],

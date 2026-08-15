@@ -1,13 +1,13 @@
 import { describe, expect, test } from 'bun:test'
 import { z } from 'zod'
-import type { AgentRunEndCrumb } from '@bread/core'
+import type { AgentRunEndCrumb } from '@breadai/core'
 import {
   defineTestAgent,
   makeBread,
   mockErrorModel,
   mockTextModel,
   runCollect,
-} from '@bread/test-utils'
+} from '@breadai/test-utils'
 
 describe('runner — onError recover', () => {
   test('recovers a failed run via hooks.onError instead of throwing', async () => {

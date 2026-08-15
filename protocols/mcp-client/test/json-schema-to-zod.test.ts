@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { jsonSchemaToZod } from '@bread/protocol-mcp-client'
+import { jsonSchemaToZod } from '@breadai/protocol-mcp-client'
 
 describe('jsonSchemaToZod', () => {
   test('converts an object schema with required fields', () => {

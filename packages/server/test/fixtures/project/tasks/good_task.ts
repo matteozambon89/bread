@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { defineTask } from '@bread/core'
+import { defineTask } from '@breadai/core'
 
 export default defineTask({
   name: 'summarize',

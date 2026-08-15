@@ -1,7 +1,7 @@
 import type { Hono } from 'hono'
 import { stream as honoStream } from 'hono/streaming'
-import type { AgentErrorCrumb, AuthIdentity, BreadCrumb, BreadInstance, BreadTransport, BusFrame } from '@bread/core'
-import { BreadError, fromWireCrumb, streamTransport } from '@bread/core'
+import type { AgentErrorCrumb, AuthIdentity, BreadCrumb, BreadInstance, BreadTransport, BusFrame } from '@breadai/core'
+import { BreadError, fromWireCrumb, streamTransport } from '@breadai/core'
 import { crumbFrameLine } from './protocol-io.js'
 
 export interface TransportOptions {

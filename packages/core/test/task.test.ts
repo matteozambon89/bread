@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
-import { createTaskTool, defineTask, envProvider } from '@bread/core'
-import type { BreadCrumb, BreadPlugin, ToolContext } from '@bread/core'
-import { store } from '@bread/store-memory'
+import { createTaskTool, defineTask, envProvider } from '@breadai/core'
+import type { BreadCrumb, BreadPlugin, ToolContext } from '@breadai/core'
+import { store } from '@breadai/store-memory'
 import {
   defineTestAgent,
   makeBread,
@@ -11,7 +11,7 @@ import {
   mockRecordingObjectModel,
   mockToolCallModel,
   runCollect,
-} from '@bread/test-utils'
+} from '@breadai/test-utils'
 import { z } from 'zod'
 
 const ctx: ToolContext = { agentId: 'a', sessionId: 's', runId: 'r', credentials: envProvider() }

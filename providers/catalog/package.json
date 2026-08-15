@@ -1,5 +1,5 @@
 {
-  "name": "@bread/provider-catalog",
+  "name": "@breadai/provider-catalog",
   "version": "0.1.0",
   "description": "The built-in @ai-sdk/* provider catalog for bread — 18 lazily-imported AI SDK providers as a ready-made ProviderRegistry for config.providers.",
   "license": "MIT",
@@ -39,7 +39,7 @@
     "build": "bun build ./src/index.ts --outdir dist --target node --format esm --packages external && tsc --emitDeclarationOnly --outDir dist"
   },
   "dependencies": {
-    "@bread/core": "workspace:*"
+    "@breadai/core": "workspace:*"
   },
   "peerDependencies": {
     "@ai-sdk/amazon-bedrock": ">=1.0",

@@ -1,4 +1,4 @@
-import { defineHumanTool } from '@bread/core'
+import { defineHumanTool } from '@breadai/core'
 import { z } from 'zod'
 
 export default defineHumanTool(

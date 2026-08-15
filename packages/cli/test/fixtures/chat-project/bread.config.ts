@@ -1,7 +1,7 @@
-import { defineConfig } from '@bread/core'
-import { store } from '@bread/store-memory'
-import { transport } from '@bread/transport-stdout'
-import { mockProvider, mockToolCallModel } from '@bread/test-utils'
+import { defineConfig } from '@breadai/core'
+import { store } from '@breadai/store-memory'
+import { transport } from '@breadai/transport-stdout'
+import { mockProvider, mockToolCallModel } from '@breadai/test-utils'
 
 // Fixture for packages/cli/test/chat.test.ts — a real `bread chat` subprocess
 // against a scripted model, not a live provider. The model calls the human

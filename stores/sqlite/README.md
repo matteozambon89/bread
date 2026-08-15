@@ -4,19 +4,19 @@
   </a>
 </p>
 
-# @bread/store-sqlite
+# @breadai/store-sqlite
 
 SQLite `BreadStore` on Bun's built-in [`bun:sqlite`](https://bun.sh/docs/api/sqlite) — a local
 file, no service, no native addon. The full store contract: sessions, messages, checkpoints,
 loops, task runs, knowledge graph, documents.
 
 ```bash
-bun add @bread/store-sqlite
+bun add @breadai/store-sqlite
 ```
 
 ```ts
-import { defineConfig } from '@bread/core'
-import { store } from '@bread/store-sqlite'
+import { defineConfig } from '@breadai/core'
+import { store } from '@breadai/store-sqlite'
 
 export default defineConfig({
   entrypoints: ['researcher'],

@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
-import { BreadError } from '@bread/core'
-import type { BreadCrumb } from '@bread/core'
+import { BreadError } from '@breadai/core'
+import type { BreadCrumb } from '@breadai/core'
 import {
   defineTestAgent,
   makeBread,
@@ -9,7 +9,7 @@ import {
   mockTextModel,
   runCollect,
   stream,
-} from '@bread/test-utils'
+} from '@breadai/test-utils'
 
 // Manually drains an iterator, aborting right before the `abortAt`-th crumb is
 // requested — deterministic without artificial delay, since each `.next()`

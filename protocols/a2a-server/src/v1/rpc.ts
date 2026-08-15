@@ -1,4 +1,4 @@
-import { type FileOutput, isFileOutput } from '@bread/core'
+import { type FileOutput, isFileOutput } from '@breadai/core'
 import { v7 as uuidv7 } from 'uuid'
 import { jsonRpcError, jsonRpcResult, parseEnvelope } from '../jsonrpc.js'
 import type { A2ABread } from '../agent-meta.js'

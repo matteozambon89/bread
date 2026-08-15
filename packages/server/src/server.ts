@@ -7,8 +7,8 @@ import type {
   BreadInstance,
   BreadPlugin,
   TaskRegistry,
-} from '@bread/core'
-import { BreadError, createBread } from '@bread/core'
+} from '@breadai/core'
+import { BreadError, createBread } from '@breadai/core'
 
 export interface ServerOptions {
   port?: number
@@ -66,19 +66,19 @@ export function createServer(
   if (!config.store) {
     throw new BreadError(
       "No store configured. Set `store` in bread.config.ts — e.g. `store({ path: './bread.db' })` " +
-        "from `@bread/store-sqlite`, or `store()` from `@bread/store-postgres` (reads DATABASE_URL).",
+        "from `@breadai/store-sqlite`, or `store()` from `@breadai/store-postgres` (reads DATABASE_URL).",
       'STORE_NOT_CONFIGURED',
     )
   }
   // `config.transport` is the single ingress seam — strict everywhere too, no
   // hardcoded default and no transport package as a hard dependency of
-  // @bread/core/@bread/server/@bread/cli. Must be mount-capable (not every
-  // BreadTransport is — @bread/transport-redis, for one, is fan-out only).
+  // @breadai/core/@breadai/server/@breadai/cli. Must be mount-capable (not every
+  // BreadTransport is — @breadai/transport-redis, for one, is fan-out only).
   if (!config.transport?.mount) {
     throw new BreadError(
       'No mount-capable transport configured. Set `transport` in bread.config.ts — e.g. ' +
-        '`transport: transport()` from `@bread/transport-http-chunked` (or ' +
-        '`@bread/transport-http-sse` for the SSE/browser-EventSource-friendly alternative).',
+        '`transport: transport()` from `@breadai/transport-http-chunked` (or ' +
+        '`@breadai/transport-http-sse` for the SSE/browser-EventSource-friendly alternative).',
       'TRANSPORT_NOT_CONFIGURED',
     )
   }
@@ -111,7 +111,7 @@ export function createServer(
     return c.json({ error: toClientError(err) }, 500)
   })
 
-  // Plugin-contributed middleware (e.g. @bread/server's authPlugin()) — applied
+  // Plugin-contributed middleware (e.g. @breadai/server's authPlugin()) — applied
   // before any routes below, regardless of plugin registration order, so a
   // gate wraps everything downstream: this loop, the routes loop after it,
   // and the transport mount.
@@ -119,14 +119,14 @@ export function createServer(
     plugin.middleware?.(app)
   }
 
-  // Plugin-contributed HTTP routes (e.g. @bread/protocol-mcp-server's HTTP exposure).
+  // Plugin-contributed HTTP routes (e.g. @breadai/protocol-mcp-server's HTTP exposure).
   for (const plugin of config.plugins ?? []) {
     plugin.routes?.(app)
   }
 
   // The four streaming routes (run/pipeline-run/resume/passive-stream) are the
   // transport's job now — implemented generically against the public
-  // BreadInstance surface by whichever @bread/transport-* package is mounted.
+  // BreadInstance surface by whichever @breadai/transport-* package is mounted.
   config.transport.mount(app, bread)
 
   // ---------------------------------------------------------------------------

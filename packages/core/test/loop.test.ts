@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import type { BreadCrumb, BreadInstance, LoopEndCrumb, LoopHooks, ToolErrorCrumb } from '@bread/core'
+import type { BreadCrumb, BreadInstance, LoopEndCrumb, LoopHooks, ToolErrorCrumb } from '@breadai/core'
 import {
   defineTestAgent,
   makeBread,
@@ -7,8 +7,8 @@ import {
   mockScript,
   mockTextModel,
   runCollect,
-} from '@bread/test-utils'
-import type { ScriptStep } from '@bread/test-utils'
+} from '@breadai/test-utils'
+import type { ScriptStep } from '@breadai/test-utils'
 
 // Boots a `host` agent with a loop over a single `worker`, driven by a scripted
 // sequence of host tool calls.

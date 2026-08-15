@@ -1,5 +1,5 @@
 {
-  "name": "@bread/store-memory",
+  "name": "@breadai/store-memory",
   "version": "0.1.0",
   "description": "In-memory storage adapter for bread — implements the session, checkpoint, knowledge, and document ports with no persistence. Ideal for tests and ephemeral runs.",
   "license": "MIT",
@@ -40,11 +40,11 @@
     "build": "bun build ./src/index.ts --outdir dist --target node --format esm --packages external && tsc --emitDeclarationOnly --outDir dist"
   },
   "dependencies": {
-    "@bread/core": "workspace:*",
+    "@breadai/core": "workspace:*",
     "uuid": "^11.1.0"
   },
   "devDependencies": {
-    "@bread/test-utils": "workspace:*",
+    "@breadai/test-utils": "workspace:*",
     "@types/bun": "latest",
     "typescript": "^5.8.3"
   }

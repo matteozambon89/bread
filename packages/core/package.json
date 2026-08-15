@@ -1,5 +1,5 @@
 {
-  "name": "@bread/core",
+  "name": "@breadai/core",
   "version": "0.1.0",
   "description": "Core SDK for bread — an explicit-by-design, file-system-convention framework for building AI agents.",
   "license": "MIT",
@@ -47,9 +47,9 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@bread/store-memory": "workspace:*",
-    "@bread/store-sqlite": "workspace:*",
-    "@bread/test-utils": "workspace:*",
+    "@breadai/store-memory": "workspace:*",
+    "@breadai/store-sqlite": "workspace:*",
+    "@breadai/test-utils": "workspace:*",
     "@types/bun": "latest",
     "typescript": "^5.8.3"
   }

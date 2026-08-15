@@ -1,4 +1,4 @@
-import type { BlobStore, FileOutput } from '@bread/core'
+import type { BlobStore, FileOutput } from '@breadai/core'
 
 // v1.0 drops the `kind` discriminator entirely — a Part is a `oneof`,
 // identified by which named field is present on the wire (`text`/`raw`/

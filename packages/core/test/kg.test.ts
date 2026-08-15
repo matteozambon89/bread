@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
-import { buildKgContext, createKgTools, envProvider } from '@bread/core'
-import type { BreadStore, ToolContext, ToolDefinition } from '@bread/core'
-import { store } from '@bread/store-memory'
+import { buildKgContext, createKgTools, envProvider } from '@breadai/core'
+import type { BreadStore, ToolContext, ToolDefinition } from '@breadai/core'
+import { store } from '@breadai/store-memory'
 
 const ctx: ToolContext = {
   agentId: 'a',

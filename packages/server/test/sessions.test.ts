@@ -1,8 +1,8 @@
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, spyOn, test } from 'bun:test'
-import type { BreadStore } from '@bread/core'
-import { cleanupSessions, listSessions } from '@bread/server'
-import { store } from '@bread/store-memory'
+import type { BreadStore } from '@breadai/core'
+import { cleanupSessions, listSessions } from '@breadai/server'
+import { store } from '@breadai/store-memory'
 
 const projectRoot = join(import.meta.dir, 'fixtures', 'sessions-project')
 const noStoreRoot = join(import.meta.dir, 'fixtures', 'sessions-project-no-store')

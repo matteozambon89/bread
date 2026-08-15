@@ -1,5 +1,5 @@
 {
-  "name": "@bread/server",
+  "name": "@breadai/server",
   "version": "0.1.0",
   "type": "module",
   "exports": {
@@ -14,16 +14,16 @@
     "build": "bun build ./src/index.ts --outdir dist --target node --format esm --packages external && tsc --emitDeclarationOnly --outDir dist"
   },
   "dependencies": {
-    "@bread/core": "workspace:*",
-    "@bread/provider-catalog": "workspace:*",
+    "@breadai/core": "workspace:*",
+    "@breadai/provider-catalog": "workspace:*",
     "chokidar": "^4.0.3",
     "hono": "^4.8.4",
     "uuid": "^11.1.0"
   },
   "devDependencies": {
-    "@bread/store-memory": "workspace:*",
-    "@bread/test-utils": "workspace:*",
-    "@bread/transport-http-sse": "workspace:*",
+    "@breadai/store-memory": "workspace:*",
+    "@breadai/test-utils": "workspace:*",
+    "@breadai/transport-http-sse": "workspace:*",
     "@types/bun": "latest",
     "typescript": "^5.8.3",
     "zod": "^4.4.3"

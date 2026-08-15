@@ -1,5 +1,5 @@
 import type { LanguageModel } from 'ai'
-import type { ProviderRegistry } from '@bread/core'
+import type { ProviderRegistry } from '@breadai/core'
 
 // The runner resolves models through `resolveModel(ref, registries)`. An agent
 // configured with `model: { provider: 'mock', model: <key> }` resolves to one

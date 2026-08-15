@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
-import { resolveModel } from '@bread/core'
-import { providerCatalog } from '@bread/provider-catalog'
+import { resolveModel } from '@breadai/core'
+import { providerCatalog } from '@breadai/provider-catalog'
 
 describe('providerCatalog', () => {
   test('exposes all 18 built-in provider names', () => {

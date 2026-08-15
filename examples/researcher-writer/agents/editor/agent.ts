@@ -1,4 +1,4 @@
-import { defineAgent } from '@bread/core'
+import { defineAgent } from '@breadai/core'
 import { z } from 'zod'
 
 // LLM supervisor: the editor's model drives `core_delegate` per prompt.md —

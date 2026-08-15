@@ -4,12 +4,12 @@
   </a>
 </p>
 
-# @bread/protocol-a2a-server
+# @breadai/protocol-a2a-server
 
 Agent-to-agent (A2A) protocol plugin for bread.
 
 ```bash
-bun add @bread/protocol-a2a-server   # or: npm i @bread/protocol-a2a-server
+bun add @breadai/protocol-a2a-server   # or: npm i @breadai/protocol-a2a-server
 ```
 
 Part of **[bread](https://github.com/matteozambon89/bread)** — an explicit-by-design framework for AI agents.
@@ -19,7 +19,7 @@ Docs: [A2A server](https://github.com/matteozambon89/bread/blob/HEAD/docs/a2a.md
 ## Usage
 
 ```ts
-import { a2aServer } from '@bread/protocol-a2a-server'
+import { a2aServer } from '@breadai/protocol-a2a-server'
 
 // v0.3.x (default) — the interoperable spec version
 a2aServer({ agentId: 'researcher', url: 'https://api.example.com/a2a' })

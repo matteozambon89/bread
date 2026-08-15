@@ -6,15 +6,15 @@ instances registered in `providers` (`BreadConfig.providers`, global) or an agen
 
 ## The built-in catalog
 
-Install [`@bread/provider-catalog`](https://www.npmjs.com/package/@bread/provider-catalog) for the
+Install [`@breadai/provider-catalog`](https://www.npmjs.com/package/@breadai/provider-catalog) for the
 18 common `@ai-sdk/*` built-ins (`openai`, `anthropic`, `google`, `google-vertex`, `azure`,
 `amazon-bedrock`, `mistral`, `groq`, `cohere`, `xai`, `deepseek`, `togetherai`, `fireworks`,
 `deepinfra`, `cerebras`, `perplexity`, `baseten`, `ollama`), each imported lazily so only the
 provider you actually use pulls in its optional peer dependency:
 
 ```ts
-import { defineConfig } from '@bread/core'
-import { providerCatalog } from '@bread/provider-catalog'
+import { defineConfig } from '@breadai/core'
+import { providerCatalog } from '@breadai/provider-catalog'
 
 export default defineConfig({
   entrypoints: ['writer'],
@@ -29,7 +29,7 @@ and returning a `LanguageModel`. Hand-write one to add a provider the catalog do
 override a catalog entry:
 
 ```ts
-import type { ProviderRegistry } from '@bread/core'
+import type { ProviderRegistry } from '@breadai/core'
 import { openai } from '@ai-sdk/openai'
 
 const providers: ProviderRegistry = {

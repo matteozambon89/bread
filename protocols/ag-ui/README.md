@@ -4,7 +4,7 @@
   </a>
 </p>
 
-# @bread/protocol-ag-ui
+# @breadai/protocol-ag-ui
 
 Bridge bread's crumb stream to [AG-UI protocol](https://ag-ui.com) events, with spec-conformant
 framing: `TEXT_MESSAGE_START/CONTENT/END` around assistant text, the full
@@ -13,12 +13,12 @@ framing: `TEXT_MESSAGE_START/CONTENT/END` around assistant text, the full
 state.
 
 ```bash
-bun add @bread/protocol-ag-ui   # or: npm i @bread/protocol-ag-ui
+bun add @breadai/protocol-ag-ui   # or: npm i @breadai/protocol-ag-ui
 ```
 
 ```ts
-import { defineConfig } from '@bread/core'
-import { agUi } from '@bread/protocol-ag-ui'
+import { defineConfig } from '@breadai/core'
+import { agUi } from '@breadai/protocol-ag-ui'
 
 export default defineConfig({
   entrypoints: ['assistant'],

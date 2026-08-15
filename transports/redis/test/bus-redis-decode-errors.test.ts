@@ -1,11 +1,11 @@
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
-import type { BreadCrumb } from '@bread/core'
-import { transport } from '@bread/transport-redis'
+import type { BreadCrumb } from '@breadai/core'
+import { transport } from '@breadai/transport-redis'
 import { Redis } from 'ioredis'
 import { v7 as uuidv7 } from 'uuid'
 import { spawnRedisForTest } from './redis-server'
 
-// Bespoke coverage for @bread/transport-redis's own decode-failure surfacing
+// Bespoke coverage for @breadai/transport-redis's own decode-failure surfacing
 // (version tag + shape validation on the `frame` field it writes/reads) —
 // the shared runTransportContract suite in bus-redis.test.ts only covers
 // well-formed frames. No mocks: malformed entries are injected via a raw
@@ -57,7 +57,7 @@ async function waitForLength(arr: unknown[], n: number, timeoutMs = 5000): Promi
   }
 }
 
-describe('@bread/transport-redis decode-error surfacing', () => {
+describe('@breadai/transport-redis decode-error surfacing', () => {
   maybeTest('replay: skips malformed entries, delivers surrounding valid frames, logs context', async () => {
     const runId = `r-${uuidv7()}`
     const keyPrefix = `bread:decode-test:${uuidv7()}:`

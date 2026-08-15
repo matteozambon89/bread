@@ -1,5 +1,5 @@
 {
-  "name": "@bread/auth-oauth2",
+  "name": "@breadai/auth-oauth2",
   "version": "0.1.0",
   "description": "OAuth 2.0 auth for bread — client-credentials signing and bearer-token verification.",
   "license": "MIT",
@@ -40,8 +40,8 @@
     "build": "bun build ./src/index.ts --outdir dist --target node --format esm --packages external && tsc --emitDeclarationOnly --outDir dist"
   },
   "dependencies": {
-    "@bread/core": "workspace:*",
-    "@bread/auth-jwt": "workspace:*"
+    "@breadai/core": "workspace:*",
+    "@breadai/auth-jwt": "workspace:*"
   },
   "devDependencies": {
     "@types/bun": "latest",

@@ -1,6 +1,6 @@
 import { join } from 'node:path'
 import { describe, expect, spyOn, test } from 'bun:test'
-import { runBuild } from '@bread/server'
+import { runBuild } from '@breadai/server'
 
 const goodRoot = join(import.meta.dir, 'fixtures', 'build-project')
 const invalidRoot = join(import.meta.dir, 'fixtures', 'build-project-invalid')

@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
-import { defineHumanTool } from '@bread/core'
-import type { AgentRunEndCrumb, BreadCrumb, ToolErrorCrumb } from '@bread/core'
-import { store as memoryStore } from '@bread/store-memory'
+import { defineHumanTool } from '@breadai/core'
+import type { AgentRunEndCrumb, BreadCrumb, ToolErrorCrumb } from '@breadai/core'
+import { store as memoryStore } from '@breadai/store-memory'
 import { z } from 'zod'
 import {
   defineTestAgent,
@@ -10,7 +10,7 @@ import {
   mockTextModel,
   mockToolCallModel,
   runCollect,
-} from '@bread/test-utils'
+} from '@breadai/test-utils'
 import type { MockLanguageModelV3 } from 'ai/test'
 
 function textOf(crumbs: BreadCrumb[]): string {

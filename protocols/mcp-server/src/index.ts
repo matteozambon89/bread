@@ -1,4 +1,4 @@
-import type { BreadInstance, BreadPlugin } from '@bread/core'
+import type { BreadInstance, BreadPlugin } from '@breadai/core'
 import { type ExposeConfig, buildMcpServer, handleHttpRequest, serveStdio } from './server.js'
 
 export type { ExposeConfig, McpBread } from './server.js'

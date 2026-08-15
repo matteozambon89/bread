@@ -1,10 +1,10 @@
 import { join } from 'node:path'
 import { afterEach, describe, expect, test } from 'bun:test'
-import type { AgentRegistry, BreadConfig, BreadCrumb } from '@bread/core'
-import { store } from '@bread/store-memory'
-import { defineTestAgent, mockProvider, mockTextModel } from '@bread/test-utils'
-import { remoteAgent, transport } from '@bread/transport-http-chunked'
-import { startServer } from '@bread/server'
+import type { AgentRegistry, BreadConfig, BreadCrumb } from '@breadai/core'
+import { store } from '@breadai/store-memory'
+import { defineTestAgent, mockProvider, mockTextModel } from '@breadai/test-utils'
+import { remoteAgent, transport } from '@breadai/transport-http-chunked'
+import { startServer } from '@breadai/server'
 
 // Live regression test for SEC-01: a traversal `skill` id reaching
 // `POST /agents/:id/run` must not escape `agentDir/skills/` — real HTTP
@@ -35,7 +35,7 @@ function fixture(): { config: BreadConfig; agents: AgentRegistry } {
   return { config, agents }
 }
 
-describe('@bread/transport-http-chunked — skill traversal is rejected (SEC-01)', () => {
+describe('@breadai/transport-http-chunked — skill traversal is rejected (SEC-01)', () => {
   let stops: Array<() => Promise<void>> = []
 
   afterEach(async () => {

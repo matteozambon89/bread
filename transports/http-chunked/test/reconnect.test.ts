@@ -1,11 +1,11 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { z } from 'zod'
-import type { AgentRegistry, BreadConfig, BreadCrumb } from '@bread/core'
-import { BreadError, defineTool } from '@bread/core'
-import { startServer } from '@bread/server'
-import { store } from '@bread/store-memory'
-import { defineTestAgent, mockProvider, mockToolCallModel } from '@bread/test-utils'
-import { remoteAgent, transport } from '@bread/transport-http-chunked'
+import type { AgentRegistry, BreadConfig, BreadCrumb } from '@breadai/core'
+import { BreadError, defineTool } from '@breadai/core'
+import { startServer } from '@breadai/server'
+import { store } from '@breadai/store-memory'
+import { defineTestAgent, mockProvider, mockToolCallModel } from '@breadai/test-utils'
+import { remoteAgent, transport } from '@breadai/transport-http-chunked'
 
 // A real Bun.serve() smoke test: the server is genuinely live on a real port,
 // and the client's fetch is wrapped to truncate the NDJSON response after N
@@ -84,7 +84,7 @@ function droppingFetch(dropCount: number, after: number): typeof fetch {
   }) as typeof fetch
 }
 
-describe('@bread/transport-http-chunked — remoteAgent() reconnect', () => {
+describe('@breadai/transport-http-chunked — remoteAgent() reconnect', () => {
   let stops: Array<() => Promise<void>> = []
 
   afterEach(async () => {

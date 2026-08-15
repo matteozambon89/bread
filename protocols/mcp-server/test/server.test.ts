@@ -2,9 +2,9 @@ import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js'
 import { z } from 'zod'
-import { type BreadInstance, type BreadPlugin, defineTask, defineTool } from '@bread/core'
-import { defineTestAgent, makeBread, memoryBlobStore, mockObjectModel, mockTextModel } from '@bread/test-utils'
-import { buildMcpServer, handleHttpRequest } from '@bread/protocol-mcp-server'
+import { type BreadInstance, type BreadPlugin, defineTask, defineTool } from '@breadai/core'
+import { defineTestAgent, makeBread, memoryBlobStore, mockObjectModel, mockTextModel } from '@breadai/test-utils'
+import { buildMcpServer, handleHttpRequest } from '@breadai/protocol-mcp-server'
 
 // Exposes a bread agent (and an agent+skill pair) as MCP tools, served over a
 // real HTTP transport, and drives it with the official MCP client — exercising

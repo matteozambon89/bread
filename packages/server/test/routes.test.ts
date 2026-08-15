@@ -11,12 +11,12 @@ import type {
   Session,
   TaskRunFilter,
   TaskRunRecord,
-} from '@bread/core'
-import { BreadError } from '@bread/core'
-import { createServer } from '@bread/server'
-import { store } from '@bread/store-memory'
-import { transport } from '@bread/transport-http-sse'
-import { defineTestAgent, makeServer, mockProvider, mockTextModel, readSse } from '@bread/test-utils'
+} from '@breadai/core'
+import { BreadError } from '@breadai/core'
+import { createServer } from '@breadai/server'
+import { store } from '@breadai/store-memory'
+import { transport } from '@breadai/transport-http-sse'
+import { defineTestAgent, makeServer, mockProvider, mockTextModel, readSse } from '@breadai/test-utils'
 
 describe('server — agent routes', () => {
   let app: Hono

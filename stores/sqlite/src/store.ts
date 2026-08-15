@@ -14,7 +14,7 @@ import type {
   SessionMessage,
   TaskRunRecord,
   TaskRunStatus,
-} from '@bread/core'
+} from '@breadai/core'
 
 export interface SqliteStoreOptions {
   // File path for persistence, or ':memory:' (default) for an ephemeral db.

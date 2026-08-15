@@ -2,7 +2,7 @@ export { authMiddleware, authPlugin, createServer, startServer } from './server.
 export { loadConfig, loadAgents, loadEvals, loadTasks } from './loader.js'
 export type { ServerOptions } from './server.js'
 
-// Command runners — consumed by the @bread/cli binary.
+// Command runners — consumed by the @breadai/cli binary.
 export { runDev } from './commands/dev.js'
 export { runBuild } from './commands/build.js'
 export { runStart } from './commands/start.js'

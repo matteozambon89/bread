@@ -1,6 +1,6 @@
 # CLI
 
-The `bread` binary (`@bread/cli`) is a thin wrapper over `@bread/server`; every
+The `bread` binary (`@breadai/cli`) is a thin wrapper over `@breadai/server`; every
 command resolves agents from the filesystem (`loadConfig` + `loadAgents`) and runs them
 through the same core `bread.run(agentId, input, opts)` the HTTP server uses.
 

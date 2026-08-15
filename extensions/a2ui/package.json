@@ -1,5 +1,5 @@
 {
-  "name": "@bread/a2ui",
+  "name": "@breadai/a2ui",
   "version": "0.1.0",
   "type": "module",
   "exports": {
@@ -10,10 +10,10 @@
     }
   },
   "dependencies": {
-    "@bread/core": "workspace:*"
+    "@breadai/core": "workspace:*"
   },
   "devDependencies": {
-    "@bread/test-utils": "workspace:*",
+    "@breadai/test-utils": "workspace:*",
     "@types/bun": "latest",
     "typescript": "^5.8.3",
     "zod": "^4.4.3"

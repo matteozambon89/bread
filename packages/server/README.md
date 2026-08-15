@@ -4,7 +4,7 @@
   </a>
 </p>
 
-# @bread/server
+# @breadai/server
 
 The reference HTTP ingress for bread: a [Hono](https://hono.dev) app serving agents, pipelines,
 sessions, loops, task runs, and HITL resume as SSE/JSON routes, plus the file-system loader
@@ -12,11 +12,11 @@ sessions, loops, task runs, and HITL resume as SSE/JSON routes, plus the file-sy
 Importable as a library — you don't need the CLI to embed it.
 
 ```bash
-bun add @bread/server   # or: npm i @bread/server
+bun add @breadai/server   # or: npm i @breadai/server
 ```
 
 ```ts
-import { createServer, loadAgents, loadConfig, loadTasks } from '@bread/server'
+import { createServer, loadAgents, loadConfig, loadTasks } from '@breadai/server'
 
 const config = await loadConfig(process.cwd())
 const agents = await loadAgents(process.cwd(), config.entrypoints)

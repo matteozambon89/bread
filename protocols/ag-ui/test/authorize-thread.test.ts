@@ -1,8 +1,8 @@
 import { describe, expect, test } from 'bun:test'
-import type { AuthIdentity, BreadAuthStrategy } from '@bread/core'
-import { authPlugin } from '@bread/server'
-import { defineTestAgent, makeServer, mockTextModel } from '@bread/test-utils'
-import { agUi } from '@bread/protocol-ag-ui'
+import type { AuthIdentity, BreadAuthStrategy } from '@breadai/core'
+import { authPlugin } from '@breadai/server'
+import { defineTestAgent, makeServer, mockTextModel } from '@breadai/test-utils'
+import { agUi } from '@breadai/protocol-ag-ui'
 
 // A client-supplied threadId is used directly as bread's sessionId with no
 // ownership check unless authorizeThread is wired — this proves the opt-in

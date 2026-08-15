@@ -3,8 +3,8 @@ import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js'
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 import { StreamableHTTPClientTransport, StreamableHTTPError } from '@modelcontextprotocol/sdk/client/streamableHttp.js'
 import { ToolListChangedNotificationSchema } from '@modelcontextprotocol/sdk/types.js'
-import { BreadError, assertName } from '@bread/core'
-import type { BreadSigner, ToolDefinition } from '@bread/core'
+import { BreadError, assertName } from '@breadai/core'
+import type { BreadSigner, ToolDefinition } from '@breadai/core'
 import { type JSONSchema, jsonSchemaToZod } from './json-schema-to-zod.js'
 
 export interface McpServerConfig {

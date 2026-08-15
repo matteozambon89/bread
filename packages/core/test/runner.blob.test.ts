@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import { z } from 'zod'
-import { BreadError, defineTool } from '@bread/core'
-import type { FileGeneratedCrumb, ToolResultCrumb } from '@bread/core'
+import { BreadError, defineTool } from '@breadai/core'
+import type { FileGeneratedCrumb, ToolResultCrumb } from '@breadai/core'
 import {
   defineTestAgent,
   makeBread,
@@ -10,7 +10,7 @@ import {
   mockToolCallModel,
   runCollect,
   stream,
-} from '@bread/test-utils'
+} from '@breadai/test-utils'
 
 const PNG_BASE64 = Buffer.from('fake-png-bytes').toString('base64')
 

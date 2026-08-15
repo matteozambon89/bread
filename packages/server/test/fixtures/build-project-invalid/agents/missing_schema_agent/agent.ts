@@ -1,4 +1,4 @@
-import { defineAgent } from '@bread/core'
+import { defineAgent } from '@breadai/core'
 
 // Deliberately typed away with `as never` — hits runBuild's missing
 // inputSchema/outputSchema branches, which loadAgents itself never validates.

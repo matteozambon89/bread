@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import type { BreadStore, CheckpointRecord, CrumbLogEntry, LoopRecord, TaskRunRecord } from '@bread/core'
+import type { BreadStore, CheckpointRecord, CrumbLogEntry, LoopRecord, TaskRunRecord } from '@breadai/core'
 
 // A behavioral contract every BreadStore implementation must satisfy, expressed
 // as runner-agnostic cases (node:assert works fine under Bun). Stores register

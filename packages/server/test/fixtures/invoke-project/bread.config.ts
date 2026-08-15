@@ -1,7 +1,7 @@
-import { defineConfig } from '@bread/core'
-import { store } from '@bread/store-memory'
-import { transport } from '@bread/transport-http-sse'
-import { mockProvider } from '@bread/test-utils'
+import { defineConfig } from '@breadai/core'
+import { store } from '@breadai/store-memory'
+import { transport } from '@breadai/transport-http-sse'
+import { mockProvider } from '@breadai/test-utils'
 
 // The test sets `globalThis.__breadInvokeTestModel` to a mock LanguageModel
 // before each `runInvoke` call — loadConfig re-imports this module fresh

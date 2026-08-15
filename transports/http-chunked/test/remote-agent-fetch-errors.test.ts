@@ -1,11 +1,11 @@
 import { describe, expect, test } from 'bun:test'
-import { BreadError } from '@bread/core'
-import { remoteAgent } from '@bread/transport-http-chunked'
+import { BreadError } from '@breadai/core'
+import { remoteAgent } from '@breadai/transport-http-chunked'
 
 // Unit-level coverage of remoteAgent()'s internal streamAttempt()/sleep()
 // helpers — neither is exported, so exercised through a stubbed global fetch
 // passed to the public run() API instead of imported directly.
-describe('@bread/transport-http-chunked — remoteAgent() fetch error paths', () => {
+describe('@breadai/transport-http-chunked — remoteAgent() fetch error paths', () => {
   test('a non-ok HTTP status throws REMOTE_AGENT_ERROR immediately, without retrying', async () => {
     let calls = 0
     const stubFetch = (async () => {

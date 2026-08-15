@@ -1,7 +1,7 @@
 import { watch } from 'chokidar'
 import { loadAgents, loadConfig, loadTasks } from '../loader.js'
 import { startServer } from '../server.js'
-import type { AgentRegistry } from '@bread/core'
+import type { AgentRegistry } from '@breadai/core'
 
 export interface DevOptions {
   cwd: string

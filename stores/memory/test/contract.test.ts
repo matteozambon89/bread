@@ -1,4 +1,4 @@
-import { store } from '@bread/store-memory'
-import { runStoreContract } from '@bread/test-utils'
+import { store } from '@breadai/store-memory'
+import { runStoreContract } from '@breadai/test-utils'
 
 runStoreContract('memory', () => store())

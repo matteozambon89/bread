@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { defineTool } from '@bread/core'
+import { defineTool } from '@breadai/core'
 
 export default defineTool({
   name: 'Bad-Name',

@@ -4,21 +4,21 @@
   </a>
 </p>
 
-# @bread/core
+# @breadai/core
 
 Core SDK for bread — a file-system-convention framework for building AI agents ("Next.js for
 agents"). Everything runtime lives here: the agent runner, tools, tasks, skills, loops,
 supervisors, pipelines, sessions, HITL checkpoints, permissions, hooks, and the `BreadStore` /
 `BreadPlugin` contracts. No HTTP, no CLI — bring your own ingress or use
-[`@bread/server`](https://www.npmjs.com/package/@bread/server).
+[`@breadai/server`](https://www.npmjs.com/package/@breadai/server).
 
 ```bash
-bun add @bread/core   # or: npm i @bread/core
+bun add @breadai/core   # or: npm i @breadai/core
 ```
 
 ```ts
-import { createBread, defineAgent } from '@bread/core'
-import { store } from '@bread/store-memory'
+import { createBread, defineAgent } from '@breadai/core'
+import { store } from '@breadai/store-memory'
 import { z } from 'zod'
 
 const echo = defineAgent({

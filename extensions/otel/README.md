@@ -4,19 +4,19 @@
   </a>
 </p>
 
-# @bread/otel
+# @breadai/otel
 
 OpenTelemetry plugin for bread — one `agent.run` span per run, a `tool.call.<name>` child span
 per tool call (closed on result or error), and `pipeline.step.<n>` spans for pipeline steps.
 Errors are recorded on their span via `recordException`.
 
 ```bash
-bun add @bread/otel   # or: npm i @bread/otel
+bun add @breadai/otel   # or: npm i @breadai/otel
 ```
 
 ```ts
-import { defineConfig } from '@bread/core'
-import { otel } from '@bread/otel'
+import { defineConfig } from '@breadai/core'
+import { otel } from '@breadai/otel'
 
 export default defineConfig({
   entrypoints: ['researcher'],

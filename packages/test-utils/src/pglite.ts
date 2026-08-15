@@ -36,7 +36,7 @@ function freePort(): Promise<number> {
 
 /**
  * Starts an in-process Postgres (pglite, WASM) fronted by a socket server that
- * speaks the Postgres wire protocol, so `@bread/store-postgres`'s `store({ url })` connects to it
+ * speaks the Postgres wire protocol, so `@breadai/store-postgres`'s `store({ url })` connects to it
  * unchanged — no external server, no Docker. An ephemeral port avoids collisions
  * between parallel test files.
  *

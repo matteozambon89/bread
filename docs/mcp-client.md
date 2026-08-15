@@ -1,14 +1,14 @@
-# MCP client — `@bread/protocol-mcp-client`
+# MCP client — `@breadai/protocol-mcp-client`
 
 Consume external [Model Context Protocol](https://modelcontextprotocol.io) servers, built on the
 official `@modelcontextprotocol/sdk`. Their tools become ordinary bread tools for any agent that
 opts in — either a server declared once at the top level, or one declared inline on a single agent.
 
 ```bash
-bun add @bread/protocol-mcp-client
+bun add @breadai/protocol-mcp-client
 ```
 
-`@bread/protocol-mcp-client` is a regular [plugin](./plugins.md); core has no built-in notion of MCP at all —
+`@breadai/protocol-mcp-client` is a regular [plugin](./plugins.md); core has no built-in notion of MCP at all —
 it only knows about the generic `BreadPlugin.resolveAgentTools` hook this plugin implements. See
 [tools.md](./tools.md#where-an-agents-tools-come-from) for how that fits into the rest of an agent's
 tool set, and [plugins.md](./plugins.md) for the hook itself.
@@ -17,9 +17,9 @@ tool set, and [plugins.md](./plugins.md) for the hook itself.
 
 ```ts
 // bread.config.ts
-import { defineConfig } from '@bread/core'
-import { mcpClient } from '@bread/protocol-mcp-client'
-import { signer } from '@bread/auth-oauth2'
+import { defineConfig } from '@breadai/core'
+import { mcpClient } from '@breadai/protocol-mcp-client'
+import { signer } from '@breadai/auth-oauth2'
 
 export default defineConfig({
   entrypoints: ['researcher'],
@@ -97,12 +97,12 @@ the endpoint stable.
 
 A server's `signer` field is a [`BreadSigner`](./auth.md) — its `sign(headers)` runs on
 **every outgoing request**, so signers with expiring credentials refresh naturally: an
-`@bread/auth-oauth2` `signer(...)` re-uses its cached token until the expiry window, then fetches
+`@breadai/auth-oauth2` `signer(...)` re-uses its cached token until the expiry window, then fetches
 a fresh one mid-connection with no reconnect. Compose it with bread's credential primitives to
 keep secrets out of `bread.config.ts` directly:
 
 ```ts
-import { vaultProvider } from '@bread/core'
+import { vaultProvider } from '@breadai/core'
 
 const vault = vaultProvider({ address: '…', token: process.env.VAULT_TOKEN! })
 
@@ -128,7 +128,7 @@ connecting to a pre-configured server non-interactively. Bearer/API-key auth via
 The package also exports its primitives for custom wiring:
 
 ```ts
-import { connectServer, jsonSchemaToZod } from '@bread/protocol-mcp-client'
+import { connectServer, jsonSchemaToZod } from '@breadai/protocol-mcp-client'
 
 const calc = await connectServer({ name: 'calc', command: 'bun', args: ['server.ts'] })
 calc.tools           // ToolDefinition[] ready to hand to an agent

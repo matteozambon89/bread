@@ -14,7 +14,7 @@ import type {
   SessionMessage,
   TaskRunRecord,
   TaskRunStatus,
-} from '@bread/core'
+} from '@breadai/core'
 import { migrate } from './migrate.js'
 
 export type EmbedFn = (text: string) => Promise<number[]>

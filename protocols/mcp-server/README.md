@@ -4,7 +4,7 @@
   </a>
 </p>
 
-# @bread/protocol-mcp-server
+# @breadai/protocol-mcp-server
 
 Expose bread agents, tasks, tools, and agent+skill combinations as
 [Model Context Protocol](https://modelcontextprotocol.io) tools — over stdio (bread as an MCP
@@ -12,12 +12,12 @@ child process) or Streamable HTTP mounted on bread's own server at `/mcp`, gated
 auth strategy the app configures.
 
 ```bash
-bun add @bread/protocol-mcp-server   # or: npm i @bread/protocol-mcp-server
+bun add @breadai/protocol-mcp-server   # or: npm i @breadai/protocol-mcp-server
 ```
 
 ```ts
-import { defineConfig } from '@bread/core'
-import { mcpServer } from '@bread/protocol-mcp-server'
+import { defineConfig } from '@breadai/core'
+import { mcpServer } from '@breadai/protocol-mcp-server'
 
 export default defineConfig({
   entrypoints: ['researcher'],

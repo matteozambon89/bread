@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import { toClientError } from '../src/sse.js'
 
-describe('@bread/transport-http-sse — sse.ts toClientError', () => {
+describe('@breadai/transport-http-sse — sse.ts toClientError', () => {
   test('an AggregateError sanitizes to an AGGREGATE_ERROR client shape', () => {
     const err = new AggregateError([new Error('a'), new Error('b')], 'multiple failures')
     expect(toClientError(err)).toEqual({ code: 'AGGREGATE_ERROR', message: 'multiple failures' })

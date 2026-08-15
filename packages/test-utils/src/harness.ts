@@ -1,4 +1,4 @@
-import { createBread } from '@bread/core'
+import { createBread } from '@breadai/core'
 import type {
   AgentDefinition,
   BreadConfig,
@@ -7,10 +7,10 @@ import type {
   BreadPlugin,
   TaskDefinition,
   TaskRegistry,
-} from '@bread/core'
-import { createServer } from '@bread/server'
-import { store } from '@bread/store-memory'
-import { transport } from '@bread/transport-http-sse'
+} from '@breadai/core'
+import { createServer } from '@breadai/server'
+import { store } from '@breadai/store-memory'
+import { transport } from '@breadai/transport-http-sse'
 import type { LanguageModel } from 'ai'
 import { mockProvider } from './mock-plugin.js'
 
@@ -45,7 +45,7 @@ function buildConfig(opts: HarnessOpts): {
   const config: BreadConfig = {
     entrypoints: Object.keys(opts.agents),
     store: store(),
-    // @bread/transport-http-sse is a wire-compatible relocation of the SSE
+    // @breadai/transport-http-sse is a wire-compatible relocation of the SSE
     // format server.ts used to hand-roll — the default here so every test
     // using this harness keeps working against readSse/parseSse unchanged.
     transport: transport(),

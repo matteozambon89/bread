@@ -1,5 +1,5 @@
 import { Redis } from 'ioredis'
-import type { BreadTransport, BusFrame, Unsubscribe } from '@bread/core'
+import type { BreadTransport, BusFrame, Unsubscribe } from '@breadai/core'
 
 // Redis Streams transport — the crumb fabric between replicas of one bread
 // app. One stream per run (`bread:run:{<runId>}`; braces = cluster hash tag),
@@ -74,7 +74,7 @@ export function transport(opts: RedisTransportOptions = {}): BreadTransport {
 
   function requireStarted(): { pub: Redis; sub: Redis } {
     if (!pub || !sub) {
-      throw new Error('@bread/transport-redis: not started — call init() first (bread.start does)')
+      throw new Error('@breadai/transport-redis: not started — call init() first (bread.start does)')
     }
     return { pub, sub }
   }
@@ -86,7 +86,7 @@ export function transport(opts: RedisTransportOptions = {}): BreadTransport {
   function parseFrame(streamKey: string, id: string, fields: string[]): BusFrame | null {
     const fail = (reason: string): null => {
       console.warn(
-        `[bread] @bread/transport-redis: dropping malformed frame (stream=${streamKey} id=${id}):`,
+        `[bread] @breadai/transport-redis: dropping malformed frame (stream=${streamKey} id=${id}):`,
         reason,
       )
       return null
@@ -175,7 +175,7 @@ export function transport(opts: RedisTransportOptions = {}): BreadTransport {
         }
       } catch (err) {
         if (!running) return
-        console.warn('[bread] @bread/transport-redis: read failed (retrying):', err)
+        console.warn('[bread] @breadai/transport-redis: read failed (retrying):', err)
         await sleep(blockMs)
       }
     }
@@ -194,7 +194,7 @@ export function transport(opts: RedisTransportOptions = {}): BreadTransport {
         conn.on('error', (err) => {
           if (warned) return
           warned = true
-          console.warn('[bread] @bread/transport-redis: connection error (auto-reconnecting):', err.message)
+          console.warn('[bread] @breadai/transport-redis: connection error (auto-reconnecting):', err.message)
         })
       }
       // Fail fast on an unreachable broker instead of silently buffering.

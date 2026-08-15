@@ -9,13 +9,13 @@
     "build": "bread build --cwd provider && bread build --cwd consumer"
   },
   "dependencies": {
-    "@bread/auth-api-key": "workspace:*",
-    "@bread/cli": "workspace:*",
-    "@bread/core": "workspace:*",
-    "@bread/provider-catalog": "workspace:*",
-    "@bread/server": "workspace:*",
-    "@bread/store-sqlite": "workspace:*",
-    "@bread/transport-http-chunked": "workspace:*",
+    "@breadai/auth-api-key": "workspace:*",
+    "@breadai/cli": "workspace:*",
+    "@breadai/core": "workspace:*",
+    "@breadai/provider-catalog": "workspace:*",
+    "@breadai/server": "workspace:*",
+    "@breadai/store-sqlite": "workspace:*",
+    "@breadai/transport-http-chunked": "workspace:*",
     "ollama-ai-provider-v2": "^3.6.0",
     "zod": "^4.4.3"
   }

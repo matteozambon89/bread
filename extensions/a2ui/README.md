@@ -4,12 +4,12 @@
   </a>
 </p>
 
-# @bread/a2ui
+# @breadai/a2ui
 
 A2UI protocol plugin for bread — stream agent UI over the A2UI protocol.
 
 ```bash
-bun add @bread/a2ui   # or: npm i @bread/a2ui
+bun add @breadai/a2ui   # or: npm i @breadai/a2ui
 ```
 
 Part of **[bread](https://github.com/matteozambon89/bread)** — an explicit-by-design framework for AI agents.

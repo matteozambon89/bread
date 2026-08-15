@@ -1,5 +1,5 @@
-import { BreadError, createBread } from '@bread/core'
-import type { BreadCrumb } from '@bread/core'
+import { BreadError, createBread } from '@breadai/core'
+import type { BreadCrumb } from '@breadai/core'
 import { loadAgents, loadConfig, loadTasks } from '../loader.js'
 import { formatToolCall } from './render.js'
 
@@ -33,7 +33,7 @@ export async function runInvoke(opts: InvokeOptions): Promise<void> {
   if (!config.transport) {
     throw new BreadError(
       'No transport configured. Set `transport` in bread.config.ts — e.g. ' +
-        '`transport: transport()` from `@bread/transport-stdout`.',
+        '`transport: transport()` from `@breadai/transport-stdout`.',
       'TRANSPORT_NOT_CONFIGURED',
     )
   }

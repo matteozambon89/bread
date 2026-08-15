@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from 'bun:test'
-import { BreadError, envProvider, vaultProvider } from '@bread/core'
+import { BreadError, envProvider, vaultProvider } from '@breadai/core'
 
 describe('envProvider', () => {
   afterEach(() => {

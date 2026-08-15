@@ -25,28 +25,28 @@ Inside an example or app: `bread dev` (hot-reload server), `bread build`, `bread
 
 | Package | Dir | Notes |
 |---------|-----|-------|
-| `@bread/core` | `packages/core` | Core SDK — runtime, runner, types |
-| `@bread/server` | `packages/server` | Hono server + loader (importable library) |
-| `@bread/cli` | `packages/cli` | `bread` bin; depends on `@bread/server` |
-| `@bread/test-utils` | `packages/test-utils` | Private test harness (`makeBread`, mock models, `storeContractCases`) — not published |
-| `@bread/otel` | `extensions/otel` | OpenTelemetry plugin |
-| `@bread/store-postgres` | `stores/postgres` | Postgres `BreadStore` (default; optional pgvector) |
-| `@bread/store-sqlite` | `stores/sqlite` | SQLite store via `bun:sqlite` |
-| `@bread/store-memory` | `stores/memory` | In-memory store (tests, ephemeral) |
-| `@bread/store-s3` | `stores/s3` | S3-backed `BlobStore` — binary/file storage via presigned URLs |
-| `@bread/provider-catalog` | `providers/catalog` | The 18 built-in `@ai-sdk/*` providers as a `ProviderRegistry` |
-| `@bread/protocol-ag-ui` | `protocols/ag-ui` | AG-UI protocol |
-| `@bread/protocol-a2a-server` | `protocols/a2a-server` | Agent-to-agent (A2A) protocol |
-| `@bread/protocol-mcp-client` | `protocols/mcp-client` | Consume MCP servers (config-level + per-agent `cfg.plugins.mcp_client`) |
-| `@bread/protocol-mcp-server` | `protocols/mcp-server` | Expose bread agents/tasks/tools/skills as an MCP server |
-| `@bread/a2ui` | `extensions/a2ui` | A2UI extension |
-| `@bread/auth-api-key` | `extensions/auth-api-key` | API-key auth strategy + signer |
-| `@bread/auth-jwt` | `extensions/auth-jwt` | JWT auth strategy (verification only) |
-| `@bread/auth-oauth2` | `extensions/auth-oauth2` | OAuth2 bearer-token verify + client-credentials signer |
-| `@bread/transport-stdout` | `transports/stdout` | Terminal-rendering `BreadTransport` (`sink`) for `bread chat`/`bread invoke` |
-| `@bread/transport-redis` | `transports/redis` | Redis Streams `BreadTransport` (cross-replica crumb fan-out; no `mount`) |
-| `@bread/transport-http-chunked` | `transports/http-chunked` | HTTP ingress `BreadTransport` (NDJSON) + `remoteAgent()`; recommended default |
-| `@bread/transport-http-sse` | `transports/http-sse` | HTTP ingress `BreadTransport` (SSE) + `remoteAgent()`; browser-`EventSource`-friendly |
+| `@breadai/core` | `packages/core` | Core SDK — runtime, runner, types |
+| `@breadai/server` | `packages/server` | Hono server + loader (importable library) |
+| `@breadai/cli` | `packages/cli` | `bread` bin; depends on `@breadai/server` |
+| `@breadai/test-utils` | `packages/test-utils` | Private test harness (`makeBread`, mock models, `storeContractCases`) — not published |
+| `@breadai/otel` | `extensions/otel` | OpenTelemetry plugin |
+| `@breadai/store-postgres` | `stores/postgres` | Postgres `BreadStore` (default; optional pgvector) |
+| `@breadai/store-sqlite` | `stores/sqlite` | SQLite store via `bun:sqlite` |
+| `@breadai/store-memory` | `stores/memory` | In-memory store (tests, ephemeral) |
+| `@breadai/store-s3` | `stores/s3` | S3-backed `BlobStore` — binary/file storage via presigned URLs |
+| `@breadai/provider-catalog` | `providers/catalog` | The 18 built-in `@ai-sdk/*` providers as a `ProviderRegistry` |
+| `@breadai/protocol-ag-ui` | `protocols/ag-ui` | AG-UI protocol |
+| `@breadai/protocol-a2a-server` | `protocols/a2a-server` | Agent-to-agent (A2A) protocol |
+| `@breadai/protocol-mcp-client` | `protocols/mcp-client` | Consume MCP servers (config-level + per-agent `cfg.plugins.mcp_client`) |
+| `@breadai/protocol-mcp-server` | `protocols/mcp-server` | Expose bread agents/tasks/tools/skills as an MCP server |
+| `@breadai/a2ui` | `extensions/a2ui` | A2UI extension |
+| `@breadai/auth-api-key` | `extensions/auth-api-key` | API-key auth strategy + signer |
+| `@breadai/auth-jwt` | `extensions/auth-jwt` | JWT auth strategy (verification only) |
+| `@breadai/auth-oauth2` | `extensions/auth-oauth2` | OAuth2 bearer-token verify + client-credentials signer |
+| `@breadai/transport-stdout` | `transports/stdout` | Terminal-rendering `BreadTransport` (`sink`) for `bread chat`/`bread invoke` |
+| `@breadai/transport-redis` | `transports/redis` | Redis Streams `BreadTransport` (cross-replica crumb fan-out; no `mount`) |
+| `@breadai/transport-http-chunked` | `transports/http-chunked` | HTTP ingress `BreadTransport` (NDJSON) + `remoteAgent()`; recommended default |
+| `@breadai/transport-http-sse` | `transports/http-sse` | HTTP ingress `BreadTransport` (SSE) + `remoteAgent()`; browser-`EventSource`-friendly |
 
 ## Source-vs-dist resolution (important)
 
@@ -58,13 +58,13 @@ private export condition, **not** `publishConfig` (bun ignores `publishConfig.ex
 - Running workspace code through bun needs `--conditions bread-source` (the cli `dev` script already passes it).
 - Published consumers never set that condition, so they resolve `dist`.
 
-Builds use `--packages external` so deps (`ai`, `zod`, `@bread/core`, …) stay external instead of being inlined.
+Builds use `--packages external` so deps (`ai`, `zod`, `@breadai/core`, …) stay external instead of being inlined.
 
 ## CLI runtime (Bun-only)
 
-`@bread/cli` ships one bin built from a shared program (`src/cli.ts`, shebang-free, exports
+`@breadai/cli` ships one bin built from a shared program (`src/cli.ts`, shebang-free, exports
 `run()`): `bread` → `src/bin.ts` (`#!/usr/bin/env bun`) — runs under Bun so `bun:sqlite`
-(`@bread/store-sqlite`) resolves with no extra flags.
+(`@breadai/store-sqlite`) resolves with no extra flags.
 
 Bundled `--target node` (a node-target ESM bundle runs fine under Bun) so `bun run dev`/
 `bun run build` respect the bin's shebang, with no per-example config.
@@ -97,23 +97,23 @@ The CLI loader (`packages/server/src/loader.ts`) attaches private fields to each
   `runTask(taskId, args, opts?)`
   (full hook/audit treatment, crumb-silent standalone semantics), and the getters
   `agents`/`tasks`/`pluginTools`/`credentials` (live registries + config passthroughs an ingress
-  needs — `@bread/protocol-mcp-server` consumes only this surface, see its `McpBread` type).
+  needs — `@breadai/protocol-mcp-server` consumes only this surface, see its `McpBread` type).
   `RunnerContext` stays exported for the CLI loader and tests but is `@internal`.
 - **Crumb choke point** — `bread.ts`'s `instrument()` wraps every public stream (`run`, `resume`,
   `runPipeline`, sync mode): assigns per-run `seq` (always reassigned locally — even a relayed
   remote-agent crumb gets a fresh seq, never its original), feeds `bread.on('crumb'/'human:required')`
   listeners, and publishes `{ runId, seq, crumb }` frames to `config.transport` (bread.ts's own
-  internal default is still the embedded `streamTransport()`, but `@bread/server`'s `createServer()`
+  internal default is still the embedded `streamTransport()`, but `@breadai/server`'s `createServer()`
   requires an explicit, mount-capable one — see `docs/transports.md`). Nothing below it emits to
   any transport — the transport/plugin view always equals the client-visible stream (`text:delta`
   seq = watermark of the last durable crumb; see `packages/core/src/transport.ts`). The wire
   envelope for when a frame crosses a network boundary (frame shape, seq semantics, the afterSeq
-  catch-up handshake) is `packages/core/src/protocol.ts` — `@bread/transport-http-chunked` is its
-  reference conformer (NDJSON); `@bread/transport-http-sse` deliberately keeps its own pre-existing
+  catch-up handshake) is `packages/core/src/protocol.ts` — `@breadai/transport-http-chunked` is its
+  reference conformer (NDJSON); `@breadai/transport-http-sse` deliberately keeps its own pre-existing
   SSE framing instead, for wire compatibility.
 - **Providers** — `resolveModel(ref, registries)` (`packages/core/src/model-provider.ts`) takes an
   ordered array of `ProviderRegistry` objects and returns the first match — agent → global →
-  `UNKNOWN_PROVIDER`. Core has no built-ins of its own; `@bread/provider-catalog` supplies the 18
+  `UNKNOWN_PROVIDER`. Core has no built-ins of its own; `@breadai/provider-catalog` supplies the 18
   lazy `@ai-sdk/*` factories as a `ProviderRegistry` to spread into `config.providers`.
 - **Lifecycle unification** — `BreadPlugin.close` (renamed from `destroy`) runs on `bread.stop()`;
   stores keep `migrate?`/`close?`; transports use `init?`/`close?`. `RemoteAgent` (the remote-agent
@@ -124,7 +124,7 @@ The CLI loader (`packages/server/src/loader.ts`) attaches private fields to each
   old interactive `bread dev`/`start` setup wizard, `packages/server/src/store-setup.ts`, is
   deleted), and `createServer()` separately throws `TRANSPORT_NOT_CONFIGURED` when
   `config.transport?.mount` is missing — a plain `BreadTransport` without `mount` (e.g.
-  `@bread/transport-redis`) doesn't satisfy it.
+  `@breadai/transport-redis`) doesn't satisfy it.
 - **Agent loops** — when `cfg.loop` (`{ pool, maxIterations }`) is set, the runner builds the
   `core_start_loop`/`core_iterate_loop`/`core_finish_loop` tools via `buildLoopTools`
   (`packages/core/src/loop.ts`),
@@ -157,7 +157,7 @@ The CLI loader (`packages/server/src/loader.ts`) attaches private fields to each
 
 ## Releasing
 
-All `@bread/*` packages version in **lockstep** (currently `0.1.0`). The flow, once the repo is
+All `@breadai/*` packages version in **lockstep** (currently `0.1.0`). The flow, once the repo is
 on GitHub:
 
 1. `bun run bump <version>` — sets `version` on every publishable package (skips private ones;
@@ -165,7 +165,7 @@ on GitHub:
 2. Land the bump, cut a **GitHub Release** — `publish.yml` then builds and `bun publish`es every
    non-private package under `packages/*`, `stores/*`, `providers/*`, `protocols/*`,
    `extensions/*`, `transports/*`, stripping `devDependencies` from each manifest first (they
-   reference the private `@bread/test-utils`).
+   reference the private `@breadai/test-utils`).
 3. Re-publishing without a bump fails on npm ("version exists") — the bump is the gate.
 
 Changesets is the intended upgrade once git history exists (it detects changed packages from
@@ -182,9 +182,9 @@ cross-process: a suspended run ends its stream at
 Cross-container broadcast is closed too: `GET /runs/:runId/stream` (mounted by `config.transport`)
 tails any run passively (crumb-log catch-up via Last-Event-ID + live `config.transport` frames) and
 stays open across suspension, so a resume on one replica reaches subscribers on others. The
-embedded Stream transport covers single-container deployments; `@bread/transport-http-chunked`/
-`@bread/transport-http-sse` add the HTTP ingress (`mount()` + `remoteAgent()`) on top of that same
-shape; `@bread/transport-redis` (Redis Streams) is the distributed fan-out implementation — but it
+embedded Stream transport covers single-container deployments; `@breadai/transport-http-chunked`/
+`@breadai/transport-http-sse` add the HTTP ingress (`mount()` + `remoteAgent()`) on top of that same
+shape; `@breadai/transport-redis` (Redis Streams) is the distributed fan-out implementation — but it
 has no `mount`, so it cannot back `config.transport` alone on a `bread dev`/`start` deployment that
 also needs HTTP ingress (a known, documented gap, not silently papered over) — see
 [`docs/transports.md`](./docs/transports.md) for the three transport seams (ingress/remote-agents/transport),

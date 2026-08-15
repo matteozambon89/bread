@@ -6,9 +6,9 @@ import { fileURLToPath } from 'node:url'
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js'
 import { WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js'
-import type { BreadSigner, ToolDefinition } from '@bread/core'
-import { BreadError } from '@bread/core'
-import { connectServer, mcpClient, sanitizeMcpToolName } from '@bread/protocol-mcp-client'
+import type { BreadSigner, ToolDefinition } from '@breadai/core'
+import { BreadError } from '@breadai/core'
+import { connectServer, mcpClient, sanitizeMcpToolName } from '@breadai/protocol-mcp-client'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const fixtureServer = join(here, 'fixtures', 'mcp-server.ts')
@@ -160,7 +160,7 @@ describe('connectServer — http transport signs outgoing requests', () => {
   }
 
   function newFixture(): McpServer {
-    // Hand-rolled fixture MCP server (not @bread/protocol-mcp-server) — this test
+    // Hand-rolled fixture MCP server (not @breadai/protocol-mcp-server) — this test
     // exercises the client package, which must not depend on the server one.
     const fixture = new McpServer({ name: 'fixture', version: '0.0.0' })
     fixture.registerTool(

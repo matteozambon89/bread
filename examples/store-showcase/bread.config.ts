@@ -1,6 +1,6 @@
-import { type BreadStore, defineConfig } from '@bread/core'
-import { providerCatalog } from '@bread/provider-catalog'
-import { transport } from '@bread/transport-http-chunked'
+import { type BreadStore, defineConfig } from '@breadai/core'
+import { providerCatalog } from '@breadai/provider-catalog'
+import { transport } from '@breadai/transport-http-chunked'
 
 // Pick a store from the STORE env var so this one example demonstrates every
 // backend. Stores are imported lazily so only the selected package loads (and
@@ -13,11 +13,11 @@ import { transport } from '@bread/transport-http-chunked'
 async function pickStore(): Promise<BreadStore> {
   switch (process.env.STORE) {
     case 'memory':
-      return (await import('@bread/store-memory')).store()
+      return (await import('@breadai/store-memory')).store()
     case 'sqlite-bun':
-      return (await import('@bread/store-sqlite')).store({ path: './bread.db' })
+      return (await import('@breadai/store-sqlite')).store({ path: './bread.db' })
     case 'postgres':
-      return (await import('@bread/store-postgres')).store()
+      return (await import('@breadai/store-postgres')).store()
     default:
       throw new Error(
         `store-showcase: set STORE to one of memory | sqlite-bun | postgres (got ${

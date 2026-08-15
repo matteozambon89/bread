@@ -1,5 +1,5 @@
-import type { BreadCrumb } from '@bread/core'
-import { BREAD_PROTOCOL_VERSION, encodeFrame } from '@bread/core'
+import type { BreadCrumb } from '@breadai/core'
+import { BREAD_PROTOCOL_VERSION, encodeFrame } from '@breadai/core'
 
 // One NDJSON line: a Bread protocol CrumbFrame, newline-terminated. Shared by
 // every mount() route that streams crumbs.

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 import { z } from 'zod'
-import { defineTool } from '@bread/core'
+import { defineTool } from '@breadai/core'
 import type {
   BreadInstance,
   ToolCallCrumb,
@@ -9,8 +9,8 @@ import type {
   ToolInputStartCrumb,
   ToolResultCrumb,
   ToolResultPartialCrumb,
-} from '@bread/core'
-import { defineTestAgent, makeBread, mockStreamingToolCallModel, mockToolCallModel, runCollect } from '@bread/test-utils'
+} from '@breadai/core'
+import { defineTestAgent, makeBread, mockStreamingToolCallModel, mockToolCallModel, runCollect } from '@breadai/test-utils'
 
 describe('runner — tool calls', () => {
   let bread: BreadInstance

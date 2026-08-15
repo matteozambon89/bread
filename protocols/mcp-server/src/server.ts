@@ -7,7 +7,7 @@ import {
   type ToolDefinition,
   buildToolCredentials,
   envProvider,
-} from '@bread/core'
+} from '@breadai/core'
 import { v7 as uuidv7 } from 'uuid'
 import { isObjectSchema, toMcpInputSchema, toMcpOutputSchema, toStructured, unwrapInput } from './schema.js'
 

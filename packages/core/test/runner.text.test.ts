@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
-import type { BreadInstance } from '@bread/core'
+import type { BreadInstance } from '@breadai/core'
 import {
   defineTestAgent,
   makeBread,
@@ -8,7 +8,7 @@ import {
   mockRecordingTextModel,
   mockTextModel,
   runCollect,
-} from '@bread/test-utils'
+} from '@breadai/test-utils'
 import { z } from 'zod'
 
 describe('runner — text streaming', () => {

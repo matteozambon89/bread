@@ -1,5 +1,5 @@
 import type { LanguageModel } from 'ai'
-import { BreadError, type ProviderRegistry } from '@bread/core'
+import { BreadError, type ProviderRegistry } from '@breadai/core'
 
 interface CatalogEntry {
   pkg: string
@@ -67,7 +67,7 @@ async function resolveEntry(provider: string, entry: CatalogEntry, modelId: stri
 // The 18 official @ai-sdk/* built-ins, ready to use as `config.providers` (or
 // spread into a larger registry alongside custom entries):
 //
-//   import { providerCatalog } from '@bread/provider-catalog'
+//   import { providerCatalog } from '@breadai/provider-catalog'
 //   export default defineConfig({ providers: providerCatalog })
 //
 // @ai-sdk/openai-compatible is deliberately not included here — it has no
