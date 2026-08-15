@@ -1,0 +1,56 @@
+{
+  "name": "@bread/core",
+  "version": "0.1.0",
+  "description": "Core SDK for bread — an explicit-by-design, file-system-convention framework for building AI agents.",
+  "license": "MIT",
+  "author": "Matteo Zambon <matteo@yeeti.co>",
+  "keywords": [
+    "ai",
+    "agents",
+    "llm",
+    "framework",
+    "typescript",
+    "ai-sdk",
+    "bread"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/matteozambon89/bread.git",
+    "directory": "packages/core"
+  },
+  "homepage": "https://github.com/matteozambon89/bread",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "bread-source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "bun build ./src/index.ts --outdir dist --target node --format esm --packages external && tsc --emitDeclarationOnly --outDir dist"
+  },
+  "dependencies": {
+    "ai": "^6.0.208",
+    "effect": "^3.21.4",
+    "uuid": "^11.1.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@bread/store-memory": "workspace:*",
+    "@bread/store-sqlite": "workspace:*",
+    "@bread/test-utils": "workspace:*",
+    "@types/bun": "latest",
+    "typescript": "^5.8.3"
+  }
+}
