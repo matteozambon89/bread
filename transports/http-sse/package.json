@@ -1,0 +1,54 @@
+{
+  "name": "@bread/transport-http-sse",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    ".": {
+      "bread-source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "dependencies": {
+    "@bread/core": "workspace:*",
+    "hono": "^4.8.4"
+  },
+  "devDependencies": {
+    "@bread/server": "workspace:*",
+    "@bread/store-memory": "workspace:*",
+    "@bread/test-utils": "workspace:*",
+    "@types/bun": "latest",
+    "typescript": "^5.8.3",
+    "zod": "^4.4.3"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "bun build ./src/index.ts --outdir dist --target node --format esm --packages external && tsc --emitDeclarationOnly --outDir dist"
+  },
+  "description": "HTTP (SSE) BreadTransport for bread — a mount()-able server ingress plus a remoteAgent() client, browser-EventSource-friendly.",
+  "license": "MIT",
+  "author": "Matteo Zambon <matteo@yeeti.co>",
+  "keywords": [
+    "ai",
+    "agents",
+    "http",
+    "sse",
+    "event-stream",
+    "bread"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/matteozambon89/bread.git",
+    "directory": "transports/http-sse"
+  },
+  "homepage": "https://github.com/matteozambon89/bread",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
+}
