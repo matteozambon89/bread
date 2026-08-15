@@ -30,55 +30,57 @@ export default withMermaid({
       { text: 'Changelog', link: 'https://github.com/matteozambon89/bread/releases' },
     ],
 
+    // Grouped to mirror the README's own "Documentation" list order, so the
+    // same mental map holds whether someone's reading the repo or the site.
     sidebar: [
       {
-        text: 'Getting Started',
+        text: 'Introduction',
         items: [
           { text: 'Architecture', link: '/architecture' },
-          { text: 'Agents', link: '/agents' },
           { text: 'CLI', link: '/cli' },
-          { text: 'Glossary', link: '/glossary' },
         ],
       },
       {
-        text: 'Core Concepts',
+        text: 'Building agents',
         items: [
-          { text: 'Sessions', link: '/sessions' },
-          { text: 'Pipelines & Supervisors', link: '/pipelines' },
-          { text: 'Agent-driven Loops', link: '/loops' },
-          { text: 'Tasks', link: '/tasks' },
+          { text: 'Agents', link: '/agents' },
+          { text: 'Providers', link: '/providers' },
           { text: 'Tools', link: '/tools' },
           { text: 'Skills', link: '/skills' },
-          { text: 'Human-in-the-loop', link: '/hitl' },
-          { text: 'Storage', link: '/store' },
+          { text: 'Sessions', link: '/sessions' },
+          { text: 'HITL', link: '/hitl' },
         ],
       },
       {
-        text: 'Protocols & Transports',
+        text: 'Composition',
         items: [
-          { text: 'Transports', link: '/transports' },
-          { text: 'Remote Agents', link: '/remote-agents' },
-          { text: 'A2A Server', link: '/a2a' },
-          { text: 'AG-UI', link: '/ag-ui' },
-          { text: 'A2UI', link: '/a2ui' },
-          { text: 'MCP Client', link: '/mcp-client' },
-          { text: 'MCP Server', link: '/mcp-server' },
-        ],
-      },
-      {
-        text: 'Extensions',
-        items: [
-          { text: 'Auth', link: '/auth' },
-          { text: 'OpenTelemetry', link: '/otel' },
+          { text: 'Pipelines', link: '/pipelines' },
+          { text: 'Loops', link: '/loops' },
+          { text: 'Tasks', link: '/tasks' },
+          { text: 'Evals', link: '/evals' },
           { text: 'Plugins', link: '/plugins' },
+        ],
+      },
+      {
+        text: 'Distribution',
+        items: [
+          { text: 'Remote agents', link: '/remote-agents' },
+          { text: 'Transports', link: '/transports' },
+          { text: 'MCP client', link: '/mcp-client' },
+          { text: 'MCP server', link: '/mcp-server' },
+          { text: 'A2A server', link: '/a2a' },
+          { text: 'A2UI', link: '/a2ui' },
+          { text: 'Auth', link: '/auth' },
+          { text: 'OTel', link: '/otel' },
+          { text: 'AG-UI', link: '/ag-ui' },
         ],
       },
       {
         text: 'Reference',
         items: [
-          { text: 'Providers', link: '/providers' },
           { text: 'HTTP API', link: '/http-api' },
-          { text: 'Evals', link: '/evals' },
+          { text: 'Store', link: '/store' },
+          { text: 'Glossary', link: '/glossary' },
         ],
       },
     ],

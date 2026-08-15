@@ -1,0 +1,254 @@
+/**
+ * bread brand reskin — retargets vitepress/theme's own --vp-* tokens
+ * (see node_modules/vitepress/dist/client/theme-default/styles/vars.css for
+ * what each one drives). Palette source of truth: assets/brand/README.md.
+ * Light is the :root/default set below; dark (.dark, bread's primary theme)
+ * overrides it further down. No component markup is touched — theme only.
+ */
+
+:root {
+  --vp-font-family-base: ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
+  --vp-font-family-mono: ui-monospace, 'SFMono-Regular', 'Cascadia Code', Consolas,
+    'Liberation Mono', Menlo, monospace;
+
+  /* light theme (alternative) — ink stem + amber #E0913B loaf, warm paper ground */
+  --vp-c-bg: #faf6ec;
+  --vp-c-bg-alt: #f2ebda;
+  --vp-c-bg-elv: #ffffff;
+  --vp-c-bg-soft: #f2ebda;
+
+  --vp-c-border: #ddd0b3;
+  --vp-c-divider: #e6dcc3;
+  --vp-c-gutter: #e6dcc3;
+
+  --vp-c-text-1: #23201e;
+  --vp-c-text-2: #5c5346;
+  --vp-c-text-3: #948a76;
+
+  --vp-c-brand-1: #c9791e;
+  --vp-c-brand-2: #e0913b;
+  --vp-c-brand-3: #e0913b;
+  --vp-c-brand-soft: rgba(224, 145, 59, 0.14);
+
+  --vp-button-brand-text: #23201e;
+  --vp-button-brand-bg: var(--vp-c-brand-3);
+  --vp-button-brand-hover-bg: #cf8630;
+  --vp-button-brand-active-bg: #b87424;
+}
+
+.dark {
+  /* dark theme (primary) — cream #F4E6CC stem + amber #E7A64A loaf, ink ground */
+  --vp-c-bg: #15120e;
+  --vp-c-bg-alt: #1c1712;
+  --vp-c-bg-elv: #221c15;
+  --vp-c-bg-soft: #1c1712;
+
+  --vp-c-border: #3a3226;
+  --vp-c-divider: #2a2419;
+  --vp-c-gutter: #0d0b08;
+
+  --vp-c-text-1: #f4e6cc;
+  --vp-c-text-2: #cbb997;
+  --vp-c-text-3: #8f8168;
+
+  --vp-c-brand-1: #e7a64a;
+  --vp-c-brand-2: #f0b563;
+  --vp-c-brand-3: #e7a64a;
+  --vp-c-brand-soft: rgba(231, 166, 74, 0.16);
+
+  --vp-button-brand-text: #1a1208;
+  --vp-button-brand-bg: var(--vp-c-brand-3);
+  --vp-button-brand-hover-bg: #f0b563;
+  --vp-button-brand-active-bg: #d3903a;
+}
+
+/* browser surfaces (craft floor: theme what you didn't draw) */
+::selection {
+  background: var(--vp-c-brand-soft);
+  color: var(--vp-c-text-1);
+}
+:focus-visible {
+  outline-color: var(--vp-c-brand-1);
+}
+html {
+  scrollbar-color: var(--vp-c-divider) transparent;
+}
+
+/* ---------------------------------------------------------------------------
+ * Home hero image: brand-colored glow (the two tokens VitePress exposes for
+ * exactly this) + a larger mark. The mark's own SVG carries width="64"
+ * height="64" (see assets/brand/README.md) as its intrinsic size, which an
+ * <img> honors as a ceiling even under a much larger max-width/max-height —
+ * so image-src needs an explicit width/height, not just a bigger cap.
+ * ------------------------------------------------------------------------- */
+
+:root {
+  --vp-home-hero-image-background-image: radial-gradient(
+    circle at center,
+    var(--vp-c-brand-1) 0%,
+    transparent 70%
+  );
+  --vp-home-hero-image-filter: blur(56px);
+}
+
+@media (min-width: 640px) {
+  :root {
+    --vp-home-hero-image-filter: blur(72px);
+  }
+}
+@media (min-width: 960px) {
+  :root {
+    --vp-home-hero-image-filter: blur(88px);
+  }
+}
+
+.VPHero .image-container {
+  width: 380px !important;
+  height: 380px !important;
+}
+.VPHero .image-bg {
+  width: 260px !important;
+  height: 260px !important;
+  opacity: 0.55;
+}
+.VPHero .image-src {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 260px !important;
+  max-height: 260px !important;
+}
+
+@media (min-width: 640px) {
+  .VPHero .image-container {
+    width: 460px !important;
+    height: 460px !important;
+  }
+  .VPHero .image-bg {
+    width: 340px !important;
+    height: 340px !important;
+  }
+  .VPHero .image-src {
+    max-width: 340px !important;
+    max-height: 340px !important;
+  }
+}
+
+@media (min-width: 960px) {
+  .VPHero .image-bg {
+    width: 420px !important;
+    height: 420px !important;
+  }
+  .VPHero .image-src {
+    max-width: 420px !important;
+    max-height: 420px !important;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * Home page: proof sections below the hero (docs/index.md's plain markdown +
+ * a couple of hand-styled blocks — no VitePress "features" icon-card grid).
+ * ------------------------------------------------------------------------- */
+
+.bread-proof {
+  max-width: 688px;
+  margin: 0 auto;
+  padding: 0 24px 64px;
+}
+.bread-proof section {
+  padding-top: 56px;
+  margin-top: 56px;
+  border-top: 1px solid var(--vp-c-divider);
+}
+.bread-proof section:first-child {
+  padding-top: 0;
+  margin-top: 0;
+  border-top: none;
+}
+.bread-proof h2 {
+  font-size: 1.4rem;
+  margin: 0 0 12px;
+  letter-spacing: -0.01em;
+  border-top: none !important;
+  padding-top: 0 !important;
+}
+/* .vp-doc h2 .header-anchor defaults to top: 24px, sized for the default
+   theme's 24px heading padding-top we just zeroed out above — without this,
+   the '#' anchor floats in the gap between the heading and the paragraph. */
+.bread-proof h2 .header-anchor {
+  top: 0 !important;
+}
+.bread-proof p {
+  color: var(--vp-c-text-2);
+  line-height: 1.7;
+  max-width: 62ch;
+}
+
+.bread-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+.bread-pill {
+  font-family: var(--vp-font-family-mono);
+  font-size: 0.76rem;
+  padding: 5px 11px;
+  border: 1px solid var(--vp-c-border);
+  border-radius: 999px;
+  color: var(--vp-c-text-2);
+  background: var(--vp-c-bg-alt);
+}
+
+.bread-tree {
+  font-family: var(--vp-font-family-mono);
+  font-size: 0.82rem;
+  line-height: 1.8;
+  background: var(--vp-c-bg-alt);
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 8px;
+  padding: 16px 20px;
+  color: var(--vp-c-text-2);
+  overflow-x: auto;
+}
+.bread-tree .file {
+  color: var(--vp-c-brand-1);
+}
+
+.bread-index {
+  max-width: 900px;
+  margin: 24px auto 0;
+  padding: 0 24px;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 24px;
+}
+.bread-index h6 {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--vp-c-text-3);
+  margin: 0 0 10px;
+}
+.bread-index ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.bread-index li {
+  margin-bottom: 6px;
+  font-size: 0.85rem;
+}
+.bread-index a {
+  color: var(--vp-c-text-2);
+}
+.bread-index a:hover {
+  color: var(--vp-c-brand-1);
+}
+
+@media (max-width: 719px) {
+  .bread-index {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

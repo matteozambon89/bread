@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "broken-image",
+        "value": "*",
+        "files": [
+          "docs/.vitepress/theme/custom.css"
+        ],
+        "createdAt": "2026-08-15T21:48:14.574Z",
+        "reason": "false positive: line 82 is the literal text <img> inside a CSS comment explaining browser img sizing behavior, not a markup <img> tag"
+      }
+    ]
+  }
+}
