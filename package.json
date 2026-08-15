@@ -3,10 +3,16 @@
   "version": "0.0.0",
   "description": "Explicit-by-design, file-system-convention framework for building, running, and observing AI agents on the Vercel AI SDK.",
   "devDependencies": {
+    "@braintree/sanitize-url": "^7.1.2",
     "@types/bun": "latest",
     "@types/node": "^20.0.0",
+    "cytoscape": "^3.34.1",
+    "cytoscape-cose-bilkent": "^4.1.0",
+    "dayjs": "^1.11.21",
+    "debug": "^4.4.3",
     "knip": "^6.29.0",
     "mermaid": "^11.16.1",
+    "svg-pan-zoom": "^3.6.2",
     "typescript": "^5.8.3",
     "vitepress": "^1.6.4",
     "vitepress-plugin-mermaid": "^2.0.17"
