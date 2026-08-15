@@ -1,0 +1,67 @@
+<p align="center">
+  <a href="https://github.com/matteozambon89/bread">
+    <img alt="bread" src="https://cdn.jsdelivr.net/gh/matteozambon89/bread/assets/brand/mark-light-512.png" height="64">
+  </a>
+</p>
+
+# @bread/provider-catalog
+
+The 18 official `@ai-sdk/*` built-in providers, packaged as a ready-made `ProviderRegistry` for
+`config.providers`. Each entry is imported lazily on first use, so installing this package doesn't
+pull in every SDK — you still `bun add` only the ones you actually use.
+
+```bash
+bun add @bread/provider-catalog
+bun add @ai-sdk/anthropic   # only the providers you use
+```
+
+```ts
+import { defineConfig } from '@bread/core'
+import { providerCatalog } from '@bread/provider-catalog'
+
+export default defineConfig({
+  entrypoints: ['writer'],
+  providers: providerCatalog,
+})
+```
+
+Core has no built-in providers of its own — `model.provider` resolves against whatever you register
+in `providers` (global) or an agent's own `providers` (per-agent override, checked first). This
+catalog supplies the common set: `openai`, `anthropic`, `google`, `google-vertex`, `azure`,
+`amazon-bedrock`, `mistral`, `groq`, `cohere`, `xai`, `deepseek`, `togetherai`, `fireworks`,
+`deepinfra`, `cerebras`, `perplexity`, `baseten`, `ollama`.
+
+## Custom or additional instances
+
+Spread the catalog and add your own named instances — e.g. a second account or region under a
+different name:
+
+```ts
+import { createAnthropic } from '@ai-sdk/anthropic'
+import { providerCatalog } from '@bread/provider-catalog'
+
+providers: {
+  ...providerCatalog,
+  'anthropic-eu': createAnthropic({ baseURL: 'https://eu.anthropic.example' }),
+}
+```
+
+`@ai-sdk/openai-compatible` isn't included — it has no zero-config default instance (it needs a
+`baseURL`). Register it yourself under whatever name you like:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible'
+
+providers: {
+  ...providerCatalog,
+  'my-host': createOpenAICompatible({ name: 'my-host', baseURL: 'https://my-host.example/v1' }),
+}
+```
+
+Part of **[bread](https://github.com/matteozambon89/bread)** — an explicit-by-design framework for AI agents.
+Docs: [agents](https://github.com/matteozambon89/bread/blob/HEAD/docs/agents.md) ·
+[all docs](https://github.com/matteozambon89/bread#documentation).
+
+## License
+
+MIT © Matteo Zambon
