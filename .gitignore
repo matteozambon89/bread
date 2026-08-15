@@ -4,6 +4,9 @@ node_modules/
 # Build output (CI rebuilds; publishing runs `bun run build` first)
 dist/
 
+# VitePress local dev cache (docs site build output is covered by dist/ above)
+docs/.vitepress/cache/
+
 # Temp workspace (project convention — all scratch files live here)
 .tmp/
 

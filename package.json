@@ -6,7 +6,10 @@
     "@types/bun": "latest",
     "@types/node": "^20.0.0",
     "knip": "^6.29.0",
-    "typescript": "^5.8.3"
+    "mermaid": "^11.16.1",
+    "typescript": "^5.8.3",
+    "vitepress": "^1.6.4",
+    "vitepress-plugin-mermaid": "^2.0.17"
   },
   "private": true,
   "scripts": {
@@ -16,7 +19,10 @@
     "test:coverage": "bun test --conditions bread-source --coverage",
     "knip": "knip",
     "bump": "bun scripts/bump.ts",
-    "sync:obsidian": "bun scripts/sync-obsidian.ts"
+    "sync:obsidian": "bun scripts/sync-obsidian.ts",
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs"
   },
   "workspaces": [
     "packages/*",
