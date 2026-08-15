@@ -1,0 +1,53 @@
+{
+  "name": "@bread/transport-redis",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    ".": {
+      "bread-source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "dependencies": {
+    "@bread/core": "workspace:*",
+    "ioredis": "^5.6.1"
+  },
+  "devDependencies": {
+    "@bread/test-utils": "workspace:*",
+    "@types/bun": "latest",
+    "typescript": "^5.8.3",
+    "uuid": "^11.1.0"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "bun build ./src/index.ts --outdir dist --target node --format esm --packages external && tsc --emitDeclarationOnly --outDir dist"
+  },
+  "description": "Redis Streams BreadBus for bread — cross-replica crumb fan-out so passive run streams and HITL work from any container.",
+  "license": "MIT",
+  "author": "Matteo Zambon <matteo@yeeti.co>",
+  "keywords": [
+    "ai",
+    "agents",
+    "redis",
+    "streams",
+    "bus",
+    "sse",
+    "bread"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/matteozambon89/bread.git",
+    "directory": "transports/redis"
+  },
+  "homepage": "https://github.com/matteozambon89/bread",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
+}
