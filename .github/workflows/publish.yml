@@ -15,7 +15,13 @@ jobs:
       - run: bun install --frozen-lockfile
       - run: bun run build
       - name: Configure npm auth
-        run: echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
+        # bun resolves auth per-scope (scope_for_package_name) — every package here
+        # is @breadai/*, so a bare //registry.npmjs.org/:_authToken= line with no
+        # matching @breadai:registry= mapping is never picked up ("missing
+        # authentication" even though the token line is present).
+        run: |
+          echo "@breadai:registry=https://registry.npmjs.org/" > ~/.npmrc
+          echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" >> ~/.npmrc
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
       - name: Publish packages
