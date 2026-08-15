@@ -1,0 +1,19 @@
+{
+  "name": "@bread-examples/hitl-approval",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bread dev",
+    "build": "bread build"
+  },
+  "dependencies": {
+    "@bread/cli": "workspace:*",
+    "@bread/core": "workspace:*",
+    "@bread/provider-catalog": "workspace:*",
+    "@bread/store-sqlite": "workspace:*",
+    "@bread/transport-http-sse": "workspace:*",
+    "ollama-ai-provider-v2": "^3.6.0",
+    "zod": "^4.4.3"
+  }
+}
