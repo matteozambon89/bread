@@ -1,0 +1,57 @@
+{
+  "name": "@bread/protocol-mcp-server",
+  "version": "0.1.0",
+  "description": "MCP server plugin for bread — expose selected agents, tasks, tools, and skills as MCP tools over stdio or Streamable HTTP, riding whatever auth middleware your server already has configured.",
+  "license": "MIT",
+  "author": "Matteo Zambon <matteo@yeeti.co>",
+  "keywords": [
+    "ai",
+    "agents",
+    "mcp",
+    "model-context-protocol",
+    "mcp-server",
+    "tools",
+    "bread",
+    "plugin"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/matteozambon89/bread.git",
+    "directory": "protocols/mcp-server"
+  },
+  "homepage": "https://github.com/matteozambon89/bread",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "bread-source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "bun build ./src/index.ts --outdir dist --target node --format esm --packages external && tsc --emitDeclarationOnly --outDir dist"
+  },
+  "dependencies": {
+    "@bread/core": "workspace:*",
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "uuid": "^11.1.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@bread/server": "workspace:*",
+    "@bread/test-utils": "workspace:*",
+    "@types/bun": "latest",
+    "hono": "^4.8.4",
+    "typescript": "^5.8.3"
+  }
+}
