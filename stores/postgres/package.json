@@ -1,0 +1,52 @@
+{
+  "name": "@bread/store-postgres",
+  "version": "0.1.0",
+  "description": "PostgreSQL BreadStore for bread — the default backend. Persists sessions, checkpoints, the knowledge graph, and documents; optional pgvector semantic search via an embed function.",
+  "license": "MIT",
+  "author": "Matteo Zambon <matteo@yeeti.co>",
+  "keywords": [
+    "ai",
+    "agents",
+    "bread",
+    "storage",
+    "postgres",
+    "pgvector"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/matteozambon89/bread.git",
+    "directory": "stores/postgres"
+  },
+  "homepage": "https://github.com/matteozambon89/bread",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "bread-source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "bun build ./src/index.ts --outdir dist --target node --format esm --packages external && tsc --emitDeclarationOnly --outDir dist"
+  },
+  "dependencies": {
+    "@bread/core": "workspace:*",
+    "postgres": "^3.4.5",
+    "uuid": "^11.1.0"
+  },
+  "devDependencies": {
+    "@bread/test-utils": "workspace:*",
+    "@types/bun": "latest",
+    "typescript": "^5.8.3"
+  }
+}
