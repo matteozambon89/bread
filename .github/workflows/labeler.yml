@@ -1,0 +1,33 @@
+name: Labeler
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  label:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Label by conventional commit prefixes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.number }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          declare -A map=(
+            [feat]=feature [fix]=bug [docs]=documentation [chore]=chore
+            [refactor]=refactor [test]=test [perf]=performance [build]=build [ci]=ci
+          )
+          prefixes=$(git log --format=%s "$BASE..$HEAD" \
+            | grep -oE '^(feat|fix|docs|chore|refactor|test|perf|build|ci)' | sort -u)
+          for p in $prefixes; do
+            label="${map[$p]}"
+            [ -n "$label" ] && gh pr edit "$PR" --add-label "$label" || true
+          done

@@ -1,0 +1,20 @@
+name: Example check
+
+on:
+  pull_request:
+
+jobs:
+  examples:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      # Build packages first so the `bread` binary and its dist deps exist.
+      - run: bun run build
+      - name: bread build every example
+        run: |
+          for d in examples/*/; do
+            echo "→ $d"
+            (cd "$d" && bun run build) || exit 1
+          done

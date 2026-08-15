@@ -1,0 +1,22 @@
+name: Release notes
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  notes:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Generate categorized notes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          notes=$(gh api "repos/${{ github.repository }}/releases/generate-notes" \
+            -f tag_name="${{ github.event.release.tag_name }}" --jq .body)
+          gh release edit "${{ github.event.release.tag_name }}" --notes "$notes"
