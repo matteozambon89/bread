@@ -22,11 +22,11 @@ jobs:
           HEAD: ${{ github.event.pull_request.head.sha }}
         run: |
           declare -A map=(
-            [feat]=feature [fix]=bug [docs]=documentation [chore]=chore
-            [refactor]=refactor [test]=test [perf]=performance [build]=build [ci]=ci
+            [feat]=enhancement [fix]=bug [docs]=documentation [chore]=chore
+            [refactor]=refactor [test]=test [perf]=performance [ci]=ci [revert]=revert
           )
           prefixes=$(git log --format=%s "$BASE..$HEAD" \
-            | grep -oE '^(feat|fix|docs|chore|refactor|test|perf|build|ci)' | sort -u)
+            | grep -oE '^(feat|fix|docs|chore|refactor|test|perf|ci|revert)' | sort -u)
           for p in $prefixes; do
             label="${map[$p]}"
             [ -n "$label" ] && gh pr edit "$PR" --add-label "$label" || true
