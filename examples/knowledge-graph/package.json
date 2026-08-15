@@ -1,0 +1,19 @@
+{
+  "name": "@bread-examples/knowledge-graph",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bread dev",
+    "build": "bread build"
+  },
+  "dependencies": {
+    "@bread/store-sqlite": "workspace:*",
+    "@bread/core": "workspace:*",
+    "@bread/cli": "workspace:*",
+    "@bread/transport-http-chunked": "workspace:*",
+    "@bread/provider-catalog": "workspace:*",
+    "ollama-ai-provider-v2": "^3.6.0",
+    "zod": "^4.4.3"
+  }
+}
