@@ -1,0 +1,22 @@
+{
+  "name": "@bread-examples/remote-agent",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev:provider": "bread dev --cwd provider --port 4001",
+    "dev:consumer": "bread dev --cwd consumer --port 4002",
+    "build": "bread build --cwd provider && bread build --cwd consumer"
+  },
+  "dependencies": {
+    "@bread/auth-api-key": "workspace:*",
+    "@bread/cli": "workspace:*",
+    "@bread/core": "workspace:*",
+    "@bread/provider-catalog": "workspace:*",
+    "@bread/server": "workspace:*",
+    "@bread/store-sqlite": "workspace:*",
+    "@bread/transport-http-chunked": "workspace:*",
+    "ollama-ai-provider-v2": "^3.6.0",
+    "zod": "^4.4.3"
+  }
+}
