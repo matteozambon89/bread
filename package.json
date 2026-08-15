@@ -1,6 +1,7 @@
 {
   "name": "bread",
   "version": "0.0.0",
+  "description": "Explicit-by-design, file-system-convention framework for building, running, and observing AI agents on the Vercel AI SDK.",
   "devDependencies": {
     "@types/bun": "latest",
     "@types/node": "^20.0.0",
