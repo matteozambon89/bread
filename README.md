@@ -1,7 +1,8 @@
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/brand/mark-dark-512.png">
-  <img alt="bread" src="assets/brand/mark-light-512.png" height="72">
-</picture>
+<p align="center">
+  <a href="https://github.com/matteozambon89/bread">
+    <img alt="bread" src="https://cdn.jsdelivr.net/gh/matteozambon89/bread/assets/brand/mark-light-512.png" height="64">
+  </a>
+</p>
 
 # bread
 
