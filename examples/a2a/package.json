@@ -1,0 +1,21 @@
+{
+  "name": "@bread-examples/a2a",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev:v03": "bread dev --cwd v03 --port 3000",
+    "dev:v1": "bread dev --cwd v1 --port 3001",
+    "build": "bread build --cwd v03 && bread build --cwd v1"
+  },
+  "dependencies": {
+    "@bread/core": "workspace:*",
+    "@bread/cli": "workspace:*",
+    "@bread/protocol-a2a-server": "workspace:*",
+    "@bread/provider-catalog": "workspace:*",
+    "@bread/store-sqlite": "workspace:*",
+    "@bread/transport-http-chunked": "workspace:*",
+    "ollama-ai-provider-v2": "^3.6.0",
+    "zod": "^4.4.3"
+  }
+}
