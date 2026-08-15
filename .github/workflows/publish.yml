@@ -3,21 +3,34 @@ name: Publish
 on:
   release:
     types: [published]
+  workflow_dispatch:
 
 jobs:
   publish:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    env:
+      # bunfig.toml stores the literal `$NPM_TOKEN` string — bun expands it
+      # against the process environment at run time, not at setup-bun's.
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
+        with:
+          # setup-bun's own registries input writes install.scopes into the
+          # project bunfig.toml directly — the config `bun publish` actually
+          # reads. A hand-rolled ~/.npmrc doesn't reliably work: bun resolves
+          # auth per-scope (a bare //registry.npmjs.org/:_authToken= line with
+          # no matching @breadai:registry= mapping is never picked up), and
+          # separately `bun publish` on GitHub Actions runners looks under
+          # $XDG_CONFIG_HOME (~/.config) and never falls back to ~/.npmrc
+          # (oven-sh/bun#24124, fixed upstream but not guaranteed to have
+          # shipped in whatever version setup-bun installs).
+          registries: |
+            @breadai:https://registry.npmjs.org/|$NPM_TOKEN
       - run: bun install --frozen-lockfile
       - run: bun run build
-      - name: Configure npm auth
-        run: echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
       - name: Publish packages
         run: |
           for dir in packages/* stores/* providers/* protocols/* extensions/* transports/*; do
