@@ -76,6 +76,21 @@ html {
 }
 
 /* ---------------------------------------------------------------------------
+ * Header: frosted glass over scrolling content instead of a solid fill.
+ * ------------------------------------------------------------------------- */
+
+:root {
+  --vp-nav-bg-color: rgba(250, 246, 236, 0.72);
+}
+.dark {
+  --vp-nav-bg-color: rgba(21, 18, 14, 0.72);
+}
+.VPNavBar {
+  backdrop-filter: blur(16px) saturate(1.2);
+  -webkit-backdrop-filter: blur(16px) saturate(1.2);
+}
+
+/* ---------------------------------------------------------------------------
  * Home hero image: brand-colored glow (the two tokens VitePress exposes for
  * exactly this) + a larger mark. The mark's own SVG carries width="64"
  * height="64" (see assets/brand/README.md) as its intrinsic size, which an
@@ -251,4 +266,132 @@ html {
   .bread-index {
     grid-template-columns: repeat(2, 1fr);
   }
+}
+
+/* ---------------------------------------------------------------------------
+ * Mermaid diagrams: same card chrome as tables/code blocks (mermaid-interactive.ts
+ * injects the wrapper + expand button around each rendered diagram) + a
+ * fullscreen pan/zoom lightbox on click.
+ * ------------------------------------------------------------------------- */
+
+.bread-mermaid-wrap {
+  position: relative;
+  margin: 16px 0;
+  padding: 20px;
+  background: var(--vp-c-bg-alt);
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 8px;
+  overflow-x: auto;
+}
+.bread-mermaid-wrap .mermaid {
+  display: flex;
+  justify-content: center;
+}
+.bread-mermaid-wrap .mermaid svg {
+  max-width: 100%;
+}
+
+.bread-mermaid-expand {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 6px;
+  background: var(--vp-c-bg-elv);
+  color: var(--vp-c-text-2);
+  cursor: pointer;
+  opacity: 0;
+  transition:
+    opacity 0.2s,
+    color 0.2s,
+    border-color 0.2s;
+}
+.bread-mermaid-expand svg {
+  width: 16px;
+  height: 16px;
+}
+.bread-mermaid-wrap:hover .bread-mermaid-expand,
+.bread-mermaid-expand:focus-visible {
+  opacity: 1;
+}
+.bread-mermaid-expand:hover {
+  color: var(--vp-c-brand-1);
+  border-color: var(--vp-c-brand-1);
+}
+
+.bread-mermaid-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.bread-mermaid-lightbox[hidden] {
+  display: none;
+}
+.bread-mermaid-lightbox-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(13, 11, 8, 0.78);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+.bread-mermaid-lightbox-panel {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  width: min(1200px, 92vw);
+  height: min(800px, 88vh);
+  background: var(--vp-c-bg);
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: var(--vp-shadow-4);
+}
+.bread-mermaid-lightbox-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--vp-c-divider);
+  background: var(--vp-c-bg-alt);
+}
+.bread-mermaid-lightbox-toolbar button {
+  min-width: 32px;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 6px;
+  background: var(--vp-c-bg-elv);
+  color: var(--vp-c-text-1);
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+.bread-mermaid-lightbox-toolbar button:hover {
+  color: var(--vp-c-brand-1);
+  border-color: var(--vp-c-brand-1);
+}
+.bread-mermaid-lightbox-toolbar button[data-action='close'] {
+  margin-left: 10px;
+}
+.bread-mermaid-lightbox-stage {
+  flex: 1;
+  min-height: 0;
+  cursor: grab;
+}
+.bread-mermaid-lightbox-stage:active {
+  cursor: grabbing;
+}
+.bread-mermaid-lightbox-stage svg {
+  width: 100%;
+  height: 100%;
 }
