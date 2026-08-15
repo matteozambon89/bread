@@ -1,0 +1,34 @@
+{
+  "name": "@bread/test-utils",
+  "version": "0.1.0",
+  "description": "Internal test harness for the bread monorepo — mock LLM models, an in-memory bread/server bootstrap, and a shared BreadStore contract suite. Not published.",
+  "private": true,
+  "license": "MIT",
+  "author": "Matteo Zambon <matteo@yeeti.co>",
+  "type": "module",
+  "exports": {
+    ".": {
+      "bread-source": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@ai-sdk/provider": "^3.0.10",
+    "@bread/core": "workspace:*",
+    "@bread/server": "workspace:*",
+    "@bread/store-memory": "workspace:*",
+    "@bread/transport-http-sse": "workspace:*",
+    "ai": "^6.0.208",
+    "postgres": "^3.4.5",
+    "uuid": "^11.1.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.3.0",
+    "@electric-sql/pglite-socket": "^0.0.13",
+    "@types/bun": "latest",
+    "typescript": "^5.8.3"
+  }
+}
