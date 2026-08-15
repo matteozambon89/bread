@@ -5,10 +5,16 @@
     "": {
       "name": "bread",
       "devDependencies": {
+        "@braintree/sanitize-url": "^7.1.2",
         "@types/bun": "latest",
         "@types/node": "^20.0.0",
+        "cytoscape": "^3.34.1",
+        "cytoscape-cose-bilkent": "^4.1.0",
+        "dayjs": "^1.11.21",
+        "debug": "^4.4.3",
         "knip": "^6.29.0",
         "mermaid": "^11.16.1",
+        "svg-pan-zoom": "^3.6.2",
         "typescript": "^5.8.3",
         "vitepress": "^1.6.4",
         "vitepress-plugin-mermaid": "^2.0.17",
@@ -1609,6 +1615,8 @@
     "superjson": ["superjson@2.2.6", "", { "dependencies": { "copy-anything": "^4" } }, "sha512-H+ue8Zo4vJmV2nRjpx86P35lzwDT3nItnIsocgumgr0hHMQ+ZGq5vrERg9kJBo5AWGmxZDhzDo+WVIJqkB0cGA=="],
 
     "supports-color": ["supports-color@7.2.0", "", { "dependencies": { "has-flag": "^4.0.0" } }, "sha512-qpCAvRl9stuOHveKsn7HncJRvv501qIacKzQlO/+Lwxc9+0q2wLyv4Dfvt80/DPn2pqOBsJdDiogXGR9+OvwRw=="],
+
+    "svg-pan-zoom": ["svg-pan-zoom@3.6.2", "", {}, "sha512-JwnvRWfVKw/Xzfe6jriFyfey/lWJLq4bUh2jwoR5ChWQuQoOH8FEh1l/bEp46iHHKHEJWIyFJETbazraxNWECg=="],
 
     "tabbable": ["tabbable@6.5.0", "", {}, "sha512-wieBHXygIm7OyQOu5hQlkk62/WyCFYGlWg7L6/ZCUZwx0o398Zkn4pVmMyfYhfMG8kGrj/Krt8eIk6UKC6VzwA=="],
 
