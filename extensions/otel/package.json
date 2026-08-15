@@ -1,0 +1,54 @@
+{
+  "name": "@bread/otel",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    ".": {
+      "bread-source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "dependencies": {
+    "@bread/core": "workspace:*",
+    "@opentelemetry/api": "^1.9.0"
+  },
+  "devDependencies": {
+    "@bread/test-utils": "workspace:*",
+    "@types/bun": "latest",
+    "typescript": "^5.8.3",
+    "zod": "^4.4.3"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "bun build ./src/index.ts --outdir dist --target node --format esm --packages external && tsc --emitDeclarationOnly --outDir dist"
+  },
+  "description": "OpenTelemetry plugin for bread — emits spans for agent runs, tool calls, and pipeline steps.",
+  "license": "MIT",
+  "author": "Matteo Zambon <matteo@yeeti.co>",
+  "keywords": [
+    "ai",
+    "agents",
+    "opentelemetry",
+    "otel",
+    "observability",
+    "tracing",
+    "bread",
+    "plugin"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/matteozambon89/bread.git",
+    "directory": "extensions/otel"
+  },
+  "homepage": "https://github.com/matteozambon89/bread",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
+}
