@@ -1,0 +1,11 @@
+import { z } from 'zod'
+import { defineAgent } from '@bread/core'
+
+export default defineAgent({
+  model: { provider: 'openai', model: 'gpt-4o-mini' },
+  inputSchema: z.object({ name: z.string() }),
+  outputSchema: z.string(),
+  output: { format: 'text' },
+  // Unknown scope — must fail loud at load.
+  permissions: { deny: ['mpc:*'] },
+})
