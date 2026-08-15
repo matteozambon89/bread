@@ -1,0 +1,4 @@
+[test]
+# Test sources for coverage; excludes the harness and generated dist output.
+coverageSkipTestFiles = true
+coveragePathIgnorePatterns = ["packages/test-utils/", "dist/"]

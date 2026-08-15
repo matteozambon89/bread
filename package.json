@@ -1,0 +1,29 @@
+{
+  "name": "bread",
+  "version": "0.0.0",
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/node": "^20.0.0",
+    "knip": "^6.29.0",
+    "typescript": "^5.8.3"
+  },
+  "private": true,
+  "scripts": {
+    "build": "bun run --filter='*' build",
+    "typecheck": "bun run --filter='*' typecheck",
+    "test": "bun test --conditions bread-source",
+    "test:coverage": "bun test --conditions bread-source --coverage",
+    "knip": "knip",
+    "bump": "bun scripts/bump.ts",
+    "sync:obsidian": "bun scripts/sync-obsidian.ts"
+  },
+  "workspaces": [
+    "packages/*",
+    "stores/*",
+    "providers/*",
+    "protocols/*",
+    "extensions/*",
+    "transports/*",
+    "examples/*"
+  ]
+}

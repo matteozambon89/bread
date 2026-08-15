@@ -1,0 +1,21 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "workspaces": {
+    "examples/*": {
+      "entry": [
+        "**/bread.config.ts",
+        "**/agents/*/agent.ts",
+        "**/agents/*/tools/*.ts",
+        "**/tasks/*.ts",
+        "**/*.eval.ts"
+      ]
+    }
+  },
+  "ignore": [
+    ".tmp/**",
+    "**/dist/**",
+    "*.tmp_pkg_backup.json",
+    "**/test/fixtures/**",
+    "**/test-fixtures/**"
+  ]
+}

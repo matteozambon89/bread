@@ -1,0 +1,16 @@
+# Dependencies
+node_modules/
+
+# Build output (CI rebuilds; publishing runs `bun run build` first)
+dist/
+
+# Temp workspace (project convention — all scratch files live here)
+.tmp/
+
+# Agent/editor session state
+.claude/
+
+# Local runtime artifacts
+*.db*
+*.log
+.DS_Store
