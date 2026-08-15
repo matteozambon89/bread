@@ -1,0 +1,16 @@
+{
+  "name": "@bread-examples/loop",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": { "dev": "bread dev", "build": "bread build" },
+  "dependencies": {
+    "@bread/core": "workspace:*",
+    "@bread/cli": "workspace:*",
+    "@bread/provider-catalog": "workspace:*",
+    "@bread/store-sqlite": "workspace:*",
+    "@bread/transport-http-chunked": "workspace:*",
+    "ollama-ai-provider-v2": "^3.6.0",
+    "zod": "^4.4.3"
+  }
+}
