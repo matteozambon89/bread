@@ -1,0 +1,18 @@
+{
+  "name": "@bread-examples/auth-api-key",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": { "dev": "bread dev", "build": "bread build" },
+  "dependencies": {
+    "@bread/core": "workspace:*",
+    "@bread/cli": "workspace:*",
+    "@bread/auth-api-key": "workspace:*",
+    "@bread/provider-catalog": "workspace:*",
+    "@bread/server": "workspace:*",
+    "@bread/store-sqlite": "workspace:*",
+    "@bread/transport-http-chunked": "workspace:*",
+    "ollama-ai-provider-v2": "^3.6.0",
+    "zod": "^4.4.3"
+  }
+}
