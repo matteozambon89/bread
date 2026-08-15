@@ -1,0 +1,49 @@
+{
+  "name": "@bread/cli",
+  "version": "0.1.0",
+  "description": "The `bread` command-line interface — dev server, build, eval, and session management.",
+  "license": "MIT",
+  "author": "Matteo Zambon <matteo@yeeti.co>",
+  "keywords": [
+    "ai",
+    "agents",
+    "cli",
+    "bread",
+    "dev-server"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/matteozambon89/bread.git",
+    "directory": "packages/cli"
+  },
+  "homepage": "https://github.com/matteozambon89/bread",
+  "type": "module",
+  "bin": {
+    "bread": "./dist/bin.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "dev": "bun --conditions bread-source src/bin.ts dev",
+    "build": "bun build ./src/bin.ts --outdir dist --target node --format esm --packages external && tsc --emitDeclarationOnly --outDir dist"
+  },
+  "dependencies": {
+    "@bread/server": "workspace:*",
+    "commander": "^14.0.0"
+  },
+  "devDependencies": {
+    "@bread/core": "workspace:*",
+    "@bread/store-memory": "workspace:*",
+    "@bread/test-utils": "workspace:*",
+    "@bread/transport-http-chunked": "workspace:*",
+    "@bread/transport-stdout": "workspace:*",
+    "@types/bun": "latest",
+    "typescript": "^5.8.3",
+    "zod": "^4.4.3"
+  }
+}
