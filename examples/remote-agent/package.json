@@ -4,9 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev:provider": "bread dev --cwd provider --port 4001",
-    "dev:consumer": "bread dev --cwd consumer --port 4002",
-    "build": "bread build --cwd provider && bread build --cwd consumer"
+    "dev:provider": "../../packages/cli/dist/bin.js dev --cwd provider --port 4001",
+    "dev:consumer": "../../packages/cli/dist/bin.js dev --cwd consumer --port 4002",
+    "build": "../../packages/cli/dist/bin.js build --cwd provider && ../../packages/cli/dist/bin.js build --cwd consumer"
   },
   "dependencies": {
     "@breadai/auth-api-key": "workspace:*",

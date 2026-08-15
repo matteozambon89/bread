@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "bread dev",
-    "build": "STORE=memory bread build"
+    "dev": "../../packages/cli/dist/bin.js dev",
+    "build": "STORE=memory ../../packages/cli/dist/bin.js build"
   },
   "dependencies": {
     "@breadai/store-memory": "workspace:*",

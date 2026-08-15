@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "scripts": { "dev": "bread dev", "build": "bread build" },
+  "scripts": { "dev": "../../packages/cli/dist/bin.js dev", "build": "../../packages/cli/dist/bin.js build" },
   "dependencies": {
     "@breadai/core": "workspace:*",
     "@breadai/cli": "workspace:*",

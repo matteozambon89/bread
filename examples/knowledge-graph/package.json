@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "bread dev",
-    "build": "bread build"
+    "dev": "../../packages/cli/dist/bin.js dev",
+    "build": "../../packages/cli/dist/bin.js build"
   },
   "dependencies": {
     "@breadai/store-sqlite": "workspace:*",
