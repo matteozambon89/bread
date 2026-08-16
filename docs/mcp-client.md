@@ -1,8 +1,9 @@
 # MCP client — `@breadai/protocol-mcp-client`
 
 Consume external [Model Context Protocol](https://modelcontextprotocol.io) servers, built on the
-official `@modelcontextprotocol/sdk`. Their tools become ordinary bread tools for any agent that
-opts in — either a server declared once at the top level, or one declared inline on a single agent.
+official v2 SDK (`@modelcontextprotocol/client`). Their tools become ordinary bread tools for any
+agent that opts in — either a server declared once at the top level, or one declared inline on a
+single agent.
 
 ```bash
 bun add @breadai/protocol-mcp-client
@@ -84,6 +85,27 @@ re-established — affected tools fail until the bread process restarts (config-
 a new run re-resolves the cached `external` entry. Front a flaky server with something that keeps
 the endpoint stable.
 
+## Protocol eras
+
+By default a connection speaks the 2025-11-25 protocol revision, exactly as before — set
+`versionNegotiation` on a server entry to probe for the newer 2026-07-28 revision instead:
+
+```ts
+mcpClient({
+  servers: [{ name: 'search', url: 'https://mcp.example.com/mcp', versionNegotiation: { mode: 'auto' } }],
+})
+```
+
+`{ mode: 'auto' }` probes the server and falls back to 2025-11-25 if it doesn't support the newer
+revision. On stdio a probe that never answers is treated as a legacy server and falls back cleanly;
+on HTTP a probe *timeout* is treated as an outage instead and fails the connection — so a slow but
+otherwise-working HTTP server may be worth leaving on the legacy default rather than opting into
+`'auto'`. Whichever era wins, the live tool-list refresh that keeps `server.tools` current when the
+remote server's own tool set changes works unchanged: on a 2025-11-25 connection the server pushes
+`tools/list_changed` unsolicited, same as always; on a 2026-07-28 connection this plugin opens a
+`subscriptions/listen` subscription right after connecting and the same notification handler picks up
+events from it instead — nothing to configure either way.
+
 ## Transports
 
 - **`stdio`** — spawns `command`/`args`/`env` as a local child process (`servers` only, not
@@ -91,7 +113,8 @@ the endpoint stable.
 - **`http`** — the current [Streamable HTTP](https://modelcontextprotocol.io) transport.
 - **Legacy SSE fallback** — automatic. If a server responds to Streamable HTTP with a 4xx (i.e. it
   predates Streamable HTTP and only speaks the deprecated HTTP+SSE transport), the client
-  transparently retries the same URL over `SSEClientTransport`. No config needed.
+  transparently retries the same URL over `SSEClientTransport`. No config needed — this transport
+  predates protocol eras entirely, so `versionNegotiation` never applies to it.
 
 ## Credentials
 
@@ -134,3 +157,6 @@ const calc = await connectServer({ name: 'calc', command: 'bun', args: ['server.
 calc.tools           // ToolDefinition[] ready to hand to an agent
 await calc.close()
 ```
+
+See [`examples/mcp`](../examples/mcp) for a runnable version, paired with
+[`@breadai/protocol-mcp-server`](./mcp-server.md) exposing the tools it consumes.

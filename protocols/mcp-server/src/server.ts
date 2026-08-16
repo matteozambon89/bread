@@ -1,6 +1,6 @@
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
-import { WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js'
+import { McpServer, createMcpHandler } from '@modelcontextprotocol/server'
+import { serveStdio as sdkServeStdio } from '@modelcontextprotocol/server/stdio'
+import type { McpHttpHandler } from '@modelcontextprotocol/server'
 import {
   type BreadInstance,
   type ToolContext,
@@ -34,6 +34,13 @@ export interface ExposeConfig {
   transport?: 'stdio' | 'http'
   /** HTTP mount path when `transport: 'http'`. Default `/mcp`. */
   path?: string
+  /**
+   * Allowed Host/Origin hostnames for DNS-rebinding protection on the HTTP
+   * route (port-agnostic — same convention as the SDK's own validators).
+   * Defaults to localhost-only; set this when the server is reachable under
+   * a real hostname.
+   */
+  allowedHosts?: string[]
 }
 
 function synthesizeToolContext(agentId: string, bread: McpBread, def: ToolDefinition): ToolContext {
@@ -175,16 +182,19 @@ export function buildMcpServer(bread: McpBread, expose: ExposeConfig): McpServer
   return server
 }
 
-export async function serveStdio(server: McpServer): Promise<void> {
-  await server.connect(new StdioServerTransport())
+// Connection-pinned dual-era stdio serving: the SDK negotiates 2025-11-25 vs
+// 2026-07-28 on the opening exchange of *each* connection and pins the
+// factory-built server to whichever era won — unlike v1's single
+// `server.connect(transport)`, the factory must be able to build a fresh
+// `McpServer` per connection.
+export async function serveStdio(bread: McpBread, expose: ExposeConfig): Promise<void> {
+  await sdkServeStdio(() => buildMcpServer(bread, expose))
 }
 
-// Handle one HTTP request against a freshly-connected MCP server. The
-// web-standard transport is stateless and single-use — a new transport must be
-// created per request — so this connects the given server to a new transport
-// for each call and returns the web-standard Response.
-export async function handleHttpRequest(server: McpServer, req: Request): Promise<Response> {
-  const transport = new WebStandardStreamableHTTPServerTransport()
-  await server.connect(transport)
-  return transport.handleRequest(req)
+// Build the HTTP handler once (not per request): `createMcpHandler`'s
+// `legacy: 'stateless'` default serves 2026-07-28 natively and falls back to
+// the same per-request-fresh-transport idiom bread already used for
+// 2025-11-25 — one handler, one endpoint, both eras, still no session state.
+export function buildMcpHttpHandler(bread: McpBread, expose: ExposeConfig): McpHttpHandler {
+  return createMcpHandler(() => buildMcpServer(bread, expose), { legacy: 'stateless' })
 }

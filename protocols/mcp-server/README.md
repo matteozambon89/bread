@@ -9,7 +9,9 @@
 Expose bread agents, tasks, tools, and agent+skill combinations as
 [Model Context Protocol](https://modelcontextprotocol.io) tools — over stdio (bread as an MCP
 child process) or Streamable HTTP mounted on bread's own server at `/mcp`, gated by whatever
-auth strategy the app configures.
+auth strategy the app configures. Both transports serve the 2025-11-25 and 2026-07-28 protocol
+revisions from the same endpoint/connection, with localhost-only DNS-rebinding protection on
+by default (`allowedHosts` to widen it).
 
 ```bash
 bun add @breadai/protocol-mcp-server   # or: npm i @breadai/protocol-mcp-server

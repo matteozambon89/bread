@@ -10,7 +10,9 @@ Consume [Model Context Protocol](https://modelcontextprotocol.io) servers from b
 config-level `servers` (stdio or Streamable HTTP, with automatic legacy-SSE fallback) shared
 across agents, plus per-agent inline `external` servers under `cfg.plugins.mcp_client`. Imported
 tools are snake_case-sanitized, namespaced `<server>__<tool>`, permission-tagged
-`plugin:mcp_client/…`, and auth-signed per request (expiring tokens refresh naturally).
+`plugin:mcp_client/…`, and auth-signed per request (expiring tokens refresh naturally). Speaks
+the 2025-11-25 protocol revision by default; set `versionNegotiation: { mode: 'auto' }` on a
+server to probe for 2026-07-28 instead.
 
 ```bash
 bun add @breadai/protocol-mcp-client   # or: npm i @breadai/protocol-mcp-client

@@ -1,8 +1,6 @@
-import { Client } from '@modelcontextprotocol/sdk/client/index.js'
-import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js'
-import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
-import { StreamableHTTPClientTransport, StreamableHTTPError } from '@modelcontextprotocol/sdk/client/streamableHttp.js'
-import { ToolListChangedNotificationSchema } from '@modelcontextprotocol/sdk/types.js'
+import { Client, SSEClientTransport, SdkHttpError, StreamableHTTPClientTransport } from '@modelcontextprotocol/client'
+import type { ClientOptions, McpSubscription } from '@modelcontextprotocol/client'
+import { StdioClientTransport } from '@modelcontextprotocol/client/stdio'
 import { BreadError, assertName } from '@breadai/core'
 import type { BreadSigner, ToolDefinition } from '@breadai/core'
 import { type JSONSchema, jsonSchemaToZod } from './json-schema-to-zod.js'
@@ -18,6 +16,13 @@ export interface McpServerConfig {
   url?: string
   /** Signer used to sign outgoing requests (HTTP transport). */
   signer?: BreadSigner
+  /**
+   * Opt into probing the server for the 2026-07-28 protocol revision
+   * (`{ mode: 'auto' }`), falling back to the 2025-11-25 wire format bread
+   * has always spoken against a server that doesn't support it. Absent by
+   * default — existing config keeps today's exact legacy-only behavior.
+   */
+  versionNegotiation?: ClientOptions['versionNegotiation']
 }
 
 export interface ConnectedServer {
@@ -101,23 +106,44 @@ async function fetchTools(cfg: McpServerConfig, client: Client): Promise<ToolDef
 }
 
 async function finishConnect(cfg: McpServerConfig, client: Client): Promise<ConnectedServer> {
+  let subscription: McpSubscription | undefined
+
   const server: ConnectedServer = {
     name: cfg.name,
     client,
     tools: await fetchTools(cfg, client),
-    close: () => client.close(),
+    close: async () => {
+      await subscription?.close()
+      await client.close()
+    },
   }
 
   // resolveAgentTools re-reads `server.tools` on every run (see
   // mcp-client's README/docs/mcp-client.md), so keeping this array current is
-  // enough — no polling, no core changes needed.
-  client.setNotificationHandler(ToolListChangedNotificationSchema, async () => {
+  // enough — no polling, no core changes needed. The handler is
+  // era-transparent: on a legacy (2025-11-25) connection the server pushes
+  // this notification unsolicited; on a modern (2026-07-28) one it only
+  // arrives once `client.listen()` opens the subscription below — same
+  // dispatch target either way (`Client.setNotificationHandler`).
+  client.setNotificationHandler('notifications/tools/list_changed', async () => {
     try {
       server.tools = await fetchTools(cfg, client)
     } catch (err) {
       console.warn(`[bread] mcp_client: failed to refresh tools for server "${cfg.name}" after list_changed:`, err)
     }
   })
+
+  // Modern-era connections require explicit opt-in to receive list-changed
+  // notifications at all (SubscriptionFilter over `subscriptions/listen`) —
+  // legacy connections never call this and keep today's unsolicited-push
+  // behavior unchanged.
+  if (client.getProtocolEra() === 'modern') {
+    try {
+      subscription = await client.listen({ toolsListChanged: true })
+    } catch (err) {
+      console.warn(`[bread] mcp_client: failed to open subscriptions/listen for server "${cfg.name}":`, err)
+    }
+  }
 
   return server
 }
@@ -126,9 +152,24 @@ async function finishConnect(cfg: McpServerConfig, client: Client): Promise<Conn
 // Streamable HTTP" (wrong endpoint shape, method not allowed, etc.) — the
 // SDK's own documented recovery is to retry the same URL over the legacy SSE
 // transport. Anything else (network failure, 5xx) is a real error and should
-// not be masked by a fallback attempt.
+// not be masked by a fallback attempt. The legacy SSE transport predates
+// version negotiation entirely, so this fallback never applies to it.
+// `SdkHttpError.code` is a symbolic SdkErrorCode string (e.g.
+// 'CLIENT_HTTP_NOT_IMPLEMENTED') — the numeric HTTP status v1 exposed as
+// `.code` now lives at `.data.status`.
 function isLikelyStreamableHttpUnsupported(err: unknown): boolean {
-  return err instanceof StreamableHTTPError && typeof err.code === 'number' && err.code >= 400 && err.code < 500
+  const status = err instanceof SdkHttpError ? err.data?.status : undefined
+  return typeof status === 'number' && status >= 400 && status < 500
+}
+
+// The legacy-fallback client below deliberately does NOT go through this —
+// it's already committed to the pre-2025-11-25 SSE transport, which predates
+// version negotiation entirely.
+function makeClient(cfg: McpServerConfig): Client {
+  return new Client(
+    { name: `bread-mcp:${cfg.name}`, version: '0.1.0' },
+    cfg.versionNegotiation ? { versionNegotiation: cfg.versionNegotiation } : undefined,
+  )
 }
 
 // Connect to one external MCP server and translate its tools into bread tools.
@@ -138,7 +179,7 @@ export async function connectServer(cfg: McpServerConfig): Promise<ConnectedServ
   if (cfg.transport === 'http' || cfg.url) {
     if (!cfg.url) throw new Error(`mcp server "${cfg.name}": http transport requires a url`)
     const fetchImpl = signingFetch(cfg.signer)
-    const client = new Client({ name: `bread-mcp:${cfg.name}`, version: '0.1.0' })
+    const client = makeClient(cfg)
     try {
       const transport = new StreamableHTTPClientTransport(new URL(cfg.url), {
         ...(fetchImpl ? { fetch: fetchImpl } : {}),
@@ -160,7 +201,7 @@ export async function connectServer(cfg: McpServerConfig): Promise<ConnectedServ
   }
 
   if (!cfg.command) throw new Error(`mcp server "${cfg.name}": stdio transport requires a command`)
-  const client = new Client({ name: `bread-mcp:${cfg.name}`, version: '0.1.0' })
+  const client = makeClient(cfg)
   const transport = new StdioClientTransport({
     command: cfg.command,
     args: cfg.args ?? [],
