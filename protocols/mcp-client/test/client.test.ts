@@ -3,15 +3,26 @@ import { createServer } from 'node:http'
 import type { Server } from 'node:http'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
-import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js'
-import { WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js'
+import { McpServer, WebStandardStreamableHTTPServerTransport, createMcpHandler } from '@modelcontextprotocol/server'
+import { SSEServerTransport } from '@modelcontextprotocol/server-legacy/sse'
+import { z } from 'zod'
 import type { BreadSigner, ToolDefinition } from '@breadai/core'
 import { BreadError } from '@breadai/core'
+import type { ConnectedServer } from '@breadai/protocol-mcp-client'
 import { connectServer, mcpClient, sanitizeMcpToolName } from '@breadai/protocol-mcp-client'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const fixtureServer = join(here, 'fixtures', 'mcp-server.ts')
+
+// Both the legacy tools/list_changed push and the modern subscriptions/listen
+// stream refresh `server.tools` asynchronously — poll rather than assume a
+// fixed delay.
+async function waitForTool(server: ConnectedServer, name: string, timeoutMs = 2000): Promise<void> {
+  const deadline = Date.now() + timeoutMs
+  while (!server.tools.some((t) => t.name === name) && Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, 20))
+  }
+}
 
 describe('connectServer — transport validation', () => {
   test('throws when an http transport is configured without a url', () => {
@@ -82,14 +93,77 @@ describe('connectServer — stdio transport', () => {
 
     await tool('add_bonus_tool').execute({})
 
-    const deadline = Date.now() + 2000
-    while (!server.tools.some((t) => t.name === 'bonus') && Date.now() < deadline) {
-      await new Promise((resolve) => setTimeout(resolve, 20))
-    }
+    await waitForTool(server, 'bonus')
 
     expect(server.tools.map((t) => t.name)).toContain('bonus')
     expect(await tool('bonus').execute({})).toBe('surprise')
   })
+})
+
+describe('connectServer — versionNegotiation: modern-era subscriptions/listen refresh', () => {
+  // Same fixture process as the legacy describe block above, spawned as its
+  // own connection with `versionNegotiation: { mode: 'auto' }` — the fixture
+  // is served via the dual-era `serveStdio`, so this connection negotiates
+  // 2026-07-28 (probed via a disposable sibling process, per the SDK) while
+  // the legacy block's connection above still negotiates 2025-11-25 as
+  // before. One stdio process = one persistent `McpServer` instance either
+  // way, so `add_bonus_tool`'s mutation is visible to whichever notification
+  // channel this connection's era uses.
+  let server: Awaited<ReturnType<typeof connectServer>>
+
+  beforeAll(async () => {
+    server = await connectServer({
+      name: 'modern_fixture',
+      command: 'bun',
+      args: ['--conditions', 'bread-source', fixtureServer],
+      versionNegotiation: { mode: 'auto' },
+    })
+  })
+
+  afterAll(() => server.close())
+
+  test('negotiates the modern era and refreshes tools via subscriptions/listen', async () => {
+    expect(server.client.getProtocolEra()).toBe('modern')
+    expect(server.tools.map((t) => t.name)).not.toContain('bonus')
+
+    const addBonus = server.tools.find((t) => t.name === 'add_bonus_tool')!
+    await addBonus.execute({})
+
+    await waitForTool(server, 'bonus')
+
+    expect(server.tools.map((t) => t.name)).toContain('bonus')
+    expect(await server.tools.find((t) => t.name === 'bonus')!.execute({})).toBe('surprise')
+  })
+})
+
+describe('connectServer — close() on a modern-era connection', () => {
+  // The existing legacy-only close() coverage (see "mcpClient plugin —
+  // close()" below) never populates `subscription`, so it can't prove
+  // `ConnectedServer.close()`'s `await subscription?.close()` line actually
+  // runs cleanly — only that the `?.` guard is safe when it's undefined.
+  test('closes an open subscriptions/listen stream without throwing or hanging', async () => {
+    const fixture = new McpServer({ name: 'modern-close-fixture', version: '0.0.0' })
+    fixture.registerTool(
+      'ping',
+      { description: 'ping', inputSchema: z.object({}) },
+      async () => ({ content: [{ type: 'text', text: 'pong' }] }),
+    )
+    const handler = createMcpHandler(() => fixture, { legacy: 'stateless' })
+    const httpServer = Bun.serve({ port: 0, fetch: (req) => handler.fetch(req) })
+
+    try {
+      const connected = await connectServer({
+        name: 'modern_close',
+        url: `http://localhost:${httpServer.port}/mcp`,
+        versionNegotiation: { mode: 'auto' },
+      })
+      expect(connected.client.getProtocolEra()).toBe('modern')
+
+      await connected.close()
+    } finally {
+      httpServer.stop(true)
+    }
+  }, 5000)
 })
 
 describe('sanitizeMcpToolName', () => {
@@ -118,7 +192,7 @@ describe('connectServer — colliding sanitized names fail loudly', () => {
         for (const name of ['list-files', 'list_files']) {
           fixture.registerTool(
             name,
-            { description: name, inputSchema: {} },
+            { description: name, inputSchema: z.object({}) },
             async () => ({ content: [{ type: 'text', text: name }] }),
           )
         }
@@ -165,7 +239,7 @@ describe('connectServer — http transport signs outgoing requests', () => {
     const fixture = new McpServer({ name: 'fixture', version: '0.0.0' })
     fixture.registerTool(
       'ping',
-      { description: 'ping', inputSchema: {} },
+      { description: 'ping', inputSchema: z.object({}) },
       async () => ({ content: [{ type: 'text', text: 'pong' }] }),
     )
     return fixture
@@ -236,7 +310,7 @@ describe('connectServer — signs per request, not once at connect', () => {
     const fixture = new McpServer({ name: 'rotating-fixture', version: '0.0.0' })
     fixture.registerTool(
       'ping',
-      { description: 'ping', inputSchema: {} },
+      { description: 'ping', inputSchema: z.object({}) },
       async () => ({ content: [{ type: 'text', text: 'pong' }] }),
     )
     return fixture
@@ -263,7 +337,7 @@ describe('connectServer — falls back to legacy SSE when Streamable HTTP is uns
     const fixture = new McpServer({ name: 'legacy-fixture', version: '0.0.0' })
     fixture.registerTool(
       'ping',
-      { description: 'ping', inputSchema: {} },
+      { description: 'ping', inputSchema: z.object({}) },
       async () => ({ content: [{ type: 'text', text: 'pong' }] }),
     )
 
@@ -316,7 +390,7 @@ describe('mcpClient plugin — close()', () => {
         const fixture = new McpServer({ name: 'closing-fixture', version: '0.0.0' })
         fixture.registerTool(
           'ping',
-          { description: 'ping', inputSchema: {} },
+          { description: 'ping', inputSchema: z.object({}) },
           async () => ({ content: [{ type: 'text', text: 'pong' }] }),
         )
         const transport = new WebStandardStreamableHTTPServerTransport()

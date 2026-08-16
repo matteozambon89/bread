@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
-import { WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js'
+import { McpServer, WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/server'
+import { z } from 'zod'
 import { defineTestAgent, makeBread, mockScript, runCollect } from '@breadai/test-utils'
 import { mcpClient } from '@breadai/protocol-mcp-client'
 
@@ -11,7 +11,7 @@ function newFixture(): McpServer {
   const fixture = new McpServer({ name: 'fixture', version: '0.0.0' })
   fixture.registerTool(
     'ping',
-    { description: 'ping', inputSchema: {} },
+    { description: 'ping', inputSchema: z.object({}) },
     async () => ({ content: [{ type: 'text', text: 'pong' }] }),
   )
   return fixture
