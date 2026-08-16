@@ -1,0 +1,84 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: 'Version bump type'
+        required: true
+        type: choice
+        options: [patch, minor, major, prepatch, preminor, premajor, prerelease]
+      preid:
+        description: 'Pre-release identifier (only used with a pre* bump type)'
+        required: true
+        type: choice
+        options: [none, alpha, beta]
+        default: none
+      dry_run:
+        description: 'Compute the bump and verify the build only — no commit, tag, release, or publish'
+        required: true
+        type: boolean
+        default: true
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+
+      - name: Bump version
+        run: |
+          if [ "${{ inputs.preid }}" = "none" ]; then
+            bun run bump --bump ${{ inputs.bump }}
+          else
+            bun run bump --bump ${{ inputs.bump }} --preid ${{ inputs.preid }}
+          fi
+      - name: Capture computed version
+        id: version
+        run: echo "value=$(jq -r .version packages/core/package.json)" >> "$GITHUB_OUTPUT"
+
+      - name: Refuse to re-release an existing tag
+        run: |
+          if git rev-parse -q --verify "refs/tags/v${{ steps.version.outputs.value }}" >/dev/null; then
+            echo "::error::tag v${{ steps.version.outputs.value }} already exists"; exit 1
+          fi
+      - name: Verify the tree is releasable
+        run: |
+          bun run typecheck
+          bun run build
+          bun run test
+
+      - name: Commit, tag, and push
+        if: ${{ !inputs.dry_run }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "chore: bump version to ${{ steps.version.outputs.value }}"
+          git tag "v${{ steps.version.outputs.value }}"
+          git push origin HEAD:main
+          git push origin "v${{ steps.version.outputs.value }}"
+      - name: Create GitHub release
+        if: ${{ !inputs.dry_run }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release create "v${{ steps.version.outputs.value }}" --title "v${{ steps.version.outputs.value }}" --generate-notes
+      - name: Dry run summary
+        if: ${{ inputs.dry_run }}
+        run: |
+          echo "🔍 Dry run — computed **v${{ steps.version.outputs.value }}**, build/test passed, nothing committed, tagged, released, or published." >> "$GITHUB_STEP_SUMMARY"
+          echo "Re-run with \`dry_run: false\` to actually release." >> "$GITHUB_STEP_SUMMARY"
+
+  publish:
+    needs: release
+    if: ${{ !inputs.dry_run }}
+    uses: ./.github/workflows/publish.yml
+    secrets: inherit
