@@ -31,6 +31,13 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          # main requires a PR + a passing "check" status via repository
+          # rulesets; the default GITHUB_TOKEN can't bypass that (bypass is
+          # scoped to the Admin repository role). RELEASE_TOKEN is a
+          # fine-grained PAT owned by an account with that role, so pushes
+          # and tag creation below go through under its identity instead.
+          token: ${{ secrets.RELEASE_TOKEN }}
       - uses: oven-sh/setup-bun@v2
       - run: bun install --frozen-lockfile
 
@@ -69,7 +76,10 @@ jobs:
       - name: Create GitHub release
         if: ${{ !inputs.dry_run }}
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Also RELEASE_TOKEN, not GITHUB_TOKEN — creating a release creates
+          # its underlying tag ref too, which the "New Version" tag ruleset
+          # gates the same way as the branch push above.
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
         run: gh release create "v${{ steps.version.outputs.value }}" --title "v${{ steps.version.outputs.value }}" --generate-notes
       - name: Dry run summary
         if: ${{ inputs.dry_run }}
