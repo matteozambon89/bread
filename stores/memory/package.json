@@ -1,6 +1,6 @@
 {
   "name": "@breadai/store-memory",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "In-memory storage adapter for bread — implements the session, checkpoint, knowledge, and document ports with no persistence. Ideal for tests and ephemeral runs.",
   "license": "MIT",
   "author": "Matteo Zambon <matteo@yeeti.co>",

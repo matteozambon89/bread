@@ -1,6 +1,6 @@
 {
   "name": "@breadai/store-sqlite",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "SQLite BreadStore for bread on Bun — persists sessions, checkpoints, the knowledge graph, and documents to a file (or :memory:) via Bun's built-in bun:sqlite. Bun-only.",
   "license": "MIT",
   "author": "Matteo Zambon <matteo@yeeti.co>",

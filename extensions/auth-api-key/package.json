@@ -1,6 +1,6 @@
 {
   "name": "@breadai/auth-api-key",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "API-key auth for bread — verify incoming requests, sign outgoing ones.",
   "license": "MIT",
   "author": "Matteo Zambon <matteo@yeeti.co>",

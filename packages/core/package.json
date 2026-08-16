@@ -1,6 +1,6 @@
 {
   "name": "@breadai/core",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Core SDK for bread — an explicit-by-design, file-system-convention framework for building AI agents.",
   "license": "MIT",
   "author": "Matteo Zambon <matteo@yeeti.co>",

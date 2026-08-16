@@ -1,6 +1,6 @@
 {
   "name": "@breadai/cli",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "The `bread` command-line interface — dev server, build, eval, and session management.",
   "license": "MIT",
   "author": "Matteo Zambon <matteo@yeeti.co>",

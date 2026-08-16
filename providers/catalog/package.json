@@ -1,6 +1,6 @@
 {
   "name": "@breadai/provider-catalog",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "The built-in @ai-sdk/* provider catalog for bread — 18 lazily-imported AI SDK providers as a ready-made ProviderRegistry for config.providers.",
   "license": "MIT",
   "author": "Matteo Zambon <matteo@yeeti.co>",
@@ -64,25 +64,63 @@
     "ollama-ai-provider-v2": ">=1.0"
   },
   "peerDependenciesMeta": {
-    "@ai-sdk/openai": { "optional": true },
-    "@ai-sdk/anthropic": { "optional": true },
-    "@ai-sdk/google": { "optional": true },
-    "@ai-sdk/google-vertex": { "optional": true },
-    "@ai-sdk/azure": { "optional": true },
-    "@ai-sdk/amazon-bedrock": { "optional": true },
-    "@ai-sdk/mistral": { "optional": true },
-    "@ai-sdk/groq": { "optional": true },
-    "@ai-sdk/cohere": { "optional": true },
-    "@ai-sdk/xai": { "optional": true },
-    "@ai-sdk/deepseek": { "optional": true },
-    "@ai-sdk/togetherai": { "optional": true },
-    "@ai-sdk/fireworks": { "optional": true },
-    "@ai-sdk/deepinfra": { "optional": true },
-    "@ai-sdk/cerebras": { "optional": true },
-    "@ai-sdk/perplexity": { "optional": true },
-    "@ai-sdk/baseten": { "optional": true },
-    "@ai-sdk/openai-compatible": { "optional": true },
-    "ollama-ai-provider-v2": { "optional": true }
+    "@ai-sdk/openai": {
+      "optional": true
+    },
+    "@ai-sdk/anthropic": {
+      "optional": true
+    },
+    "@ai-sdk/google": {
+      "optional": true
+    },
+    "@ai-sdk/google-vertex": {
+      "optional": true
+    },
+    "@ai-sdk/azure": {
+      "optional": true
+    },
+    "@ai-sdk/amazon-bedrock": {
+      "optional": true
+    },
+    "@ai-sdk/mistral": {
+      "optional": true
+    },
+    "@ai-sdk/groq": {
+      "optional": true
+    },
+    "@ai-sdk/cohere": {
+      "optional": true
+    },
+    "@ai-sdk/xai": {
+      "optional": true
+    },
+    "@ai-sdk/deepseek": {
+      "optional": true
+    },
+    "@ai-sdk/togetherai": {
+      "optional": true
+    },
+    "@ai-sdk/fireworks": {
+      "optional": true
+    },
+    "@ai-sdk/deepinfra": {
+      "optional": true
+    },
+    "@ai-sdk/cerebras": {
+      "optional": true
+    },
+    "@ai-sdk/perplexity": {
+      "optional": true
+    },
+    "@ai-sdk/baseten": {
+      "optional": true
+    },
+    "@ai-sdk/openai-compatible": {
+      "optional": true
+    },
+    "ollama-ai-provider-v2": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@types/bun": "latest",
