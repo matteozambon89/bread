@@ -31,10 +31,18 @@ describe('mcp_server — inherits the server\'s auth gate', () => {
 
   afterEach(() => stop())
 
+  // Real HTTP/1.1 clients always send Host and a permissive Accept; Hono's
+  // in-process app.request() synthesizes neither — mcp_server's localhost-only
+  // DNS-rebinding check (host) and the v2 SDK's own Streamable HTTP handler
+  // (accept) both reject a request missing them, ahead of and independent of
+  // this plugin's auth gate. Both headers are set on every request below so
+  // each test isolates the one thing it actually claims to prove.
+  const mcpHeaders = { 'content-type': 'application/json', host: 'localhost', accept: 'application/json, text/event-stream' }
+
   test('rejects an unauthenticated MCP request with 401', async () => {
     const res = await app.request('/mcp', {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: mcpHeaders,
       body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list' }),
     })
     expect(res.status).toBe(401)
@@ -43,9 +51,16 @@ describe('mcp_server — inherits the server\'s auth gate', () => {
   test('allows an authenticated MCP request through', async () => {
     const res = await app.request('/mcp', {
       method: 'POST',
-      headers: { 'content-type': 'application/json', 'x-api-key': 'secret' },
+      headers: { ...mcpHeaders, 'x-api-key': 'secret' },
       body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list' }),
     })
-    expect(res.status).not.toBe(401)
+    expect(res.status).toBe(200)
+    // The SDK answers a single-response exchange as one SSE event by default
+    // (`content-type: text/event-stream`) rather than a bare JSON body — pull
+    // the JSON-RPC payload out of its `data:` line.
+    const text = await res.text()
+    const dataLine = text.split('\n').find((l) => l.startsWith('data: '))
+    const body = JSON.parse(dataLine!.slice('data: '.length)) as { result?: { tools?: { name: string }[] } }
+    expect(body.result?.tools?.map((t) => t.name)).toContain('greeter')
   })
 })

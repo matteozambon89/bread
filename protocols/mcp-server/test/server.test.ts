@@ -1,14 +1,14 @@
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
-import { Client } from '@modelcontextprotocol/sdk/client/index.js'
-import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js'
+import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client'
+import type { ClientOptions } from '@modelcontextprotocol/client'
 import { z } from 'zod'
 import { type BreadInstance, type BreadPlugin, defineTask, defineTool } from '@breadai/core'
 import { defineTestAgent, makeBread, memoryBlobStore, mockObjectModel, mockTextModel } from '@breadai/test-utils'
-import { buildMcpServer, handleHttpRequest } from '@breadai/protocol-mcp-server'
+import { buildMcpHttpHandler } from '@breadai/protocol-mcp-server'
 
 // Exposes a bread agent (and an agent+skill pair) as MCP tools, served over a
 // real HTTP transport, and drives it with the official MCP client — exercising
-// buildMcpServer + handleHttpRequest end to end.
+// buildMcpServer + buildMcpHttpHandler end to end.
 describe('mcp server exposure over HTTP — agents/skills', () => {
   let bread: BreadInstance
   let stopBread: () => Promise<void>
@@ -22,11 +22,10 @@ describe('mcp server exposure over HTTP — agents/skills', () => {
       agents: { greeter: defineTestAgent() },
       model: mockTextModel('agent ran'),
     }))
-    // Stateless transport: a fresh server + transport per request.
-    server = Bun.serve({
-      port: 0,
-      fetch: (req) => handleHttpRequest(buildMcpServer(bread, expose), req),
-    })
+    // createMcpHandler is stateless internally (a fresh McpServer per
+    // request via buildMcpServer), but the handler itself is built once.
+    const handler = buildMcpHttpHandler(bread, expose)
+    server = Bun.serve({ port: 0, fetch: (req) => handler.fetch(req) })
     url = new URL(`http://localhost:${server.port}/mcp`)
   })
 
@@ -35,8 +34,8 @@ describe('mcp server exposure over HTTP — agents/skills', () => {
     await stopBread()
   })
 
-  async function connect(): Promise<Client> {
-    const client = new Client({ name: 'test-client', version: '0.0.0' })
+  async function connect(versionNegotiation?: ClientOptions['versionNegotiation']): Promise<Client> {
+    const client = new Client({ name: 'test-client', version: '0.0.0' }, versionNegotiation ? { versionNegotiation } : undefined)
     await client.connect(new StreamableHTTPClientTransport(url))
     return client
   }
@@ -65,6 +64,18 @@ describe('mcp server exposure over HTTP — agents/skills', () => {
     expect(content[0]!.text).toBe('agent ran')
     await client.close()
   })
+
+  // buildMcpHttpHandler's `legacy: 'stateless'` default serves both eras from
+  // the same endpoint — this proves the 2026-07-28 side, not just the
+  // 2025-11-25 default the tests above already exercise.
+  test('the same endpoint also answers a client pinned to the 2026-07-28 revision', async () => {
+    const client = await connect({ mode: { pin: '2026-07-28' } })
+    expect(client.getProtocolEra()).toBe('modern')
+    const res = await client.callTool({ name: 'greeter', arguments: { input: 'hi' } })
+    const content = res.content as { type: string; text: string }[]
+    expect(content[0]!.text).toBe('agent ran')
+    await client.close()
+  })
 })
 
 describe('mcp server exposure — schema translation', () => {
@@ -86,10 +97,8 @@ describe('mcp server exposure — schema translation', () => {
       },
       model: mockObjectModel({ city: 'Rome', pop: 3 }),
     }))
-    server = Bun.serve({
-      port: 0,
-      fetch: (req) => handleHttpRequest(buildMcpServer(bread, { agents: ['structured'] }), req),
-    })
+    const handler = buildMcpHttpHandler(bread, { agents: ['structured'] })
+    server = Bun.serve({ port: 0, fetch: (req) => handler.fetch(req) })
     url = new URL(`http://localhost:${server.port}/mcp`)
   })
 
@@ -134,10 +143,8 @@ describe('mcp server exposure — tasks', () => {
         summarizer: mockObjectModel({ summary: 'short' }),
       },
     }))
-    server = Bun.serve({
-      port: 0,
-      fetch: (req) => handleHttpRequest(buildMcpServer(bread, { tasks: ['summarize'] }), req),
-    })
+    const handler = buildMcpHttpHandler(bread, { tasks: ['summarize'] })
+    server = Bun.serve({ port: 0, fetch: (req) => handler.fetch(req) })
     url = new URL(`http://localhost:${server.port}/mcp`)
   })
 
@@ -192,14 +199,8 @@ describe('mcp server exposure — direct tool invocation', () => {
       plugins: [toolPlugin],
       model: mockTextModel('unused'),
     }))
-    server = Bun.serve({
-      port: 0,
-      fetch: (req) =>
-        handleHttpRequest(
-          buildMcpServer(bread, { tools: [{ agent: 'owner', tool: 'agent_owned' }, 'plugin_owned'] }),
-          req,
-        ),
-    })
+    const handler = buildMcpHttpHandler(bread, { tools: [{ agent: 'owner', tool: 'agent_owned' }, 'plugin_owned'] })
+    server = Bun.serve({ port: 0, fetch: (req) => handler.fetch(req) })
     url = new URL(`http://localhost:${server.port}/mcp`)
   })
 
@@ -254,11 +255,8 @@ describe('mcp server exposure — direct tool invocation with blobStore', () => 
       model: mockTextModel('unused'),
       config: { blobStore: memoryBlobStore() },
     }))
-    server = Bun.serve({
-      port: 0,
-      fetch: (req) =>
-        handleHttpRequest(buildMcpServer(bread, { tools: [{ agent: 'owner', tool: 'save_file' }] }), req),
-    })
+    const handler = buildMcpHttpHandler(bread, { tools: [{ agent: 'owner', tool: 'save_file' }] })
+    server = Bun.serve({ port: 0, fetch: (req) => handler.fetch(req) })
     url = new URL(`http://localhost:${server.port}/mcp`)
   })
 
