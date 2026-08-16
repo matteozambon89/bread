@@ -86,9 +86,3 @@ jobs:
         run: |
           echo "🔍 Dry run — computed **v${{ steps.version.outputs.value }}**, build/test passed, nothing committed, tagged, released, or published." >> "$GITHUB_STEP_SUMMARY"
           echo "Re-run with \`dry_run: false\` to actually release." >> "$GITHUB_STEP_SUMMARY"
-
-  publish:
-    needs: release
-    if: ${{ !inputs.dry_run }}
-    uses: ./.github/workflows/publish.yml
-    secrets: inherit
