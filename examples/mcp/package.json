@@ -1,0 +1,22 @@
+{
+  "name": "@bread-examples/mcp",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev:server": "../../packages/cli/dist/bin.js dev --cwd server --port 4101",
+    "dev:client": "../../packages/cli/dist/bin.js dev --cwd client --port 4102",
+    "build": "../../packages/cli/dist/bin.js build --cwd server && ../../packages/cli/dist/bin.js build --cwd client"
+  },
+  "dependencies": {
+    "@breadai/cli": "workspace:*",
+    "@breadai/core": "workspace:*",
+    "@breadai/protocol-mcp-client": "workspace:*",
+    "@breadai/protocol-mcp-server": "workspace:*",
+    "@breadai/provider-catalog": "workspace:*",
+    "@breadai/store-sqlite": "workspace:*",
+    "@breadai/transport-http-chunked": "workspace:*",
+    "ollama-ai-provider-v2": "^3.6.0",
+    "zod": "^4.4.3"
+  }
+}
