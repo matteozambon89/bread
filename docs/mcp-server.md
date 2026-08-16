@@ -2,7 +2,9 @@
 
 Expose selected bread agents, tasks, tools, and agent+skill combinations as
 [Model Context Protocol](https://modelcontextprotocol.io) tools, over stdio or Streamable HTTP, built
-on the official `@modelcontextprotocol/sdk`.
+on the official v2 SDK (`@modelcontextprotocol/server` + the `@modelcontextprotocol/hono` adapter).
+Both transports serve **both** the 2025-11-25 and 2026-07-28 protocol revisions from the same
+endpoint/connection — nothing to configure, an MCP client on either revision just works.
 
 ```bash
 bun add @breadai/protocol-mcp-server
@@ -68,27 +70,57 @@ place mcp-server takes a real shortcut, worth calling out precisely:
   crumbs a real run would emit are **not** produced — there's no run to attach them to. If you need
   those, wrap the tool in a task or a minimal single-tool agent instead of exposing it directly.
 
-## Transports and auth
+## Transports, protocol eras, and auth
 
-- **`transport: 'stdio'`** (default) — connects one persistent MCP stdio server on `init()`. Use this
-  when bread itself is launched as an MCP child process. There is no meaningful auth layer here by
-  design: stdio is a local process pipe, and the OS process boundary *is* the trust boundary, the same
-  as any other local CLI access.
-- **`transport: 'http'`** — mounts a stateless Streamable HTTP endpoint on bread's own Hono app at
-  `path` (default `/mcp`), via the plugin's `routes` hook — a fresh MCP server per request, same
-  pattern the SDK itself documents for stateless serving.
+- **`transport: 'stdio'`** (default) — connects one persistent, **connection-pinned** MCP stdio
+  server on `init()`, via the SDK's `serveStdio`: the opening exchange of that one connection selects
+  2025-11-25 or 2026-07-28, and the whole connection speaks whichever era won. Use this when bread
+  itself is launched as an MCP child process. There is no meaningful auth layer here by design: stdio
+  is a local process pipe, and the OS process boundary *is* the trust boundary, the same as any other
+  local CLI access.
+- **`transport: 'http'`** — mounts a **stateless** Streamable HTTP endpoint on bread's own Hono app at
+  `path` (default `/mcp`), via `createMcpHandler(..., { legacy: 'stateless' })`: a fresh MCP server
+  per request either way, but the same handler answers 2026-07-28 natively and falls back to the
+  2025-11-25 wire format bread has always served — one endpoint, both eras, still no session state on
+  either side.
 
-The HTTP route needs **no auth code of its own**. `createServer()` runs every plugin's `middleware`
-hook before any plugin's `routes()` are mounted, so if you've wired an auth plugin (e.g.
+### DNS-rebinding protection
+
+The HTTP route also validates the `Host` and `Origin` headers on every request (via
+`@modelcontextprotocol/hono`'s `hostHeaderValidation`/`originValidation` middleware, wired through
+the plugin's `middleware` hook) — a request from a hostname that isn't allow-listed is rejected with
+`403` before it reaches auth or routing. **This defaults to localhost-only.** If bread is reachable
+under a real hostname (anything other than `localhost`/`127.0.0.1`/`[::1]`), set `allowedHosts`
+explicitly or every request will be rejected:
+
+```ts
+mcpServer({ transport: 'http', agents: ['researcher'], allowedHosts: ['mcp.example.com'] })
+```
+
+`allowedHosts` is port-agnostic (hostnames only) and applies to both the `Host` and `Origin` checks.
+Real HTTP clients always send a `Host` header (mandatory since HTTP/1.1) — the one place this trips
+people up is testing the route in-process against Hono's own `app.request()` helper, which doesn't
+synthesize one; pass `headers: { host: 'localhost' }` explicitly in that case.
+
+The HTTP route otherwise needs **no auth code of its own**. `createServer()` runs every plugin's
+`middleware` hook before any plugin's `routes()` are mounted, so if you've wired an auth plugin (e.g.
 `authPlugin(...)` from [auth.md](./auth.md)), `/mcp` is gated exactly like every other route — with
-no special-casing on mcp-server's part. Bread itself applies no default posture; add auth only if
-you want it. Connect with the SDK's `StreamableHTTPClientTransport`.
+no special-casing on mcp-server's part. All middleware runs before any route, but the relative order
+*between* mcp-server's host/origin check and another plugin's auth check follows `config.plugins`
+registration order, same as any two plugins' middleware — it isn't otherwise enforced. Bread itself
+applies no default auth posture; add it only if you want it. Connect with the SDK's
+`StreamableHTTPClientTransport`.
 
 ## Building blocks
 
 ```ts
-import { buildMcpServer, serveStdio, handleHttpRequest } from '@breadai/protocol-mcp-server'
+import { buildMcpServer, serveStdio, buildMcpHttpHandler } from '@breadai/protocol-mcp-server'
 ```
 
 `mcpServer(expose)` is a thin plugin wrapper around these — reach for them directly only if you need
-a custom mount point or transport bread's Hono integration doesn't cover.
+a custom mount point or transport bread's Hono integration doesn't cover. `buildMcpHttpHandler`
+builds the dual-era handler once (call it once per process, not per request — its `.fetch(req)` is
+what actually serves each request); `serveStdio` opens one connection-pinned dual-era stdio server.
+
+See [`examples/mcp`](../examples/mcp) for a runnable version, paired with
+[`@breadai/protocol-mcp-client`](./mcp-client.md) consuming it.
