@@ -43,25 +43,25 @@
     "@breadai/core": "workspace:>=0.1.1 <1.0.0"
   },
   "peerDependencies": {
-    "@ai-sdk/amazon-bedrock": ">=1.0",
-    "@ai-sdk/anthropic": ">=1.0",
-    "@ai-sdk/azure": ">=1.0",
-    "@ai-sdk/baseten": ">=1.0",
-    "@ai-sdk/cerebras": ">=1.0",
-    "@ai-sdk/cohere": ">=1.0",
-    "@ai-sdk/deepinfra": ">=1.0",
-    "@ai-sdk/deepseek": ">=1.0",
-    "@ai-sdk/fireworks": ">=1.0",
-    "@ai-sdk/google": ">=1.0",
-    "@ai-sdk/google-vertex": ">=1.0",
-    "@ai-sdk/groq": ">=1.0",
-    "@ai-sdk/mistral": ">=1.0",
-    "@ai-sdk/openai": ">=1.0",
-    "@ai-sdk/openai-compatible": ">=1.0",
-    "@ai-sdk/perplexity": ">=1.0",
-    "@ai-sdk/togetherai": ">=1.0",
-    "@ai-sdk/xai": ">=1.0",
-    "ollama-ai-provider-v2": ">=1.0"
+    "@ai-sdk/amazon-bedrock": ">=5.0",
+    "@ai-sdk/anthropic": ">=4.0",
+    "@ai-sdk/azure": ">=4.0",
+    "@ai-sdk/baseten": ">=2.1",
+    "@ai-sdk/cerebras": ">=3.0",
+    "@ai-sdk/cohere": ">=4.0",
+    "@ai-sdk/deepinfra": ">=3.0",
+    "@ai-sdk/deepseek": ">=3.0",
+    "@ai-sdk/fireworks": ">=3.0",
+    "@ai-sdk/google": ">=4.0",
+    "@ai-sdk/google-vertex": ">=5.0",
+    "@ai-sdk/groq": ">=4.0",
+    "@ai-sdk/mistral": ">=4.0",
+    "@ai-sdk/openai": ">=4.0",
+    "@ai-sdk/openai-compatible": ">=3.0",
+    "@ai-sdk/perplexity": ">=4.0",
+    "@ai-sdk/togetherai": ">=3.0",
+    "@ai-sdk/xai": ">=4.0",
+    "ollama-ai-provider-v2": ">=4.0"
   },
   "peerDependenciesMeta": {
     "@ai-sdk/openai": {
@@ -124,7 +124,7 @@
   },
   "devDependencies": {
     "@types/bun": "latest",
-    "ai": "^6.0.208",
+    "ai": "^7.0.93",
     "typescript": "^5.8.3"
   }
 }

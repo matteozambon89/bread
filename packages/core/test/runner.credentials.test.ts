@@ -26,7 +26,7 @@ function makeCredentialTool(
 
 // Unlike makeCredentialTool, this catches the rejection and records the thrown
 // BreadError's code. The AI-SDK tool-call path doesn't currently propagate a
-// thrown tool error up through streamText's fullStream as a rejection (a
+// thrown tool error up through streamText's stream as a rejection (a
 // pre-existing gap distinct from this change — see runner.error.test.ts), so
 // asserting on the captured code is what actually proves the allowlist fired,
 // uniformly across both the live-run and resume paths.

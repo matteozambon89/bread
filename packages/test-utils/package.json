@@ -15,12 +15,12 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@ai-sdk/provider": "^3.0.10",
+    "@ai-sdk/provider": "^4",
     "@breadai/core": "workspace:*",
     "@breadai/server": "workspace:*",
     "@breadai/store-memory": "workspace:*",
     "@breadai/transport-http-sse": "workspace:*",
-    "ai": "^6.0.208",
+    "ai": "^7.0.93",
     "postgres": "^3.4.5",
     "uuid": "^11.1.0",
     "zod": "^4.4.3"

@@ -46,11 +46,16 @@ function fixture(): { config: BreadConfig; agents: AgentRegistry } {
 // finish, exactly what a dropped connection looks like client-side.
 function dropAfterLines(res: Response, after: number): Response {
   if (!res.body) return res
+  // Tee so canceling the client-side read doesn't abort the HTTP request —
+  // streamText would otherwise close the run, and reconnect would have
+  // nothing left to tail.
+  const [forClient, forDrain] = res.body.tee()
+  void forDrain.pipeTo(new WritableStream()).catch(() => {})
   const decoder = new TextDecoder()
   const encoder = new TextEncoder()
   let buffer = ''
   let seen = 0
-  const truncated = res.body.pipeThrough(
+  const truncated = forClient.pipeThrough(
     new TransformStream<Uint8Array, Uint8Array>({
       transform(chunk, controller) {
         buffer += decoder.decode(chunk, { stream: true })

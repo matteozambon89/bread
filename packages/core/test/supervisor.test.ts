@@ -11,7 +11,7 @@ import {
   mockToolCallModel,
   runCollect,
 } from '@breadai/test-utils'
-import type { MockLanguageModelV3 } from 'ai/test'
+import type { MockLanguageModelV4 } from 'ai/test'
 
 function textOf(crumbs: BreadCrumb[]): string {
   return crumbs
@@ -26,7 +26,7 @@ function agentIds(crumbs: BreadCrumb[], type: 'agent:run:start' | 'agent:run:end
 
 describe('supervisor — LLM-driven delegation via core_delegate', () => {
   test('the supervisor delegates with a model-chosen input and reads the output back', async () => {
-    const w1 = mockTextModel('research notes') as MockLanguageModelV3
+    const w1 = mockTextModel('research notes') as MockLanguageModelV4
     const { bread, stop } = await makeBread({
       agents: {
         boss: defineTestAgent({
@@ -96,7 +96,7 @@ describe('supervisor — LLM-driven delegation via core_delegate', () => {
   })
 
   test('delegates in series across turns, threading results through the model', async () => {
-    const w2 = mockTextModel('two') as MockLanguageModelV3
+    const w2 = mockTextModel('two') as MockLanguageModelV4
     const { bread, stop } = await makeBread({
       agents: {
         boss: defineTestAgent({
@@ -349,7 +349,7 @@ describe('supervisor — LLM-driven delegation via core_delegate', () => {
         ],
       },
       { text: 'both in hand' },
-    ]) as MockLanguageModelV3
+    ]) as MockLanguageModelV4
     const { bread, stop } = await makeBread({
       agents: {
         boss: defineTestAgent({

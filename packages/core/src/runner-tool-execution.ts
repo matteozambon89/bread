@@ -320,8 +320,8 @@ export async function* executeStreamingToolWithHooks(
     // own lastOutput (what the model sees as the tool result, and what gets
     // persisted into session history) reflect afterRun's possibly-replaced
     // output, not just the raw last yielded value. Surfaces to the SDK as one
-    // redundant preliminary-marked fullStream 'tool-result' part ahead of its
-    // own synthesized final one — harmless, since continueRun's fullStream
+    // redundant preliminary-marked stream 'tool-result' part ahead of its
+    // own synthesized final one — harmless, since continueRun's stream
     // loop has no branch for 'tool-result' at all (bread's tool:result crumb
     // above is already the single source of truth).
     yield finalOutput
