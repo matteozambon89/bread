@@ -34,7 +34,7 @@
     "build": "bun build ./src/bin.ts --outdir dist --target node --format esm --packages external && tsc --emitDeclarationOnly --outDir dist"
   },
   "dependencies": {
-    "@breadai/server": "workspace:*",
+    "@breadai/server": "workspace:>=0.1.1 <1.0.0",
     "commander": "^14.0.0"
   },
   "devDependencies": {
