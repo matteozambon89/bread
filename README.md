@@ -57,7 +57,7 @@ bun add -d @breadai/cli    # dev server + `bread` CLI
 ```
 
 Core has no built-in model providers — register them explicitly via `providers` in
-`bread.config.ts`. `@breadai/provider-catalog` packages the 18 common `@ai-sdk/*` built-ins (each
+`bread.config.ts`. `@breadai/provider-catalog` packages the 20 common `@ai-sdk/*` built-ins (each
 still an optional peer dep, installed only if you use it):
 
 ```bash
