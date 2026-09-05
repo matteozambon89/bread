@@ -7,13 +7,14 @@ instances registered in `providers` (`BreadConfig.providers`, global) or an agen
 ## The built-in catalog
 
 Install [`@breadai/provider-catalog`](https://www.npmjs.com/package/@breadai/provider-catalog) for the
-20 common built-ins (`openai`, `anthropic`, `google`, `google-vertex`, `azure`,
+21 common built-ins (`openai`, `anthropic`, `google`, `google-vertex`, `azure`,
 `amazon-bedrock`, `mistral`, `groq`, `cohere`, `xai`, `deepseek`, `togetherai`, `fireworks`,
-`deepinfra`, `cerebras`, `perplexity`, `baseten`, `ollama`, `openrouter`, `workers-ai`), each
-imported lazily so only the provider you actually use pulls in its optional peer dependency.
-`openai` reads `OPENAI_API_KEY` and optionally `OPENAI_BASE_URL`. `openrouter` reads
-`OPENROUTER_API_KEY` (e.g. `openai/gpt-4o-mini`). `workers-ai` reads `CLOUDFLARE_ACCOUNT_ID` and
-`CLOUDFLARE_API_TOKEN` (e.g. `@cf/meta/llama-3.1-8b-instruct`).
+`deepinfra`, `cerebras`, `perplexity`, `baseten`, `ollama`, `openrouter`, `workers-ai`,
+`openai-compatible`), each imported lazily so only the provider you actually use pulls in its
+optional peer dependency. `openai` reads `OPENAI_API_KEY` and optionally `OPENAI_BASE_URL`.
+`openrouter` reads `OPENROUTER_API_KEY` (e.g. `openai/gpt-4o-mini`). `workers-ai` reads
+`CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN` (e.g. `@cf/meta/llama-3.1-8b-instruct`).
+`openai-compatible` reads `OPENAI_COMPATIBLE_BASE_URL` and optionally `OPENAI_COMPATIBLE_API_KEY`.
 
 ```ts
 import { defineConfig } from '@breadai/core'
@@ -25,8 +26,10 @@ export default defineConfig({
 })
 ```
 
-`@ai-sdk/openai-compatible` isn't included — it has no zero-config default instance (it needs a
-`baseURL`). Spread `createOpenAICompatible` into `providers` under whatever name you like.
+Point a model at a local or self-hosted OpenAI-compatible server with
+`model: { provider: 'openai-compatible', model: '<id>' }` and `OPENAI_COMPATIBLE_BASE_URL`
+(optional `OPENAI_COMPATIBLE_API_KEY` — local servers often need no key). For a second named host,
+spread `createOpenAICompatible` into `providers` under whatever name you like.
 
 ## Bring your own
 
