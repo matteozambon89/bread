@@ -39,9 +39,7 @@ const ENTRIES: Record<string, CatalogEntry> = {
   cerebras: { pkg: '@ai-sdk/cerebras', export: 'cerebras', envVars: ['CEREBRAS_API_KEY'] },
   perplexity: { pkg: '@ai-sdk/perplexity', export: 'perplexity', envVars: ['PERPLEXITY_API_KEY'] },
   baseten: { pkg: '@ai-sdk/baseten', export: 'baseten', envVars: ['BASETEN_API_KEY'] },
-  // ollama-ai-provider-v2 implements AI SDK spec v2; the original
-  // ollama-ai-provider is v1-only and fails under AI SDK 5. Zero-config
-  // against a local server — OLLAMA_BASE_URL is optional, not required.
+  // Zero-config against a local server — OLLAMA_BASE_URL is optional, not required.
   ollama: { pkg: 'ollama-ai-provider-v2', export: 'ollama', envVars: [] },
 }
 

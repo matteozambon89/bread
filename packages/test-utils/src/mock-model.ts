@@ -1,5 +1,5 @@
-import type { LanguageModelV3CallOptions, LanguageModelV3StreamPart } from '@ai-sdk/provider'
-import { MockLanguageModelV3, simulateReadableStream } from 'ai/test'
+import type { LanguageModelV4CallOptions, LanguageModelV4StreamPart } from '@ai-sdk/provider'
+import { MockLanguageModelV4, simulateReadableStream } from 'ai/test'
 
 type StreamResult = ReturnType<typeof streamOf>
 type StreamFactory = () => StreamResult
@@ -8,14 +8,14 @@ type StreamFactory = () => StreamResult
 // last repeats if called again). Each step is a *factory* so every call builds a
 // FRESH ReadableStream — a stream is single-use, so a model reused across runs
 // (map fanout, loop iterations) must not hand back an already-drained one.
-// (A bare array can't be used either: MockLanguageModelV3 records the call
+// (A bare array can't be used either: MockLanguageModelV4 records the call
 // before indexing, so an array would skip the first entry.)
 function sequence(...factories: StreamFactory[]): () => Promise<StreamResult> {
   let i = 0
   return async () => factories[Math.min(i++, factories.length - 1)]!()
 }
 
-// A zero-token usage record in the AI SDK v3 provider shape. Tests assert on
+// A zero-token usage record in the AI SDK provider shape. Tests assert on
 // bread crumbs, never on token accounting, so the exact numbers are irrelevant —
 // they just have to type-check.
 const noUsage = {
@@ -23,7 +23,7 @@ const noUsage = {
   outputTokens: { total: 0, text: 0, reasoning: 0 },
 }
 
-type FinishReason = LanguageModelV3StreamPart extends infer P
+type FinishReason = LanguageModelV4StreamPart extends infer P
   ? P extends { type: 'finish'; finishReason: infer R }
     ? R
     : never
@@ -32,7 +32,7 @@ type FinishReason = LanguageModelV3StreamPart extends infer P
 const stop: FinishReason = { unified: 'stop', raw: undefined }
 const toolCalls: FinishReason = { unified: 'tool-calls', raw: undefined }
 
-function streamOf(chunks: LanguageModelV3StreamPart[], chunkDelayInMs = 0) {
+function streamOf(chunks: LanguageModelV4StreamPart[], chunkDelayInMs = 0) {
   return { stream: simulateReadableStream({ chunks, chunkDelayInMs, initialDelayInMs: 0 }) }
 }
 
@@ -57,7 +57,7 @@ function toolStream(toolName: string, args: unknown, callId: string): StreamResu
 function multiToolStream(calls: { tool: string; args: unknown }[], stepIndex: number): StreamResult {
   return streamOf([
     ...calls.map(
-      (c, i): LanguageModelV3StreamPart => ({
+      (c, i): LanguageModelV4StreamPart => ({
         type: 'tool-call',
         toolCallId: `call-${stepIndex}-${i}`,
         toolName: c.tool,
@@ -75,7 +75,7 @@ function multiToolStream(calls: { tool: string; args: unknown }[], stepIndex: nu
 function streamingToolStream(toolName: string, argChunks: string[], callId: string): StreamResult {
   return streamOf([
     { type: 'tool-input-start', id: callId, toolName },
-    ...argChunks.map((delta): LanguageModelV3StreamPart => ({ type: 'tool-input-delta', id: callId, delta })),
+    ...argChunks.map((delta): LanguageModelV4StreamPart => ({ type: 'tool-input-delta', id: callId, delta })),
     { type: 'tool-input-end', id: callId },
     { type: 'tool-call', toolCallId: callId, toolName, input: argChunks.join('') },
     { type: 'finish', finishReason: toolCalls, usage: noUsage },
@@ -92,8 +92,8 @@ export function mockStreamingToolCallModel(opts: {
   toolName: string
   argChunks: string[]
   then: string
-}): MockLanguageModelV3 {
-  return new MockLanguageModelV3({
+}): MockLanguageModelV4 {
+  return new MockLanguageModelV4({
     doStream: sequence(
       () => streamingToolStream(opts.toolName, opts.argChunks, 'call-0'),
       () => textStream(opts.then),
@@ -115,13 +115,13 @@ export type ScriptStep = { tool: string; args: unknown } | { tools: { tool: stri
  * the single-tool, parallel-delegation, and loop (startLoop → finishLoop →
  * text) flows.
  */
-export function mockScript(steps: ScriptStep[]): MockLanguageModelV3 {
+export function mockScript(steps: ScriptStep[]): MockLanguageModelV4 {
   const factories = steps.map((step, i): StreamFactory => {
     if ('text' in step) return () => textStream(step.text)
     if ('tools' in step) return () => multiToolStream(step.tools, i)
     return () => toolStream(step.tool, step.args, `call-${i}`)
   })
-  return new MockLanguageModelV3({ doStream: sequence(...factories) })
+  return new MockLanguageModelV4({ doStream: sequence(...factories) })
 }
 
 /**
@@ -129,8 +129,8 @@ export function mockScript(steps: ScriptStep[]): MockLanguageModelV3 {
  * `streamText` path in the runner (text:delta → agent:run:end). Reusable across
  * runs — each call regenerates the stream.
  */
-export function mockTextModel(text: string): MockLanguageModelV3 {
-  return new MockLanguageModelV3({ doStream: async () => textStream(text) })
+export function mockTextModel(text: string): MockLanguageModelV4 {
+  return new MockLanguageModelV4({ doStream: async () => textStream(text) })
 }
 
 /**
@@ -139,11 +139,11 @@ export function mockTextModel(text: string): MockLanguageModelV3 {
  * forwards `ModelRef.settings`/`providerOptions` through to the model.
  */
 export function mockRecordingTextModel(text: string): {
-  model: MockLanguageModelV3
-  calls: LanguageModelV3CallOptions[]
+  model: MockLanguageModelV4
+  calls: LanguageModelV4CallOptions[]
 } {
-  const calls: LanguageModelV3CallOptions[] = []
-  const model = new MockLanguageModelV3({
+  const calls: LanguageModelV4CallOptions[] = []
+  const model = new MockLanguageModelV4({
     doStream: async (options) => {
       calls.push(options)
       return textStream(text)
@@ -164,13 +164,13 @@ export function mockRecordingTextModel(text: string): {
  * between the model and the test (e.g. an HTTP/SSE response body) and nothing
  * else paces the producer against the consumer's reads.
  */
-export function mockChunkedTextModel(chunks: string[], chunkDelayInMs = 0): MockLanguageModelV3 {
-  return new MockLanguageModelV3({
+export function mockChunkedTextModel(chunks: string[], chunkDelayInMs = 0): MockLanguageModelV4 {
+  return new MockLanguageModelV4({
     doStream: async () =>
       streamOf(
         [
           { type: 'text-start', id: '1' },
-          ...chunks.map((delta): LanguageModelV3StreamPart => ({ type: 'text-delta', id: '1', delta })),
+          ...chunks.map((delta): LanguageModelV4StreamPart => ({ type: 'text-delta', id: '1', delta })),
           { type: 'text-end', id: '1' },
           { type: 'finish', finishReason: stop, usage: noUsage },
         ],
@@ -181,15 +181,15 @@ export function mockChunkedTextModel(chunks: string[], chunkDelayInMs = 0): Mock
 
 /**
  * A model that emits a generated file part (mediaType + base64) before finishing —
- * drives the runner's `'file'` fullStream branch (file:generated crumb +
+ * drives the runner's `'file'` stream branch (file:generated crumb +
  * AgentRunEndCrumb.files). `text` streams after the file, mirroring how a real
  * multimodal model narrates alongside a generated image.
  */
-export function mockFileGeneratingModel(text: string, file: { mediaType: string; base64: string }): MockLanguageModelV3 {
-  return new MockLanguageModelV3({
+export function mockFileGeneratingModel(text: string, file: { mediaType: string; base64: string }): MockLanguageModelV4 {
+  return new MockLanguageModelV4({
     doStream: async () =>
       streamOf([
-        { type: 'file', mediaType: file.mediaType, data: file.base64 },
+        { type: 'file', mediaType: file.mediaType, data: { type: 'data', data: file.base64 } },
         { type: 'text-start', id: '1' },
         { type: 'text-delta', id: '1', delta: text },
         { type: 'text-end', id: '1' },
@@ -203,8 +203,8 @@ export function mockFileGeneratingModel(text: string, file: { mediaType: string;
  * the runner's reasoning-delta branch (reasoning:delta → text:delta →
  * agent:run:end). Reusable across runs — each call regenerates the stream.
  */
-export function mockReasoningTextModel(reasoning: string, text: string): MockLanguageModelV3 {
-  return new MockLanguageModelV3({
+export function mockReasoningTextModel(reasoning: string, text: string): MockLanguageModelV4 {
+  return new MockLanguageModelV4({
     doStream: async () =>
       streamOf([
         { type: 'reasoning-start', id: 'r1' },
@@ -227,7 +227,7 @@ export function mockToolCallModel(opts: {
   toolName: string
   args: unknown
   then: string
-}): MockLanguageModelV3 {
+}): MockLanguageModelV4 {
   return mockScript([{ tool: opts.toolName, args: opts.args }, { text: opts.then }])
 }
 
@@ -236,8 +236,8 @@ export function mockToolCallModel(opts: {
  * runner drives via `generateObject` (non-streaming). Returns `obj` as the
  * generated JSON content.
  */
-export function mockObjectModel(obj: unknown): MockLanguageModelV3 {
-  return new MockLanguageModelV3({
+export function mockObjectModel(obj: unknown): MockLanguageModelV4 {
+  return new MockLanguageModelV4({
     doGenerate: {
       content: [{ type: 'text', text: JSON.stringify(obj) }],
       finishReason: stop,
@@ -253,11 +253,11 @@ export function mockObjectModel(obj: unknown): MockLanguageModelV3 {
  * call forwards `ModelRef.settings`/`providerOptions` through to the model.
  */
 export function mockRecordingObjectModel(obj: unknown): {
-  model: MockLanguageModelV3
-  calls: LanguageModelV3CallOptions[]
+  model: MockLanguageModelV4
+  calls: LanguageModelV4CallOptions[]
 } {
-  const calls: LanguageModelV3CallOptions[] = []
-  const model = new MockLanguageModelV3({
+  const calls: LanguageModelV4CallOptions[] = []
+  const model = new MockLanguageModelV4({
     doGenerate: async (options) => {
       calls.push(options)
       return {
@@ -272,8 +272,8 @@ export function mockRecordingObjectModel(obj: unknown): {
 }
 
 /** A model whose stream throws — used to assert the runner's error path. */
-export function mockErrorModel(message = 'mock model failure'): MockLanguageModelV3 {
-  return new MockLanguageModelV3({
+export function mockErrorModel(message = 'mock model failure'): MockLanguageModelV4 {
+  return new MockLanguageModelV4({
     doStream: async () => {
       throw new Error(message)
     },
@@ -286,8 +286,8 @@ export function mockErrorModel(message = 'mock model failure'): MockLanguageMode
  * Exercises the runner's `error`-part branch (crumbs before the part still
  * stream; the run must then fail rather than "succeed" with truncated text).
  */
-export function mockStreamErrorPartModel(message = 'in-band stream failure'): MockLanguageModelV3 {
-  return new MockLanguageModelV3({
+export function mockStreamErrorPartModel(message = 'in-band stream failure'): MockLanguageModelV4 {
+  return new MockLanguageModelV4({
     doStream: async () =>
       streamOf([
         { type: 'text-start', id: '1' },
@@ -303,9 +303,9 @@ export function mockStreamErrorPartModel(message = 'in-band stream failure'): Mo
  * `failTimes` calls, then succeeds with `obj` — for asserting onError's `retry`
  * action actually re-invokes the model rather than just resolving/propagating.
  */
-export function mockFlakyObjectModel(failTimes: number, obj: unknown): MockLanguageModelV3 {
+export function mockFlakyObjectModel(failTimes: number, obj: unknown): MockLanguageModelV4 {
   let calls = 0
-  return new MockLanguageModelV3({
+  return new MockLanguageModelV4({
     doGenerate: async () => {
       calls++
       if (calls <= failTimes) throw new Error(`flaky failure ${calls}`)

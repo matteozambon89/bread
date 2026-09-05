@@ -7,7 +7,7 @@
       "devDependencies": {
         "@braintree/sanitize-url": "^7.1.2",
         "@types/bun": "latest",
-        "@types/node": "^20.0.0",
+        "@types/node": "^22.0.0",
         "@types/semver": "^7.7.3",
         "cytoscape": "^3.34.1",
         "cytoscape-cose-bilkent": "^4.1.0",
@@ -32,7 +32,7 @@
         "@breadai/provider-catalog": "workspace:*",
         "@breadai/store-sqlite": "workspace:*",
         "@breadai/transport-http-chunked": "workspace:*",
-        "ollama-ai-provider-v2": "^3.6.0",
+        "ollama-ai-provider-v2": "^4",
         "zod": "^4.4.3",
       },
     },
@@ -46,7 +46,7 @@
         "@breadai/provider-catalog": "workspace:*",
         "@breadai/store-sqlite": "workspace:*",
         "@breadai/transport-http-chunked": "workspace:*",
-        "ollama-ai-provider-v2": "^3.6.0",
+        "ollama-ai-provider-v2": "^4",
         "zod": "^4.4.3",
       },
     },
@@ -60,7 +60,7 @@
         "@breadai/provider-catalog": "workspace:*",
         "@breadai/store-sqlite": "workspace:*",
         "@breadai/transport-http-chunked": "workspace:*",
-        "ollama-ai-provider-v2": "^3.6.0",
+        "ollama-ai-provider-v2": "^4",
         "zod": "^4.4.3",
       },
     },
@@ -75,7 +75,7 @@
         "@breadai/server": "workspace:*",
         "@breadai/store-sqlite": "workspace:*",
         "@breadai/transport-http-chunked": "workspace:*",
-        "ollama-ai-provider-v2": "^3.6.0",
+        "ollama-ai-provider-v2": "^4",
         "zod": "^4.4.3",
       },
     },
@@ -88,7 +88,7 @@
         "@breadai/provider-catalog": "workspace:*",
         "@breadai/store-sqlite": "workspace:*",
         "@breadai/transport-http-chunked": "workspace:*",
-        "ollama-ai-provider-v2": "^3.6.0",
+        "ollama-ai-provider-v2": "^4",
         "zod": "^4.4.3",
       },
     },
@@ -101,7 +101,7 @@
         "@breadai/provider-catalog": "workspace:*",
         "@breadai/store-sqlite": "workspace:*",
         "@breadai/transport-http-chunked": "workspace:*",
-        "ollama-ai-provider-v2": "^3.6.0",
+        "ollama-ai-provider-v2": "^4",
         "zod": "^4.4.3",
       },
     },
@@ -114,7 +114,7 @@
         "@breadai/provider-catalog": "workspace:*",
         "@breadai/store-sqlite": "workspace:*",
         "@breadai/transport-http-sse": "workspace:*",
-        "ollama-ai-provider-v2": "^3.6.0",
+        "ollama-ai-provider-v2": "^4",
         "zod": "^4.4.3",
       },
     },
@@ -127,7 +127,7 @@
         "@breadai/provider-catalog": "workspace:*",
         "@breadai/store-sqlite": "workspace:*",
         "@breadai/transport-http-chunked": "workspace:*",
-        "ollama-ai-provider-v2": "^3.6.0",
+        "ollama-ai-provider-v2": "^4",
         "zod": "^4.4.3",
       },
     },
@@ -140,7 +140,7 @@
         "@breadai/provider-catalog": "workspace:*",
         "@breadai/store-sqlite": "workspace:*",
         "@breadai/transport-http-chunked": "workspace:*",
-        "ollama-ai-provider-v2": "^3.6.0",
+        "ollama-ai-provider-v2": "^4",
         "zod": "^4.4.3",
       },
     },
@@ -155,7 +155,7 @@
         "@breadai/provider-catalog": "workspace:*",
         "@breadai/store-sqlite": "workspace:*",
         "@breadai/transport-http-chunked": "workspace:*",
-        "ollama-ai-provider-v2": "^3.6.0",
+        "ollama-ai-provider-v2": "^4",
         "zod": "^4.4.3",
       },
     },
@@ -170,7 +170,7 @@
         "@breadai/store-sqlite": "workspace:*",
         "@breadai/transport-http-chunked": "workspace:*",
         "@opentelemetry/sdk-trace-node": "^2.0.0",
-        "ollama-ai-provider-v2": "^3.6.0",
+        "ollama-ai-provider-v2": "^4",
         "zod": "^4.4.3",
       },
     },
@@ -183,7 +183,7 @@
         "@breadai/provider-catalog": "workspace:*",
         "@breadai/store-sqlite": "workspace:*",
         "@breadai/transport-http-chunked": "workspace:*",
-        "ollama-ai-provider-v2": "^3.6.0",
+        "ollama-ai-provider-v2": "^4",
         "zod": "^4.4.3",
       },
     },
@@ -198,7 +198,7 @@
         "@breadai/server": "workspace:*",
         "@breadai/store-sqlite": "workspace:*",
         "@breadai/transport-http-chunked": "workspace:*",
-        "ollama-ai-provider-v2": "^3.6.0",
+        "ollama-ai-provider-v2": "^4",
         "zod": "^4.4.3",
       },
     },
@@ -211,7 +211,7 @@
         "@breadai/provider-catalog": "workspace:*",
         "@breadai/store-sqlite": "workspace:*",
         "@breadai/transport-http-chunked": "workspace:*",
-        "ollama-ai-provider-v2": "^3.6.0",
+        "ollama-ai-provider-v2": "^4",
         "zod": "^4.4.3",
       },
     },
@@ -226,7 +226,7 @@
         "@breadai/store-postgres": "workspace:*",
         "@breadai/store-sqlite": "workspace:*",
         "@breadai/transport-http-chunked": "workspace:*",
-        "ollama-ai-provider-v2": "^3.6.0",
+        "ollama-ai-provider-v2": "^4",
         "zod": "^4.4.3",
       },
     },
@@ -240,13 +240,13 @@
         "@breadai/provider-catalog": "workspace:*",
         "@breadai/store-sqlite": "workspace:*",
         "@breadai/transport-http-chunked": "workspace:*",
-        "ollama-ai-provider-v2": "^3.6.0",
+        "ollama-ai-provider-v2": "^4",
         "zod": "^4.4.3",
       },
     },
     "extensions/a2ui": {
       "name": "@breadai/a2ui",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "dependencies": {
         "@breadai/core": "workspace:*",
       },
@@ -259,7 +259,7 @@
     },
     "extensions/auth-api-key": {
       "name": "@breadai/auth-api-key",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "dependencies": {
         "@breadai/core": "workspace:*",
       },
@@ -270,7 +270,7 @@
     },
     "extensions/auth-jwt": {
       "name": "@breadai/auth-jwt",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "dependencies": {
         "@breadai/core": "workspace:*",
         "jose": "^5.9.6",
@@ -282,7 +282,7 @@
     },
     "extensions/auth-oauth2": {
       "name": "@breadai/auth-oauth2",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "dependencies": {
         "@breadai/auth-jwt": "workspace:*",
         "@breadai/core": "workspace:*",
@@ -295,7 +295,7 @@
     },
     "extensions/otel": {
       "name": "@breadai/otel",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "dependencies": {
         "@breadai/core": "workspace:*",
         "@opentelemetry/api": "^1.9.0",
@@ -309,7 +309,7 @@
     },
     "packages/cli": {
       "name": "@breadai/cli",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "bin": {
         "bread": "./dist/bin.js",
       },
@@ -330,9 +330,9 @@
     },
     "packages/core": {
       "name": "@breadai/core",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "dependencies": {
-        "ai": "^6.0.208",
+        "ai": "^7.0.93",
         "effect": "^3.21.4",
         "uuid": "^11.1.0",
         "zod": "^4.4.3",
@@ -347,7 +347,7 @@
     },
     "packages/server": {
       "name": "@breadai/server",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "dependencies": {
         "@breadai/core": "workspace:*",
         "@breadai/provider-catalog": "workspace:*",
@@ -368,12 +368,12 @@
       "name": "@breadai/test-utils",
       "version": "0.1.0",
       "dependencies": {
-        "@ai-sdk/provider": "^3.0.10",
+        "@ai-sdk/provider": "^4",
         "@breadai/core": "workspace:*",
         "@breadai/server": "workspace:*",
         "@breadai/store-memory": "workspace:*",
         "@breadai/transport-http-sse": "workspace:*",
-        "ai": "^6.0.208",
+        "ai": "^7.0.93",
         "postgres": "^3.4.5",
         "uuid": "^11.1.0",
         "zod": "^4.4.3",
@@ -387,7 +387,7 @@
     },
     "protocols/a2a-server": {
       "name": "@breadai/protocol-a2a-server",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "dependencies": {
         "@breadai/core": "workspace:*",
         "uuid": "^11.1.0",
@@ -403,7 +403,7 @@
     },
     "protocols/ag-ui": {
       "name": "@breadai/protocol-ag-ui",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "dependencies": {
         "@breadai/core": "workspace:*",
       },
@@ -417,7 +417,7 @@
     },
     "protocols/mcp-client": {
       "name": "@breadai/protocol-mcp-client",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "dependencies": {
         "@breadai/core": "workspace:*",
         "@modelcontextprotocol/client": "^2.0.0",
@@ -433,7 +433,7 @@
     },
     "protocols/mcp-server": {
       "name": "@breadai/protocol-mcp-server",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "dependencies": {
         "@breadai/core": "workspace:*",
         "@modelcontextprotocol/hono": "^2.0.0",
@@ -452,35 +452,35 @@
     },
     "providers/catalog": {
       "name": "@breadai/provider-catalog",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "dependencies": {
         "@breadai/core": "workspace:*",
       },
       "devDependencies": {
         "@types/bun": "latest",
-        "ai": "^6.0.208",
+        "ai": "^7.0.93",
         "typescript": "^5.8.3",
       },
       "peerDependencies": {
-        "@ai-sdk/amazon-bedrock": ">=1.0",
-        "@ai-sdk/anthropic": ">=1.0",
-        "@ai-sdk/azure": ">=1.0",
-        "@ai-sdk/baseten": ">=1.0",
-        "@ai-sdk/cerebras": ">=1.0",
-        "@ai-sdk/cohere": ">=1.0",
-        "@ai-sdk/deepinfra": ">=1.0",
-        "@ai-sdk/deepseek": ">=1.0",
-        "@ai-sdk/fireworks": ">=1.0",
-        "@ai-sdk/google": ">=1.0",
-        "@ai-sdk/google-vertex": ">=1.0",
-        "@ai-sdk/groq": ">=1.0",
-        "@ai-sdk/mistral": ">=1.0",
-        "@ai-sdk/openai": ">=1.0",
-        "@ai-sdk/openai-compatible": ">=1.0",
-        "@ai-sdk/perplexity": ">=1.0",
-        "@ai-sdk/togetherai": ">=1.0",
-        "@ai-sdk/xai": ">=1.0",
-        "ollama-ai-provider-v2": ">=1.0",
+        "@ai-sdk/amazon-bedrock": ">=5.0",
+        "@ai-sdk/anthropic": ">=4.0",
+        "@ai-sdk/azure": ">=4.0",
+        "@ai-sdk/baseten": ">=2.1",
+        "@ai-sdk/cerebras": ">=3.0",
+        "@ai-sdk/cohere": ">=4.0",
+        "@ai-sdk/deepinfra": ">=3.0",
+        "@ai-sdk/deepseek": ">=3.0",
+        "@ai-sdk/fireworks": ">=3.0",
+        "@ai-sdk/google": ">=4.0",
+        "@ai-sdk/google-vertex": ">=5.0",
+        "@ai-sdk/groq": ">=4.0",
+        "@ai-sdk/mistral": ">=4.0",
+        "@ai-sdk/openai": ">=4.0",
+        "@ai-sdk/openai-compatible": ">=3.0",
+        "@ai-sdk/perplexity": ">=4.0",
+        "@ai-sdk/togetherai": ">=3.0",
+        "@ai-sdk/xai": ">=4.0",
+        "ollama-ai-provider-v2": ">=4.0",
       },
       "optionalPeers": [
         "@ai-sdk/amazon-bedrock",
@@ -506,7 +506,7 @@
     },
     "stores/memory": {
       "name": "@breadai/store-memory",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "dependencies": {
         "@breadai/core": "workspace:*",
         "uuid": "^11.1.0",
@@ -519,7 +519,7 @@
     },
     "stores/postgres": {
       "name": "@breadai/store-postgres",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "dependencies": {
         "@breadai/core": "workspace:*",
         "postgres": "^3.4.5",
@@ -533,7 +533,7 @@
     },
     "stores/s3": {
       "name": "@breadai/store-s3",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "dependencies": {
         "@aws-sdk/client-s3": "^3.700.0",
         "@aws-sdk/s3-request-presigner": "^3.700.0",
@@ -549,7 +549,7 @@
     },
     "stores/sqlite": {
       "name": "@breadai/store-sqlite",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "dependencies": {
         "@breadai/core": "workspace:*",
         "uuid": "^11.1.0",
@@ -562,7 +562,7 @@
     },
     "transports/http-chunked": {
       "name": "@breadai/transport-http-chunked",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "dependencies": {
         "@breadai/core": "workspace:*",
         "hono": "^4.8.4",
@@ -578,7 +578,7 @@
     },
     "transports/http-sse": {
       "name": "@breadai/transport-http-sse",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "dependencies": {
         "@breadai/core": "workspace:*",
         "hono": "^4.8.4",
@@ -594,7 +594,7 @@
     },
     "transports/redis": {
       "name": "@breadai/transport-redis",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "dependencies": {
         "@breadai/core": "workspace:*",
         "ioredis": "^5.6.1",
@@ -608,7 +608,7 @@
     },
     "transports/stdout": {
       "name": "@breadai/transport-stdout",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "dependencies": {
         "@breadai/core": "workspace:*",
       },
@@ -619,11 +619,11 @@
     },
   },
   "packages": {
-    "@ai-sdk/gateway": ["@ai-sdk/gateway@3.0.133", "", { "dependencies": { "@ai-sdk/provider": "3.0.10", "@ai-sdk/provider-utils": "4.0.30", "@vercel/oidc": "3.2.0" }, "peerDependencies": { "zod": "^3.25.76 || ^4.1.8" } }, "sha512-Ebs+7iS9zUgJu5B0RlxM2JmDWzq79Cpd6YdiqcCzB5qFdpfQJPUDiXutqlQP89F2XGjOdDeidulBTXUdXWzOxw=="],
+    "@ai-sdk/gateway": ["@ai-sdk/gateway@4.0.75", "", { "dependencies": { "@ai-sdk/provider": "4.0.10", "@ai-sdk/provider-utils": "5.0.36", "@vercel/oidc": "3.2.0" }, "peerDependencies": { "zod": "^3.25.76 || ^4.1.8" } }, "sha512-HOnhw3oXtBnboBF7kAKipjToCN6+5w6EuukiUKiULcxBitS+vbHRRv9IUBcq+Z1wkXcJjfywKrt5r++I6OYyXg=="],
 
-    "@ai-sdk/provider": ["@ai-sdk/provider@3.0.10", "", { "dependencies": { "json-schema": "^0.4.0" } }, "sha512-Q3BZ27qfpYqnCYGvE3vt+Qi6LGOF9R5Nmzn+9JoM1lCRsD9mYaIhfJLkSunN48nfGXJ6n+XNV0J/XVpqGQl7Dw=="],
+    "@ai-sdk/provider": ["@ai-sdk/provider@4.0.10", "", { "dependencies": { "json-schema": "^0.4.0" } }, "sha512-fX2ENAc7iDpZ+Wp4+Rk06Usn/Ys7dI9uAkGv0jlF6XVrW13NkRWx5Ou+U6lIM2E1fTLkCs16GGrUAaVvroag7A=="],
 
-    "@ai-sdk/provider-utils": ["@ai-sdk/provider-utils@4.0.30", "", { "dependencies": { "@ai-sdk/provider": "3.0.10", "@standard-schema/spec": "^1.1.0", "eventsource-parser": "^3.0.8" }, "peerDependencies": { "zod": "^3.25.76 || ^4.1.8" } }, "sha512-VO7I+vPffqI5sMnPoUq5DCSqKIgQIk/naJWRdQVpz2ma2zoprC/lqiJiUEl2s6DfvTD76TbhD3q39ROjlA6rGw=="],
+    "@ai-sdk/provider-utils": ["@ai-sdk/provider-utils@5.0.36", "", { "dependencies": { "@ai-sdk/provider": "4.0.10", "@standard-schema/spec": "^1.1.0", "@workflow/serde": "4.1.0", "eventsource-parser": "^3.0.8", "undici": "^7.29.0" }, "peerDependencies": { "zod": "^3.25.76 || ^4.1.8" } }, "sha512-MFXBn6XDyf37PNQAge/HTatPJE8Vmg/g/w4WPtjSV53jq8FKAzoaN5+43hsdQa9bqgN+/13jxug9ChvsG+godQ=="],
 
     "@algolia/abtesting": ["@algolia/abtesting@1.22.0", "", { "dependencies": { "@algolia/client-common": "5.56.0", "@algolia/requester-browser-xhr": "5.56.0", "@algolia/requester-fetch": "5.56.0", "@algolia/requester-node-http": "5.56.0" } }, "sha512-BFR6zNowNKcY7Ou7TaJc9QWexES4YKPbmf/OTFofpdsdhz4x6q0lbxp3duO0EHnyrN7rE4ba/TSXuY+BDGu4+g=="],
 
@@ -1139,7 +1139,7 @@
 
     "@types/mdurl": ["@types/mdurl@2.0.0", "", {}, "sha512-RGdgjQUZba5p6QEFAVx2OGb8rQDL/cPRG7GiedRzMcJ1tYnUANBncjbSB1NRGwbvjcPeikRABz2nshyPk1bhWg=="],
 
-    "@types/node": ["@types/node@20.19.43", "", { "dependencies": { "undici-types": "~6.21.0" } }, "sha512-6oYBAi5ikg4Pl+kGsoYtawUMBT2zZMCvPNF7pVLnHZfd1zf38DRiWn/gT01RYCdUqkv7Fhr+C9ot4/tb+2sVvA=="],
+    "@types/node": ["@types/node@22.20.1", "", { "dependencies": { "undici-types": "~6.21.0" } }, "sha512-EANqOCF9QFyra+4pfxUcX9STKJpCLjMbObVzljIJomAWSnuSIEAvyzEU53GaajbXJEgdh0iEcPL+DGvpUd4k1Q=="],
 
     "@types/semver": ["@types/semver@7.8.0", "", {}, "sha512-1mAINjtQCXXeLkJ9ehXkwOcBpqtLxiVtKhpUf83DdRNdQKV0iXZpaHYqRr7nj+wvxuJzoAmAwXI+sCNMv1CzLQ=="],
 
@@ -1193,9 +1193,11 @@
 
     "@vueuse/shared": ["@vueuse/shared@12.8.2", "", { "dependencies": { "vue": "^3.5.13" } }, "sha512-dznP38YzxZoNloI0qpEfpkms8knDtaoQ6Y/sfS0L7Yki4zh40LFHEhur0odJC6xTHG5dxWVPiUWBXn+wCG2s5w=="],
 
+    "@workflow/serde": ["@workflow/serde@4.1.0", "", {}, "sha512-pav4F2BoirECWR7Nf1TKt+2eETcBj7jj4cBefQ8VXQCA6NPkaKeLfj/zMgi+3zYV5ZIBT4GuUiphsj0/b9hPQQ=="],
+
     "accepts": ["accepts@2.0.0", "", { "dependencies": { "mime-types": "^3.0.0", "negotiator": "^1.0.0" } }, "sha512-5cvg6CtKwfgdmVqY1WIiXKc3Q1bkRqGLi+2W/6ao+6Y7gu/RCwRuAhGEzh5B4KlszSuTLgZYuqFqo5bImjNKng=="],
 
-    "ai": ["ai@6.0.208", "", { "dependencies": { "@ai-sdk/gateway": "3.0.133", "@ai-sdk/provider": "3.0.10", "@ai-sdk/provider-utils": "4.0.30", "@opentelemetry/api": "^1.9.0" }, "peerDependencies": { "zod": "^3.25.76 || ^4.1.8" } }, "sha512-STz+AaZqJ4ZjH7UkpXkbHx+bjgIDOsE8fIUoZjkZ2whoZcfVmG9K/TqEKouJZ03SuZuD7lagntlU3zBhAEkRpQ=="],
+    "ai": ["ai@7.0.93", "", { "dependencies": { "@ai-sdk/gateway": "4.0.75", "@ai-sdk/provider": "4.0.10", "@ai-sdk/provider-utils": "5.0.36" }, "peerDependencies": { "zod": "^3.25.76 || ^4.1.8" } }, "sha512-CJss6zb9mlltk/mCr8qom20NBnqEQxVawkqwtT62tCwsxilZpXfHNRMRwcS3XRpzdP1kEluVuDBUayYWEEd95g=="],
 
     "algoliasearch": ["algoliasearch@5.56.0", "", { "dependencies": { "@algolia/abtesting": "1.22.0", "@algolia/client-abtesting": "5.56.0", "@algolia/client-analytics": "5.56.0", "@algolia/client-common": "5.56.0", "@algolia/client-insights": "5.56.0", "@algolia/client-personalization": "5.56.0", "@algolia/client-query-suggestions": "5.56.0", "@algolia/client-search": "5.56.0", "@algolia/ingestion": "1.56.0", "@algolia/monitoring": "1.56.0", "@algolia/recommend": "5.56.0", "@algolia/requester-browser-xhr": "5.56.0", "@algolia/requester-fetch": "5.56.0", "@algolia/requester-node-http": "5.56.0" } }, "sha512-PrqppUmhT4ENdas2pH9caE7efUcxy6EcSFhWzosiVuQBzu2tQ5yLTI6jwomT/1cuBnivzGfxiJCqDNN9FRRh+Q=="],
 
@@ -1507,7 +1509,7 @@
 
     "object-inspect": ["object-inspect@1.13.4", "", {}, "sha512-W67iLl4J2EXEGTbfeHCffrjDfitvLANg0UlX3wFUUSTx92KXRFegMHUVgSqE+wvhAbi4WqjGg9czysTV2Epbew=="],
 
-    "ollama-ai-provider-v2": ["ollama-ai-provider-v2@3.6.0", "", { "dependencies": { "@ai-sdk/provider": "^3.0.10", "@ai-sdk/provider-utils": "^4.0.27" }, "peerDependencies": { "ai": "^5.0.0 || ^6.0.0", "zod": "^4.0.16" } }, "sha512-1Om3FVJYhBwkAr5kQ+BX1s/tdVdtVdoFQWrX4PBQHDHPISyGt24CjhtggEjUYpy5ait0YeVfZwEpIYjgD8Ih7Q=="],
+    "ollama-ai-provider-v2": ["ollama-ai-provider-v2@4.0.1", "", { "dependencies": { "@ai-sdk/provider": "^4.0.2", "@ai-sdk/provider-utils": "^5.0.5" }, "peerDependencies": { "ai": "^7.0.0", "zod": "^4.0.16" } }, "sha512-JHw/Knt4kOTSwQ0oqorbdgzukK6iE73U3MPUyOuCEBpAQGAzm80CQDwyaXMwF80yFjY21RY9qfzkoLyPFFts/w=="],
 
     "on-finished": ["on-finished@2.4.1", "", { "dependencies": { "ee-first": "1.1.1" } }, "sha512-oVlzkg3ENAhCk2zdv7IJwd/QUD4z2RxRwpkcGY8psCVcCYZNq4wYnVWALHM+brtuJjePWiYF/ClmuDr8Ch5+kg=="],
 
@@ -1659,6 +1661,8 @@
 
     "unbash": ["unbash@4.0.3", "", {}, "sha512-3cudTErfToSc4Ggv8XGXVNVli/xHKUtUZvaY5UVwhOcUPbQGz7PeaEnT/SAVgNziZtX67KEN9swMUYkLghxA1w=="],
 
+    "undici": ["undici@7.29.1", "", {}, "sha512-RYONW2MeafgYlkVOKYKkA/Ag7BmXqgIWCa8t1m0JcxrQg9pI9lEqRhAOruOBCbAohOa/gkCF+iPi9hrgvTzu6Q=="],
+
     "undici-types": ["undici-types@6.21.0", "", {}, "sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ=="],
 
     "unist-util-is": ["unist-util-is@6.0.1", "", { "dependencies": { "@types/unist": "^3.0.0" } }, "sha512-LsiILbtBETkDz8I9p1dQ0uyRUWuaQzd/cuEeS1hoRSyW5E5XGmTzlwY1OrNzzakGowI9Dr/I8HVaw4hTtnxy8g=="],
@@ -1701,6 +1705,42 @@
 
     "zwitch": ["zwitch@2.0.4", "", {}, "sha512-bXE4cR/kVZhKZX/RjPEflHaKVhUVl85noU3v6b8apfQEc1x4A+zBxjZ4lN8LqGd6WZ3dl98pY4o717VFmoPp+A=="],
 
+    "@breadai/a2ui/@types/bun": ["@types/bun@1.4.1", "", { "dependencies": { "bun-types": "1.4.1" } }, "sha512-0AVGiTXGajf1rgKom3N+c5L7CBxuoyyv1i44M0nX4UDK0G/fnRAMiri93nHuVPIb429KKtAgj7HatVmmOjeQLA=="],
+
+    "@breadai/auth-api-key/@types/bun": ["@types/bun@1.4.1", "", { "dependencies": { "bun-types": "1.4.1" } }, "sha512-0AVGiTXGajf1rgKom3N+c5L7CBxuoyyv1i44M0nX4UDK0G/fnRAMiri93nHuVPIb429KKtAgj7HatVmmOjeQLA=="],
+
+    "@breadai/cli/@types/bun": ["@types/bun@1.4.1", "", { "dependencies": { "bun-types": "1.4.1" } }, "sha512-0AVGiTXGajf1rgKom3N+c5L7CBxuoyyv1i44M0nX4UDK0G/fnRAMiri93nHuVPIb429KKtAgj7HatVmmOjeQLA=="],
+
+    "@breadai/core/@types/bun": ["@types/bun@1.4.1", "", { "dependencies": { "bun-types": "1.4.1" } }, "sha512-0AVGiTXGajf1rgKom3N+c5L7CBxuoyyv1i44M0nX4UDK0G/fnRAMiri93nHuVPIb429KKtAgj7HatVmmOjeQLA=="],
+
+    "@breadai/otel/@types/bun": ["@types/bun@1.4.1", "", { "dependencies": { "bun-types": "1.4.1" } }, "sha512-0AVGiTXGajf1rgKom3N+c5L7CBxuoyyv1i44M0nX4UDK0G/fnRAMiri93nHuVPIb429KKtAgj7HatVmmOjeQLA=="],
+
+    "@breadai/protocol-a2a-server/@types/bun": ["@types/bun@1.4.1", "", { "dependencies": { "bun-types": "1.4.1" } }, "sha512-0AVGiTXGajf1rgKom3N+c5L7CBxuoyyv1i44M0nX4UDK0G/fnRAMiri93nHuVPIb429KKtAgj7HatVmmOjeQLA=="],
+
+    "@breadai/protocol-ag-ui/@types/bun": ["@types/bun@1.4.1", "", { "dependencies": { "bun-types": "1.4.1" } }, "sha512-0AVGiTXGajf1rgKom3N+c5L7CBxuoyyv1i44M0nX4UDK0G/fnRAMiri93nHuVPIb429KKtAgj7HatVmmOjeQLA=="],
+
+    "@breadai/protocol-mcp-client/@types/bun": ["@types/bun@1.4.1", "", { "dependencies": { "bun-types": "1.4.1" } }, "sha512-0AVGiTXGajf1rgKom3N+c5L7CBxuoyyv1i44M0nX4UDK0G/fnRAMiri93nHuVPIb429KKtAgj7HatVmmOjeQLA=="],
+
+    "@breadai/protocol-mcp-server/@types/bun": ["@types/bun@1.4.1", "", { "dependencies": { "bun-types": "1.4.1" } }, "sha512-0AVGiTXGajf1rgKom3N+c5L7CBxuoyyv1i44M0nX4UDK0G/fnRAMiri93nHuVPIb429KKtAgj7HatVmmOjeQLA=="],
+
+    "@breadai/provider-catalog/@types/bun": ["@types/bun@1.4.1", "", { "dependencies": { "bun-types": "1.4.1" } }, "sha512-0AVGiTXGajf1rgKom3N+c5L7CBxuoyyv1i44M0nX4UDK0G/fnRAMiri93nHuVPIb429KKtAgj7HatVmmOjeQLA=="],
+
+    "@breadai/server/@types/bun": ["@types/bun@1.4.1", "", { "dependencies": { "bun-types": "1.4.1" } }, "sha512-0AVGiTXGajf1rgKom3N+c5L7CBxuoyyv1i44M0nX4UDK0G/fnRAMiri93nHuVPIb429KKtAgj7HatVmmOjeQLA=="],
+
+    "@breadai/store-memory/@types/bun": ["@types/bun@1.4.1", "", { "dependencies": { "bun-types": "1.4.1" } }, "sha512-0AVGiTXGajf1rgKom3N+c5L7CBxuoyyv1i44M0nX4UDK0G/fnRAMiri93nHuVPIb429KKtAgj7HatVmmOjeQLA=="],
+
+    "@breadai/store-postgres/@types/bun": ["@types/bun@1.4.1", "", { "dependencies": { "bun-types": "1.4.1" } }, "sha512-0AVGiTXGajf1rgKom3N+c5L7CBxuoyyv1i44M0nX4UDK0G/fnRAMiri93nHuVPIb429KKtAgj7HatVmmOjeQLA=="],
+
+    "@breadai/store-sqlite/@types/bun": ["@types/bun@1.4.1", "", { "dependencies": { "bun-types": "1.4.1" } }, "sha512-0AVGiTXGajf1rgKom3N+c5L7CBxuoyyv1i44M0nX4UDK0G/fnRAMiri93nHuVPIb429KKtAgj7HatVmmOjeQLA=="],
+
+    "@breadai/test-utils/@types/bun": ["@types/bun@1.4.1", "", { "dependencies": { "bun-types": "1.4.1" } }, "sha512-0AVGiTXGajf1rgKom3N+c5L7CBxuoyyv1i44M0nX4UDK0G/fnRAMiri93nHuVPIb429KKtAgj7HatVmmOjeQLA=="],
+
+    "@breadai/transport-http-chunked/@types/bun": ["@types/bun@1.4.1", "", { "dependencies": { "bun-types": "1.4.1" } }, "sha512-0AVGiTXGajf1rgKom3N+c5L7CBxuoyyv1i44M0nX4UDK0G/fnRAMiri93nHuVPIb429KKtAgj7HatVmmOjeQLA=="],
+
+    "@breadai/transport-http-sse/@types/bun": ["@types/bun@1.4.1", "", { "dependencies": { "bun-types": "1.4.1" } }, "sha512-0AVGiTXGajf1rgKom3N+c5L7CBxuoyyv1i44M0nX4UDK0G/fnRAMiri93nHuVPIb429KKtAgj7HatVmmOjeQLA=="],
+
+    "@breadai/transport-stdout/@types/bun": ["@types/bun@1.4.1", "", { "dependencies": { "bun-types": "1.4.1" } }, "sha512-0AVGiTXGajf1rgKom3N+c5L7CBxuoyyv1i44M0nX4UDK0G/fnRAMiri93nHuVPIb429KKtAgj7HatVmmOjeQLA=="],
+
     "@mermaid-js/mermaid-mindmap/@braintree/sanitize-url": ["@braintree/sanitize-url@6.0.4", "", {}, "sha512-s3jaWicZd0pkP0jf5ysyHUI/RE7MHos6qlToFcGWXVp+ykHOy77OUMrfbgJ9it2C5bow7OIQwYYaHjk9XlBQ2A=="],
 
     "@modelcontextprotocol/client/jose": ["jose@6.2.3", "", {}, "sha512-YYVDInQKFJfR/xa3ojUTl8c2KoTwiL1R5Wg9YCydwH0x0B9grbzlg5HC7mMjCtUJjbQ/YnGEZIhI5tCgfTb4Hw=="],
@@ -1727,6 +1767,42 @@
 
     "type-is/content-type": ["content-type@2.0.0", "", {}, "sha512-j/O/d7GcZCyNl7/hwZAb606rzqkyvaDctLmckbxLzHvFBzTJHuGEdodATcP3yIRoDrLHkIATJuvzbFlp/ki2cQ=="],
 
+    "@breadai/a2ui/@types/bun/bun-types": ["bun-types@1.4.1", "", { "dependencies": { "@types/node": "*" } }, "sha512-loKuVrAFZKfEv+JvWkHRS9GW5IqLuLRjVXN9p+vZvBN86O5hf/pBZQ5hSoyipsrMmWObZBDvWnlmKvjKTM0PdA=="],
+
+    "@breadai/auth-api-key/@types/bun/bun-types": ["bun-types@1.4.1", "", { "dependencies": { "@types/node": "*" } }, "sha512-loKuVrAFZKfEv+JvWkHRS9GW5IqLuLRjVXN9p+vZvBN86O5hf/pBZQ5hSoyipsrMmWObZBDvWnlmKvjKTM0PdA=="],
+
+    "@breadai/cli/@types/bun/bun-types": ["bun-types@1.4.1", "", { "dependencies": { "@types/node": "*" } }, "sha512-loKuVrAFZKfEv+JvWkHRS9GW5IqLuLRjVXN9p+vZvBN86O5hf/pBZQ5hSoyipsrMmWObZBDvWnlmKvjKTM0PdA=="],
+
+    "@breadai/core/@types/bun/bun-types": ["bun-types@1.4.1", "", { "dependencies": { "@types/node": "*" } }, "sha512-loKuVrAFZKfEv+JvWkHRS9GW5IqLuLRjVXN9p+vZvBN86O5hf/pBZQ5hSoyipsrMmWObZBDvWnlmKvjKTM0PdA=="],
+
+    "@breadai/otel/@types/bun/bun-types": ["bun-types@1.4.1", "", { "dependencies": { "@types/node": "*" } }, "sha512-loKuVrAFZKfEv+JvWkHRS9GW5IqLuLRjVXN9p+vZvBN86O5hf/pBZQ5hSoyipsrMmWObZBDvWnlmKvjKTM0PdA=="],
+
+    "@breadai/protocol-a2a-server/@types/bun/bun-types": ["bun-types@1.4.1", "", { "dependencies": { "@types/node": "*" } }, "sha512-loKuVrAFZKfEv+JvWkHRS9GW5IqLuLRjVXN9p+vZvBN86O5hf/pBZQ5hSoyipsrMmWObZBDvWnlmKvjKTM0PdA=="],
+
+    "@breadai/protocol-ag-ui/@types/bun/bun-types": ["bun-types@1.4.1", "", { "dependencies": { "@types/node": "*" } }, "sha512-loKuVrAFZKfEv+JvWkHRS9GW5IqLuLRjVXN9p+vZvBN86O5hf/pBZQ5hSoyipsrMmWObZBDvWnlmKvjKTM0PdA=="],
+
+    "@breadai/protocol-mcp-client/@types/bun/bun-types": ["bun-types@1.4.1", "", { "dependencies": { "@types/node": "*" } }, "sha512-loKuVrAFZKfEv+JvWkHRS9GW5IqLuLRjVXN9p+vZvBN86O5hf/pBZQ5hSoyipsrMmWObZBDvWnlmKvjKTM0PdA=="],
+
+    "@breadai/protocol-mcp-server/@types/bun/bun-types": ["bun-types@1.4.1", "", { "dependencies": { "@types/node": "*" } }, "sha512-loKuVrAFZKfEv+JvWkHRS9GW5IqLuLRjVXN9p+vZvBN86O5hf/pBZQ5hSoyipsrMmWObZBDvWnlmKvjKTM0PdA=="],
+
+    "@breadai/provider-catalog/@types/bun/bun-types": ["bun-types@1.4.1", "", { "dependencies": { "@types/node": "*" } }, "sha512-loKuVrAFZKfEv+JvWkHRS9GW5IqLuLRjVXN9p+vZvBN86O5hf/pBZQ5hSoyipsrMmWObZBDvWnlmKvjKTM0PdA=="],
+
+    "@breadai/server/@types/bun/bun-types": ["bun-types@1.4.1", "", { "dependencies": { "@types/node": "*" } }, "sha512-loKuVrAFZKfEv+JvWkHRS9GW5IqLuLRjVXN9p+vZvBN86O5hf/pBZQ5hSoyipsrMmWObZBDvWnlmKvjKTM0PdA=="],
+
+    "@breadai/store-memory/@types/bun/bun-types": ["bun-types@1.4.1", "", { "dependencies": { "@types/node": "*" } }, "sha512-loKuVrAFZKfEv+JvWkHRS9GW5IqLuLRjVXN9p+vZvBN86O5hf/pBZQ5hSoyipsrMmWObZBDvWnlmKvjKTM0PdA=="],
+
+    "@breadai/store-postgres/@types/bun/bun-types": ["bun-types@1.4.1", "", { "dependencies": { "@types/node": "*" } }, "sha512-loKuVrAFZKfEv+JvWkHRS9GW5IqLuLRjVXN9p+vZvBN86O5hf/pBZQ5hSoyipsrMmWObZBDvWnlmKvjKTM0PdA=="],
+
+    "@breadai/store-sqlite/@types/bun/bun-types": ["bun-types@1.4.1", "", { "dependencies": { "@types/node": "*" } }, "sha512-loKuVrAFZKfEv+JvWkHRS9GW5IqLuLRjVXN9p+vZvBN86O5hf/pBZQ5hSoyipsrMmWObZBDvWnlmKvjKTM0PdA=="],
+
+    "@breadai/test-utils/@types/bun/bun-types": ["bun-types@1.4.1", "", { "dependencies": { "@types/node": "*" } }, "sha512-loKuVrAFZKfEv+JvWkHRS9GW5IqLuLRjVXN9p+vZvBN86O5hf/pBZQ5hSoyipsrMmWObZBDvWnlmKvjKTM0PdA=="],
+
+    "@breadai/transport-http-chunked/@types/bun/bun-types": ["bun-types@1.4.1", "", { "dependencies": { "@types/node": "*" } }, "sha512-loKuVrAFZKfEv+JvWkHRS9GW5IqLuLRjVXN9p+vZvBN86O5hf/pBZQ5hSoyipsrMmWObZBDvWnlmKvjKTM0PdA=="],
+
+    "@breadai/transport-http-sse/@types/bun/bun-types": ["bun-types@1.4.1", "", { "dependencies": { "@types/node": "*" } }, "sha512-loKuVrAFZKfEv+JvWkHRS9GW5IqLuLRjVXN9p+vZvBN86O5hf/pBZQ5hSoyipsrMmWObZBDvWnlmKvjKTM0PdA=="],
+
+    "@breadai/transport-stdout/@types/bun/bun-types": ["bun-types@1.4.1", "", { "dependencies": { "@types/node": "*" } }, "sha512-loKuVrAFZKfEv+JvWkHRS9GW5IqLuLRjVXN9p+vZvBN86O5hf/pBZQ5hSoyipsrMmWObZBDvWnlmKvjKTM0PdA=="],
+
     "bun-types/@types/node/undici-types": ["undici-types@8.3.0", "", {}, "sha512-j375ScV60dom+YkPFIfTLcOiPxkN/buHz5GobjLhixFuANaNs3C9l4GmrWqejgXWJ7BbJcFYpTEUkS1Ge8bpZQ=="],
 
     "cytoscape-fcose/cose-base/layout-base": ["layout-base@2.0.1", "", {}, "sha512-dp3s92+uNI1hWIpPGH3jK2kxE2lMjdXdr+DH8ynZHpd6PUlH6x6cbuXnoMmiNumznqaNO31xu9e79F0uuZ0JFg=="],
@@ -1734,5 +1810,77 @@
     "d3-sankey/d3-array/internmap": ["internmap@1.0.1", "", {}, "sha512-lDB5YccMydFBtasVtxnZ3MRBHuaoE8GKsppq+EchKL2U4nK/DmEpPHNH8MZe5HkMtpSiTSOZwfN0tzYjO/lJEw=="],
 
     "d3-sankey/d3-shape/d3-path": ["d3-path@1.0.9", "", {}, "sha512-VLaYcn81dtHVTjEHd8B+pbe9yHWpXKZUC87PzoFmsFrJqgFwDe/qxfp5MlfsfM1V5E/iVt0MmEbWQ7FVIXh/bg=="],
+
+    "@breadai/a2ui/@types/bun/bun-types/@types/node": ["@types/node@26.0.0", "", { "dependencies": { "undici-types": "~8.3.0" } }, "sha512-vf2YFi1iY9lHGwNJMs01biZFbKJkrZR1T6/MlzjhJLPdntOHLhTrDSnSVcdtvjihi4VQNlrFRIxLsDBlQpAipA=="],
+
+    "@breadai/auth-api-key/@types/bun/bun-types/@types/node": ["@types/node@26.0.0", "", { "dependencies": { "undici-types": "~8.3.0" } }, "sha512-vf2YFi1iY9lHGwNJMs01biZFbKJkrZR1T6/MlzjhJLPdntOHLhTrDSnSVcdtvjihi4VQNlrFRIxLsDBlQpAipA=="],
+
+    "@breadai/cli/@types/bun/bun-types/@types/node": ["@types/node@26.0.0", "", { "dependencies": { "undici-types": "~8.3.0" } }, "sha512-vf2YFi1iY9lHGwNJMs01biZFbKJkrZR1T6/MlzjhJLPdntOHLhTrDSnSVcdtvjihi4VQNlrFRIxLsDBlQpAipA=="],
+
+    "@breadai/core/@types/bun/bun-types/@types/node": ["@types/node@26.0.0", "", { "dependencies": { "undici-types": "~8.3.0" } }, "sha512-vf2YFi1iY9lHGwNJMs01biZFbKJkrZR1T6/MlzjhJLPdntOHLhTrDSnSVcdtvjihi4VQNlrFRIxLsDBlQpAipA=="],
+
+    "@breadai/otel/@types/bun/bun-types/@types/node": ["@types/node@26.0.0", "", { "dependencies": { "undici-types": "~8.3.0" } }, "sha512-vf2YFi1iY9lHGwNJMs01biZFbKJkrZR1T6/MlzjhJLPdntOHLhTrDSnSVcdtvjihi4VQNlrFRIxLsDBlQpAipA=="],
+
+    "@breadai/protocol-a2a-server/@types/bun/bun-types/@types/node": ["@types/node@26.0.0", "", { "dependencies": { "undici-types": "~8.3.0" } }, "sha512-vf2YFi1iY9lHGwNJMs01biZFbKJkrZR1T6/MlzjhJLPdntOHLhTrDSnSVcdtvjihi4VQNlrFRIxLsDBlQpAipA=="],
+
+    "@breadai/protocol-ag-ui/@types/bun/bun-types/@types/node": ["@types/node@26.0.0", "", { "dependencies": { "undici-types": "~8.3.0" } }, "sha512-vf2YFi1iY9lHGwNJMs01biZFbKJkrZR1T6/MlzjhJLPdntOHLhTrDSnSVcdtvjihi4VQNlrFRIxLsDBlQpAipA=="],
+
+    "@breadai/protocol-mcp-client/@types/bun/bun-types/@types/node": ["@types/node@26.0.0", "", { "dependencies": { "undici-types": "~8.3.0" } }, "sha512-vf2YFi1iY9lHGwNJMs01biZFbKJkrZR1T6/MlzjhJLPdntOHLhTrDSnSVcdtvjihi4VQNlrFRIxLsDBlQpAipA=="],
+
+    "@breadai/protocol-mcp-server/@types/bun/bun-types/@types/node": ["@types/node@26.0.0", "", { "dependencies": { "undici-types": "~8.3.0" } }, "sha512-vf2YFi1iY9lHGwNJMs01biZFbKJkrZR1T6/MlzjhJLPdntOHLhTrDSnSVcdtvjihi4VQNlrFRIxLsDBlQpAipA=="],
+
+    "@breadai/provider-catalog/@types/bun/bun-types/@types/node": ["@types/node@26.0.0", "", { "dependencies": { "undici-types": "~8.3.0" } }, "sha512-vf2YFi1iY9lHGwNJMs01biZFbKJkrZR1T6/MlzjhJLPdntOHLhTrDSnSVcdtvjihi4VQNlrFRIxLsDBlQpAipA=="],
+
+    "@breadai/server/@types/bun/bun-types/@types/node": ["@types/node@26.0.0", "", { "dependencies": { "undici-types": "~8.3.0" } }, "sha512-vf2YFi1iY9lHGwNJMs01biZFbKJkrZR1T6/MlzjhJLPdntOHLhTrDSnSVcdtvjihi4VQNlrFRIxLsDBlQpAipA=="],
+
+    "@breadai/store-memory/@types/bun/bun-types/@types/node": ["@types/node@26.0.0", "", { "dependencies": { "undici-types": "~8.3.0" } }, "sha512-vf2YFi1iY9lHGwNJMs01biZFbKJkrZR1T6/MlzjhJLPdntOHLhTrDSnSVcdtvjihi4VQNlrFRIxLsDBlQpAipA=="],
+
+    "@breadai/store-postgres/@types/bun/bun-types/@types/node": ["@types/node@26.0.0", "", { "dependencies": { "undici-types": "~8.3.0" } }, "sha512-vf2YFi1iY9lHGwNJMs01biZFbKJkrZR1T6/MlzjhJLPdntOHLhTrDSnSVcdtvjihi4VQNlrFRIxLsDBlQpAipA=="],
+
+    "@breadai/store-sqlite/@types/bun/bun-types/@types/node": ["@types/node@26.0.0", "", { "dependencies": { "undici-types": "~8.3.0" } }, "sha512-vf2YFi1iY9lHGwNJMs01biZFbKJkrZR1T6/MlzjhJLPdntOHLhTrDSnSVcdtvjihi4VQNlrFRIxLsDBlQpAipA=="],
+
+    "@breadai/test-utils/@types/bun/bun-types/@types/node": ["@types/node@26.0.0", "", { "dependencies": { "undici-types": "~8.3.0" } }, "sha512-vf2YFi1iY9lHGwNJMs01biZFbKJkrZR1T6/MlzjhJLPdntOHLhTrDSnSVcdtvjihi4VQNlrFRIxLsDBlQpAipA=="],
+
+    "@breadai/transport-http-chunked/@types/bun/bun-types/@types/node": ["@types/node@26.0.0", "", { "dependencies": { "undici-types": "~8.3.0" } }, "sha512-vf2YFi1iY9lHGwNJMs01biZFbKJkrZR1T6/MlzjhJLPdntOHLhTrDSnSVcdtvjihi4VQNlrFRIxLsDBlQpAipA=="],
+
+    "@breadai/transport-http-sse/@types/bun/bun-types/@types/node": ["@types/node@26.0.0", "", { "dependencies": { "undici-types": "~8.3.0" } }, "sha512-vf2YFi1iY9lHGwNJMs01biZFbKJkrZR1T6/MlzjhJLPdntOHLhTrDSnSVcdtvjihi4VQNlrFRIxLsDBlQpAipA=="],
+
+    "@breadai/transport-stdout/@types/bun/bun-types/@types/node": ["@types/node@26.0.0", "", { "dependencies": { "undici-types": "~8.3.0" } }, "sha512-vf2YFi1iY9lHGwNJMs01biZFbKJkrZR1T6/MlzjhJLPdntOHLhTrDSnSVcdtvjihi4VQNlrFRIxLsDBlQpAipA=="],
+
+    "@breadai/a2ui/@types/bun/bun-types/@types/node/undici-types": ["undici-types@8.3.0", "", {}, "sha512-j375ScV60dom+YkPFIfTLcOiPxkN/buHz5GobjLhixFuANaNs3C9l4GmrWqejgXWJ7BbJcFYpTEUkS1Ge8bpZQ=="],
+
+    "@breadai/auth-api-key/@types/bun/bun-types/@types/node/undici-types": ["undici-types@8.3.0", "", {}, "sha512-j375ScV60dom+YkPFIfTLcOiPxkN/buHz5GobjLhixFuANaNs3C9l4GmrWqejgXWJ7BbJcFYpTEUkS1Ge8bpZQ=="],
+
+    "@breadai/cli/@types/bun/bun-types/@types/node/undici-types": ["undici-types@8.3.0", "", {}, "sha512-j375ScV60dom+YkPFIfTLcOiPxkN/buHz5GobjLhixFuANaNs3C9l4GmrWqejgXWJ7BbJcFYpTEUkS1Ge8bpZQ=="],
+
+    "@breadai/core/@types/bun/bun-types/@types/node/undici-types": ["undici-types@8.3.0", "", {}, "sha512-j375ScV60dom+YkPFIfTLcOiPxkN/buHz5GobjLhixFuANaNs3C9l4GmrWqejgXWJ7BbJcFYpTEUkS1Ge8bpZQ=="],
+
+    "@breadai/otel/@types/bun/bun-types/@types/node/undici-types": ["undici-types@8.3.0", "", {}, "sha512-j375ScV60dom+YkPFIfTLcOiPxkN/buHz5GobjLhixFuANaNs3C9l4GmrWqejgXWJ7BbJcFYpTEUkS1Ge8bpZQ=="],
+
+    "@breadai/protocol-a2a-server/@types/bun/bun-types/@types/node/undici-types": ["undici-types@8.3.0", "", {}, "sha512-j375ScV60dom+YkPFIfTLcOiPxkN/buHz5GobjLhixFuANaNs3C9l4GmrWqejgXWJ7BbJcFYpTEUkS1Ge8bpZQ=="],
+
+    "@breadai/protocol-ag-ui/@types/bun/bun-types/@types/node/undici-types": ["undici-types@8.3.0", "", {}, "sha512-j375ScV60dom+YkPFIfTLcOiPxkN/buHz5GobjLhixFuANaNs3C9l4GmrWqejgXWJ7BbJcFYpTEUkS1Ge8bpZQ=="],
+
+    "@breadai/protocol-mcp-client/@types/bun/bun-types/@types/node/undici-types": ["undici-types@8.3.0", "", {}, "sha512-j375ScV60dom+YkPFIfTLcOiPxkN/buHz5GobjLhixFuANaNs3C9l4GmrWqejgXWJ7BbJcFYpTEUkS1Ge8bpZQ=="],
+
+    "@breadai/protocol-mcp-server/@types/bun/bun-types/@types/node/undici-types": ["undici-types@8.3.0", "", {}, "sha512-j375ScV60dom+YkPFIfTLcOiPxkN/buHz5GobjLhixFuANaNs3C9l4GmrWqejgXWJ7BbJcFYpTEUkS1Ge8bpZQ=="],
+
+    "@breadai/provider-catalog/@types/bun/bun-types/@types/node/undici-types": ["undici-types@8.3.0", "", {}, "sha512-j375ScV60dom+YkPFIfTLcOiPxkN/buHz5GobjLhixFuANaNs3C9l4GmrWqejgXWJ7BbJcFYpTEUkS1Ge8bpZQ=="],
+
+    "@breadai/server/@types/bun/bun-types/@types/node/undici-types": ["undici-types@8.3.0", "", {}, "sha512-j375ScV60dom+YkPFIfTLcOiPxkN/buHz5GobjLhixFuANaNs3C9l4GmrWqejgXWJ7BbJcFYpTEUkS1Ge8bpZQ=="],
+
+    "@breadai/store-memory/@types/bun/bun-types/@types/node/undici-types": ["undici-types@8.3.0", "", {}, "sha512-j375ScV60dom+YkPFIfTLcOiPxkN/buHz5GobjLhixFuANaNs3C9l4GmrWqejgXWJ7BbJcFYpTEUkS1Ge8bpZQ=="],
+
+    "@breadai/store-postgres/@types/bun/bun-types/@types/node/undici-types": ["undici-types@8.3.0", "", {}, "sha512-j375ScV60dom+YkPFIfTLcOiPxkN/buHz5GobjLhixFuANaNs3C9l4GmrWqejgXWJ7BbJcFYpTEUkS1Ge8bpZQ=="],
+
+    "@breadai/store-sqlite/@types/bun/bun-types/@types/node/undici-types": ["undici-types@8.3.0", "", {}, "sha512-j375ScV60dom+YkPFIfTLcOiPxkN/buHz5GobjLhixFuANaNs3C9l4GmrWqejgXWJ7BbJcFYpTEUkS1Ge8bpZQ=="],
+
+    "@breadai/test-utils/@types/bun/bun-types/@types/node/undici-types": ["undici-types@8.3.0", "", {}, "sha512-j375ScV60dom+YkPFIfTLcOiPxkN/buHz5GobjLhixFuANaNs3C9l4GmrWqejgXWJ7BbJcFYpTEUkS1Ge8bpZQ=="],
+
+    "@breadai/transport-http-chunked/@types/bun/bun-types/@types/node/undici-types": ["undici-types@8.3.0", "", {}, "sha512-j375ScV60dom+YkPFIfTLcOiPxkN/buHz5GobjLhixFuANaNs3C9l4GmrWqejgXWJ7BbJcFYpTEUkS1Ge8bpZQ=="],
+
+    "@breadai/transport-http-sse/@types/bun/bun-types/@types/node/undici-types": ["undici-types@8.3.0", "", {}, "sha512-j375ScV60dom+YkPFIfTLcOiPxkN/buHz5GobjLhixFuANaNs3C9l4GmrWqejgXWJ7BbJcFYpTEUkS1Ge8bpZQ=="],
+
+    "@breadai/transport-stdout/@types/bun/bun-types/@types/node/undici-types": ["undici-types@8.3.0", "", {}, "sha512-j375ScV60dom+YkPFIfTLcOiPxkN/buHz5GobjLhixFuANaNs3C9l4GmrWqejgXWJ7BbJcFYpTEUkS1Ge8bpZQ=="],
   }
 }
