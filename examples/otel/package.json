@@ -12,7 +12,7 @@
     "@breadai/store-sqlite": "workspace:*",
     "@breadai/transport-http-chunked": "workspace:*",
     "@opentelemetry/sdk-trace-node": "^2.0.0",
-    "ollama-ai-provider-v2": "^3.6.0",
+    "ollama-ai-provider-v2": "^4",
     "zod": "^4.4.3"
   }
 }
