@@ -31,16 +31,18 @@ jobs:
             @breadai:https://registry.npmjs.org/|$NPM_TOKEN
       - run: bun install --frozen-lockfile
       - run: bun run build
-      - name: Publish packages
+      - name: Publish unpublished package versions
         run: |
-          for dir in packages/* stores/* providers/* protocols/* extensions/* transports/*; do
-            if [ "$(jq -r '.private // false' "$dir/package.json")" = "true" ]; then
-              echo "→ skipping $dir (private)"
-              continue
-            fi
+          output=$(bun scripts/publish-changed.ts)
+          if [ -z "$output" ]; then
+            echo "nothing new to publish"
+            exit 0
+          fi
+          while IFS= read -r dir; do
+            [ -z "$dir" ] && continue
             echo "→ publishing $dir"
             # devDependencies reference the private @breadai/test-utils via
             # workspace:*, which would publish as a dangling version — strip
             # them from the manifest (tests never ship anyway).
             (cd "$dir" && npm pkg delete devDependencies && bun publish --access public) || exit 1
-          done
+          done <<< "$output"

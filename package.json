@@ -27,6 +27,7 @@
     "test:coverage": "bun test --conditions bread-source --coverage",
     "knip": "knip",
     "bump": "bun scripts/bump.ts",
+    "publish:changed": "bun scripts/publish-changed.ts",
     "sync:obsidian": "bun scripts/sync-obsidian.ts",
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",

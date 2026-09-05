@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       bump:
-        description: 'Version bump type'
+        description: 'Version bump type applied to every affected package'
         required: true
         type: choice
         options: [patch, minor, major, prepatch, preminor, premajor, prerelease]
@@ -38,25 +38,35 @@ jobs:
           # fine-grained PAT owned by an account with that role, so pushes
           # and tag creation below go through under its identity instead.
           token: ${{ secrets.RELEASE_TOKEN }}
+          fetch-depth: 0
+          fetch-tags: true
       - uses: oven-sh/setup-bun@v2
       - run: bun install --frozen-lockfile
 
-      - name: Bump version
+      - name: Bump affected packages
+        env:
+          PLAN: ${{ runner.temp }}/bump-plan.json
         run: |
+          extra=()
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            extra+=(--dry-run)
+          fi
           if [ "${{ inputs.preid }}" = "none" ]; then
-            bun run bump --bump ${{ inputs.bump }}
+            bun run bump --bump ${{ inputs.bump }} --plan-out "$PLAN" "${extra[@]}"
           else
-            bun run bump --bump ${{ inputs.bump }} --preid ${{ inputs.preid }}
+            bun run bump --bump ${{ inputs.bump }} --preid ${{ inputs.preid }} --plan-out "$PLAN" "${extra[@]}"
           fi
-      - name: Capture computed version
-        id: version
-        run: echo "value=$(jq -r .version packages/core/package.json)" >> "$GITHUB_OUTPUT"
 
-      - name: Refuse to re-release an existing tag
+      - name: Allocate release tag
+        id: tag
         run: |
-          if git rev-parse -q --verify "refs/tags/v${{ steps.version.outputs.value }}" >/dev/null; then
-            echo "::error::tag v${{ steps.version.outputs.value }} already exists"; exit 1
-          fi
+          today=$(date -u +%Y%m%d)
+          n=1
+          while git rev-parse -q --verify "refs/tags/v${today}.${n}" >/dev/null; do
+            n=$((n + 1))
+          done
+          echo "value=v${today}.${n}" >> "$GITHUB_OUTPUT"
+
       - name: Verify the tree is releasable
         run: |
           bun run typecheck
@@ -65,24 +75,54 @@ jobs:
 
       - name: Commit, tag, and push
         if: ${{ !inputs.dry_run }}
+        env:
+          PLAN: ${{ runner.temp }}/bump-plan.json
+          TAG: ${{ steps.tag.outputs.value }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git commit -m "chore: bump version to ${{ steps.version.outputs.value }}"
-          git tag "v${{ steps.version.outputs.value }}"
+          git add -u -- packages stores providers protocols extensions transports
+          if git diff --cached --quiet; then
+            echo "::error::bump reported packages but nothing is staged"
+            exit 1
+          fi
+          git commit -m "chore: bump affected package versions"
+          git tag "$TAG"
           git push origin HEAD:main
-          git push origin "v${{ steps.version.outputs.value }}"
+          git push origin "$TAG"
+
       - name: Create GitHub release
         if: ${{ !inputs.dry_run }}
         env:
-          # Also RELEASE_TOKEN, not GITHUB_TOKEN — creating a release creates
-          # its underlying tag ref too, which the "New Version" tag ruleset
-          # gates the same way as the branch push above.
           GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
-        run: gh release create "v${{ steps.version.outputs.value }}" --title "v${{ steps.version.outputs.value }}" --generate-notes
+          PLAN: ${{ runner.temp }}/bump-plan.json
+          TAG: ${{ steps.tag.outputs.value }}
+        run: |
+          notes=$(mktemp)
+          {
+            echo "## Packages"
+            echo
+            echo "| Package | From | To |"
+            echo "| --- | --- | --- |"
+            jq -r '.bumps[] | "| `\(.name)` | \(.from) | \(.to) |"' "$PLAN"
+            echo
+            gh api "repos/${{ github.repository }}/releases/generate-notes" \
+              -f tag_name="$TAG" --jq .body
+          } > "$notes"
+          gh release create "$TAG" --title "$TAG" --notes-file "$notes"
+
       - name: Dry run summary
         if: ${{ inputs.dry_run }}
+        env:
+          PLAN: ${{ runner.temp }}/bump-plan.json
+          TAG: ${{ steps.tag.outputs.value }}
         run: |
-          echo "🔍 Dry run — computed **v${{ steps.version.outputs.value }}**, build/test passed, nothing committed, tagged, released, or published." >> "$GITHUB_STEP_SUMMARY"
-          echo "Re-run with \`dry_run: false\` to actually release." >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "🔍 Dry run — would tag **${TAG}**. Build/test passed, nothing committed, tagged, released, or published."
+            echo
+            echo "| Package | From | To |"
+            echo "| --- | --- | --- |"
+            jq -r '.bumps[] | "| `\(.name)` | \(.from) | \(.to) |"' "$PLAN"
+            echo
+            echo "Re-run with \`dry_run: false\` to actually release."
+          } >> "$GITHUB_STEP_SUMMARY"
