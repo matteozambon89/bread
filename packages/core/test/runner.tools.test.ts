@@ -45,7 +45,7 @@ describe('runner — tool calls', () => {
     const crumbs = await runCollect(bread, 'calc', 'go')
     // docs/tools.md's documented contract is singular ("every call emits
     // tool:call and tool:result crumbs") — exact counts guard against the
-    // dual-emission bug (buildExecuteTool + the fullStream loop both used to
+    // dual-emission bug (buildExecuteTool + the stream loop both used to
     // emit these) ever regressing silently.
     expect(crumbs.filter((c) => c.type === 'tool:call')).toHaveLength(1)
     const results = crumbs.filter((c) => c.type === 'tool:result') as ToolResultCrumb[]

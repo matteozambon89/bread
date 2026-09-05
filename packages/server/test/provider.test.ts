@@ -28,7 +28,7 @@ describe('runProviderAdd', () => {
   })
 
   test('skips install when the package is already a dependency', async () => {
-    const cwd = writeManifest({ 'ollama-ai-provider-v2': '^3.6.0' })
+    const cwd = writeManifest({ 'ollama-ai-provider-v2': '^4.0.0' })
     // No network call happens here: the already-installed branch returns
     // before `bun add` would ever be spawned.
     await expect(runProviderAdd({ cwd, name: 'ollama' })).resolves.toBeUndefined()

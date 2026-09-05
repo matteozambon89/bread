@@ -16,7 +16,7 @@ import {
   mockTextModel,
   mockToolCallModel,
 } from '@breadai/test-utils'
-import type { MockLanguageModelV3 } from 'ai/test'
+import type { MockLanguageModelV4 } from 'ai/test'
 import { z } from 'zod'
 
 const PIPELINES: Record<string, PipelineStep[]> = {
@@ -39,10 +39,10 @@ const PIPELINES: Record<string, PipelineStep[]> = {
 describe('bread.runPipeline — sequential steps', () => {
   let bread: BreadInstance
   let stop: () => Promise<void>
-  let second: MockLanguageModelV3
+  let second: MockLanguageModelV4
 
   beforeEach(async () => {
-    second = mockTextModel('STEP2') as MockLanguageModelV3
+    second = mockTextModel('STEP2') as MockLanguageModelV4
     ;({ bread, stop } = await makeBread({
       agents: { first: defineTestAgent({ model: 'first' }), second: defineTestAgent({ model: 'second' }) },
       models: { first: mockTextModel('STEP1'), second },
@@ -132,7 +132,7 @@ describe('bread.runPipeline — sequential steps', () => {
 
 describe('bread.runPipeline — parallel step output threading', () => {
   test('a parallel step outputs the ordered array of branch outputs into the next step', async () => {
-    const writer = mockTextModel('DONE') as MockLanguageModelV3
+    const writer = mockTextModel('DONE') as MockLanguageModelV4
     const { bread, stop } = await makeBread({
       agents: {
         a: defineTestAgent({ model: 'a' }),
@@ -187,7 +187,7 @@ describe('bread.runPipeline — durable HITL', () => {
   }
 
   test('a suspending step stops the pipeline; resume runs the remaining steps', async () => {
-    const second = mockTextModel('SECOND') as MockLanguageModelV3
+    const second = mockTextModel('SECOND') as MockLanguageModelV4
     const { bread, stop } = await makeBread({
       agents: {
         gate: defineTestAgent({ model: 'gate', humanTools: [approve] }),

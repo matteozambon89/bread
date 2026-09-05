@@ -42,7 +42,7 @@
     "build": "bun build ./src/index.ts --outdir dist --target node --format esm --packages external && tsc --emitDeclarationOnly --outDir dist"
   },
   "dependencies": {
-    "ai": "^6.0.208",
+    "ai": "^7.0.93",
     "effect": "^3.21.4",
     "uuid": "^11.1.0",
     "zod": "^4.4.3"

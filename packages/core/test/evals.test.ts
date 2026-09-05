@@ -1,12 +1,12 @@
 import { describe, expect, test } from 'bun:test'
 import { defineEval, runEvals } from '@breadai/core'
-import { MockLanguageModelV3 } from 'ai/test'
+import { MockLanguageModelV4 } from 'ai/test'
 
 // llmJudge drives `generateText` (non-streaming, `doGenerate`) — unlike the
 // streaming `mockTextModel`/`mockToolCallModel` helpers, which only implement
 // `doStream`.
-function mockJudgeModel(verdict: 'PASS' | 'FAIL'): MockLanguageModelV3 {
-  return new MockLanguageModelV3({
+function mockJudgeModel(verdict: 'PASS' | 'FAIL'): MockLanguageModelV4 {
+  return new MockLanguageModelV4({
     doGenerate: {
       content: [{ type: 'text', text: verdict }],
       finishReason: { unified: 'stop', raw: undefined },

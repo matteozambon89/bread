@@ -6,7 +6,7 @@ import {
   type ToolSet,
   generateObject,
   hasToolCall,
-  stepCountIs,
+  isStepCount,
   streamText,
 } from 'ai'
 import { modelCallOptions, resolveModel } from './model-provider.js'
@@ -189,7 +189,7 @@ export async function* continueRun(
   // sees (and reacts to) the synthetic tool error backing the suspension.
   const maxSteps = cfg.steps?.max ?? 20
   const stopWhen = [
-    stepCountIs(maxSteps),
+    isStepCount(maxSteps),
     ...[...humanLeaves.keys()].map((leaf) => hasToolCall(leaf)),
     ...[...gated].map((leaf) => hasToolCall(leaf)),
     () => suspendedDelegations.length > 0,
@@ -207,7 +207,7 @@ export async function* continueRun(
           schema: cfg.outputSchema,
           messages,
           maxRetries: cfg.errorHandling?.retry?.attempts ?? 2,
-          ...(system ? { system } : {}),
+          ...(system ? { instructions: system } : {}),
           ...(ctx.signal ? { abortSignal: ctx.signal } : {}),
           ...modelCallOptions(cfg.model),
         })
@@ -249,7 +249,7 @@ export async function* continueRun(
         maxRetries: cfg.errorHandling?.retry?.attempts ?? 2,
         stopWhen,
         ...(hasTools ? { tools: aiTools } : {}),
-        ...(system ? { system } : {}),
+        ...(system ? { instructions: system } : {}),
         ...(ctx.signal ? { abortSignal: ctx.signal } : {}),
         ...modelCallOptions(cfg.model),
       })
@@ -261,7 +261,7 @@ export async function* continueRun(
       let pending: { kind: 'input' | 'approval'; toolCallId: string; toolName: string; args: unknown } | null =
         null
 
-      for await (const part of streamResult.fullStream as AsyncIterable<TextStreamPart<ToolSet>>) {
+      for await (const part of streamResult.stream as AsyncIterable<TextStreamPart<ToolSet>>) {
         while (crumbBuffer.length) yield crumbBuffer.shift()!
 
         if (part.type === 'text-delta') {
@@ -359,6 +359,10 @@ export async function* continueRun(
               })
             }
           }
+        } else if (part.type === 'abort') {
+          // streamText closes with an in-band abort part instead of rejecting
+          // the iterator. Rethrow so the catch's cancelled-run path fires.
+          throw ctx.signal?.reason ?? new Error(part.reason ?? 'aborted')
         } else if (part.type === 'error') {
           // A provider/transport failure surfaced in-band as a stream part
           // rather than a thrown error. Rethrow into the main catch so the
@@ -372,10 +376,10 @@ export async function* continueRun(
 
       // Persist the model's response messages (assistant text/tool-calls and tool
       // results) as structured rows so tool context survives across turns and a
-      // suspended run can be replayed. `response` resolves once the stream above
-      // is fully consumed; per-turn rows share a timestamp and rely on the store's
-      // monotonic message id for intra-turn ordering.
-      const { messages: responseMessages } = await streamResult.response
+      // suspended run can be replayed. `responseMessages` is the accumulated
+      // history across every step; per-turn rows share a timestamp and rely on
+      // the store's monotonic message id for intra-turn ordering.
+      const responseMessages = await streamResult.responseMessages
       const responseRows = responseMessages.map((rm) => ({
         role: rm.role,
         content: rm.content,

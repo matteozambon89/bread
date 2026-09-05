@@ -16,7 +16,7 @@
     "@breadai/server": "workspace:*",
     "@breadai/store-sqlite": "workspace:*",
     "@breadai/transport-http-chunked": "workspace:*",
-    "ollama-ai-provider-v2": "^3.6.0",
+    "ollama-ai-provider-v2": "^4",
     "zod": "^4.4.3"
   }
 }
