@@ -45,6 +45,9 @@ function requireEntry(name: string): (typeof providerEntries)[string] {
 export async function runProviderList(opts: ProviderListOptions): Promise<void> {
   const manifest = await readManifest(opts.cwd)
 
+  const nameWidth = Math.max(...Object.keys(providerEntries).map((name) => name.length))
+  const pkgWidth = Math.max(...Object.values(providerEntries).map((entry) => entry.pkg.length))
+
   console.log('\nCatalog providers:\n')
   for (const [name, entry] of Object.entries(providerEntries).sort(([a], [b]) => a.localeCompare(b))) {
     const installed = isInstalled(manifest, entry.pkg) ? '✓' : '–'
@@ -55,7 +58,7 @@ export async function runProviderList(opts: ProviderListOptions): Promise<void> 
         : missing.length === 0
           ? `${entry.envVars.join(', ')} (set)`
           : `${entry.envVars.join(', ')} (missing: ${missing.join(', ')})`
-    console.log(`  ${installed}  ${name.padEnd(16)} ${entry.pkg.padEnd(28)} ${envStr}`)
+    console.log(`  ${installed}  ${name.padEnd(nameWidth)} ${entry.pkg.padEnd(pkgWidth)} ${envStr}`)
   }
 }
 
