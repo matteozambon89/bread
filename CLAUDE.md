@@ -157,32 +157,50 @@ The CLI loader (`packages/server/src/loader.ts`) attaches private fields to each
 
 ## Releasing
 
-All `@breadai/*` packages version in **lockstep**. Cutting a release is one click, run from the
+`@breadai/*` packages version independently. Cutting a release is one click, run from the
 Actions tab (or `gh workflow run release.yml -f bump=patch -f preid=none -f dry_run=false`) —
 `release.yml`:
 
-1. Bumps every publishable package via `bun run bump --bump <type> [--preid alpha|beta]`
-   (`type` is `major`/`minor`/`patch` or their `pre*` variants; `scripts/bump.ts` computes the
-   next version from the current lockstep one via `semver.inc`, skips private packages, and
-   `workspace:*` refs need no rewriting either way).
-2. Refuses to re-run against a tag that already exists, then runs typecheck → build → test against
-   the bumped tree before touching git.
-3. Commits, tags (`vX.Y.Z`), and pushes to `main`, then creates the GitHub Release itself
-   (`gh release create --generate-notes`) — no separate manual release-cutting step.
-4. `publish.yml` runs as a `workflow_call` job right after (not via its `release: published`
-   trigger — a `GITHUB_TOKEN`-authored release doesn't fire that event, so `release.yml` invokes it
-   directly instead), builds, and `bun publish`es every non-private package under `packages/*`,
-   `stores/*`, `providers/*`, `protocols/*`, `extensions/*`, `transports/*`, stripping
-   `devDependencies` from each manifest first (they reference the private `@breadai/test-utils`).
+1. Diffs publishable files (`src/**`, `package.json`, `README.md`, `tsconfig.json`) since the last
+   `v*` tag. `scripts/bump.ts --bump <type> [--preid alpha|beta]` bumps **only** those affected
+   packages (`type` is `major`/`minor`/`patch` or their `pre*` variants). Tests, docs, CI, and
+   examples do not count. Private `@breadai/test-utils` is never published.
+2. Verifies every runtime `@breadai/*` range still satisfies the planned versions. Ranges are
+   `workspace:>=x.y.z <(major+1).0.0` so patch and minor flow through without republishing
+   dependents; a major does not. If a planned version would leave a dependent's range unsatisfied,
+   the bump **writes nothing** and fails — update that dependent's `package.json` (and any code)
+   in a commit, then re-run. The script never edits dependents for you.
+3. Allocates the next free `vYYYYMMDD.N` tag (a release event, not a package version), then
+   runs typecheck → build → test before touching git.
+4. Commits the affected `package.json` versions, tags, pushes to `main`, and creates the GitHub
+   Release (package table + `--generate-notes`).
+5. `publish.yml` fires on `release: published` (the release is created with `RELEASE_TOKEN`, which
+   does fire that event), builds, and `bun publish`es only package versions that are not already
+   on npm, in runtime-dependency order, stripping `devDependencies` first (they reference the
+   private `@breadai/test-utils`). bun rewrites `workspace:>=x.y.z <n.0.0` to the same range on
+   the published manifest. It can be re-dispatched if the GitHub Release exists but npm is
+   missing versions.
 
-`dry_run` defaults to `true` — a trigger with no `dry_run: false` computes the bump and runs the
-full typecheck/build/test gate with nothing committed, tagged, released, or published. Re-running
-without a version bump still fails on npm ("version exists"); `release.yml`'s own tag-existence
-check now catches that before wasting a build, not just at the `bun publish` step.
+```mermaid
+flowchart TD
+  A[workflow_dispatch bump type] --> B[Diff since last v* tag]
+  B --> C{Affected packages?}
+  C -->|none| D[Fail: nothing to release]
+  C -->|some| E[Plan next versions in memory]
+  E --> F{Every runtime @breadai dep still satisfies?}
+  F -->|no| G[Fail: print offenders, write nothing]
+  F -->|yes| H{dry_run?}
+  H -->|true| I[Print plan / typecheck HEAD]
+  H -->|false| J[Write versions on affected only]
+  J --> K[typecheck / build / test]
+  K --> L[Tag next free vYYYYMMDD.N, GitHub release]
+```
 
-Changesets is the intended upgrade once git history exists (it detects changed packages from
-commits); until then lockstep + `bun run bump` is the whole story. CI (`ci.yml`) runs
-typecheck → build → `bun run test` on Bun.
+`dry_run` defaults to `true` — a trigger with no `dry_run: false` prints the plan and typechecks
+HEAD; nothing is written, committed, tagged, released, or published. A real run writes versions,
+then typecheck/build/test, then commit/tag/release. `publish.yml` is event-driven off
+`release: published` and can be re-dispatched if the GitHub Release exists but npm is missing
+versions. CI (`ci.yml`) runs typecheck → build → `bun run test` on Bun.
 
 ## Known gaps
 

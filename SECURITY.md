@@ -2,8 +2,8 @@
 
 ## Supported versions
 
-bread is pre-1.0 and all `@breadai/*` packages version in lockstep. Only the latest published
-release receives security fixes — there are no maintained older lines yet.
+bread is pre-1.0 and `@breadai/*` packages version independently. Only the latest published
+version of each package receives security fixes — there are no maintained older lines yet.
 
 ## Reporting a vulnerability
 
