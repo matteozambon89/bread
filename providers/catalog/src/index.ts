@@ -8,11 +8,17 @@ interface CatalogEntry {
   // hint for `bread provider add/list` — the @ai-sdk/* package itself is the
   // actual source of truth and throws its own error if one is missing).
   envVars: string[]
+  // No default instance: first resolveModel imports `pkg`, calls fromEnv(),
+  // then `mod[export](settings)(modelId)`. The created provider is cached.
+  create?: {
+    fromEnv: () => Record<string, string>
+  }
 }
 
 // Every official @ai-sdk/* provider that exposes a default `provider(modelId)`
-// instance. Each is an optional peer dep, imported lazily so installing this
-// catalog doesn't pull in every SDK.
+// instance, plus catalog entries that construct one from env (see `create`).
+// Each is an optional peer dep, imported lazily so installing this catalog
+// doesn't pull in every SDK.
 const ENTRIES: Record<string, CatalogEntry> = {
   openai: { pkg: '@ai-sdk/openai', export: 'openai', envVars: ['OPENAI_API_KEY'] },
   anthropic: { pkg: '@ai-sdk/anthropic', export: 'anthropic', envVars: ['ANTHROPIC_API_KEY'] },
@@ -41,6 +47,34 @@ const ENTRIES: Record<string, CatalogEntry> = {
   baseten: { pkg: '@ai-sdk/baseten', export: 'baseten', envVars: ['BASETEN_API_KEY'] },
   // Zero-config against a local server — OLLAMA_BASE_URL is optional, not required.
   ollama: { pkg: 'ollama-ai-provider-v2', export: 'ollama', envVars: [] },
+  openrouter: {
+    pkg: '@openrouter/ai-sdk-provider',
+    export: 'openrouter',
+    envVars: ['OPENROUTER_API_KEY'],
+  },
+  'workers-ai': {
+    pkg: 'workers-ai-provider',
+    export: 'createWorkersAI',
+    envVars: ['CLOUDFLARE_ACCOUNT_ID', 'CLOUDFLARE_API_TOKEN'],
+    create: {
+      fromEnv: () => {
+        const unset = ['CLOUDFLARE_ACCOUNT_ID', 'CLOUDFLARE_API_TOKEN'].filter(
+          (name) => !process.env[name],
+        )
+        if (unset.length > 0) {
+          throw new BreadError(
+            `Provider "workers-ai" is not configured. Missing env vars: ${unset.join(', ')}`,
+            'PROVIDER_NOT_CONFIGURED',
+            { provider: 'workers-ai', unset },
+          )
+        }
+        return {
+          accountId: process.env.CLOUDFLARE_ACCOUNT_ID!,
+          apiKey: process.env.CLOUDFLARE_API_TOKEN!,
+        }
+      },
+    },
+  },
 }
 
 function missingProvider(provider: string, pkg: string): never {
@@ -49,7 +83,7 @@ function missingProvider(provider: string, pkg: string): never {
   })
 }
 
-async function resolveEntry(provider: string, entry: CatalogEntry, modelId: string): Promise<LanguageModel> {
+async function loadExport(provider: string, entry: CatalogEntry): Promise<(...args: unknown[]) => unknown> {
   const m = await import(entry.pkg).catch(() => missingProvider(provider, entry.pkg))
   const factory = (m as Record<string, unknown>)[entry.export]
   if (typeof factory !== 'function') {
@@ -59,14 +93,35 @@ async function resolveEntry(provider: string, entry: CatalogEntry, modelId: stri
       { provider },
     )
   }
+  return factory as (...args: unknown[]) => unknown
+}
+
+const createdProviders = new Map<string, (modelId: string) => LanguageModel>()
+
+async function resolveEntry(provider: string, entry: CatalogEntry, modelId: string): Promise<LanguageModel> {
+  if (entry.create) {
+    const cached = createdProviders.get(provider)
+    if (cached) return cached(modelId)
+
+    const factory = await loadExport(provider, entry)
+    const settings = entry.create.fromEnv()
+    const instance = factory(settings) as (id: string) => LanguageModel
+    createdProviders.set(provider, instance)
+    return instance(modelId)
+  }
+
+  const factory = await loadExport(provider, entry)
   return (factory as (id: string) => LanguageModel)(modelId)
 }
 
-// The 18 official @ai-sdk/* built-ins, ready to use as `config.providers` (or
-// spread into a larger registry alongside custom entries):
+// The 20 catalog providers, ready to use as `config.providers` (or spread into
+// a larger registry alongside custom entries):
 //
 //   import { providerCatalog } from '@breadai/provider-catalog'
 //   export default defineConfig({ providers: providerCatalog })
+//
+// Each factory lazy-imports its optional peer on first use, so spreading this
+// object never throws — env is checked on the first resolveModel only.
 //
 // @ai-sdk/openai-compatible is deliberately not included here — it has no
 // zero-config default instance (it needs a baseURL). Build your own entry with

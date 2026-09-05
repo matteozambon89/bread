@@ -480,7 +480,9 @@
         "@ai-sdk/perplexity": ">=4.0",
         "@ai-sdk/togetherai": ">=3.0",
         "@ai-sdk/xai": ">=4.0",
+        "@openrouter/ai-sdk-provider": ">=3.0",
         "ollama-ai-provider-v2": ">=4.0",
+        "workers-ai-provider": ">=4.0",
       },
       "optionalPeers": [
         "@ai-sdk/amazon-bedrock",
@@ -501,7 +503,9 @@
         "@ai-sdk/perplexity",
         "@ai-sdk/togetherai",
         "@ai-sdk/xai",
+        "@openrouter/ai-sdk-provider",
         "ollama-ai-provider-v2",
+        "workers-ai-provider",
       ],
     },
     "stores/memory": {
