@@ -14,8 +14,8 @@
     "build": "bun build ./src/index.ts --outdir dist --target node --format esm --packages external && tsc --emitDeclarationOnly --outDir dist"
   },
   "dependencies": {
-    "@breadai/core": "workspace:*",
-    "@breadai/provider-catalog": "workspace:*",
+    "@breadai/core": "workspace:>=0.1.1 <1.0.0",
+    "@breadai/provider-catalog": "workspace:>=0.1.1 <1.0.0",
     "chokidar": "^4.0.3",
     "hono": "^4.8.4",
     "uuid": "^11.1.0"

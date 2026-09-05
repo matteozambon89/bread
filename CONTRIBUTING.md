@@ -1,6 +1,6 @@
 # Contributing
 
-bread is pre-1.0 (`0.1.0`, versioned in lockstep across all `@breadai/*` packages) and
+bread is pre-1.0 (`@breadai/*` packages version independently) and
 solo-maintained. The API is still moving, so **the project isn't accepting pull requests yet** —
 an unsolicited PR against a package that gets reshaped next week is wasted effort on both sides.
 
