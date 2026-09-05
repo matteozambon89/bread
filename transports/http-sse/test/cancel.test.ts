@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import type { AgentRegistry, BreadConfig, BreadCrumb } from '@breadai/core'
-import { BreadError } from '@breadai/core'
+import { BreadError, fromWireCrumb } from '@breadai/core'
 import { startServer } from '@breadai/server'
 import { store } from '@breadai/store-memory'
 import { defineTestAgent, mockChunkedTextModel, mockProvider } from '@breadai/test-utils'
@@ -93,5 +93,68 @@ describe('@breadai/transport-http-sse — remoteAgent() cancellation', () => {
     const remoteError = await waitForCrumbType(server.bread, runId!, 'agent:error')
     expect(remoteError).toBeDefined()
     expect((remoteError as { error: { code: string } }).error.code).toBe('RUN_CANCELLED')
+  })
+
+  test('POST /runs/:runId/cancel stops an in-flight run without closing its own streaming connection', async () => {
+    const { config, agents } = fixture()
+    const port = freePort()
+    const server = await startServer(config, agents, { port })
+    stops.push(server.stop)
+
+    const res = await fetch(`http://localhost:${port}/agents/greeter/run`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ input: 'go' }),
+    })
+    const reader = res.body!.getReader()
+    const decoder = new TextDecoder()
+    let buffer = ''
+
+    async function nextCrumb(): Promise<BreadCrumb> {
+      while (true) {
+        const lineEnd = buffer.indexOf('\n')
+        if (lineEnd === -1) {
+          const { done, value } = await reader.read()
+          if (done) throw new Error('stream ended before the expected crumb arrived')
+          buffer += decoder.decode(value, { stream: true })
+          continue
+        }
+        const line = buffer.slice(0, lineEnd)
+        buffer = buffer.slice(lineEnd + 1)
+        if (!line.startsWith('data: ')) continue
+        const json = line.slice(6).trim()
+        if (!json) continue
+        const event = JSON.parse(json) as { type: string; payload: unknown }
+        if (event.type === 'error') continue
+        return fromWireCrumb(event.payload as BreadCrumb)
+      }
+    }
+
+    const first = await nextCrumb()
+    const runId = (first as { runId: string }).runId
+
+    const cancelRes = await fetch(`http://localhost:${port}/runs/${runId}/cancel`, { method: 'POST' })
+    expect(cancelRes.status).toBe(200)
+    expect(await cancelRes.json()).toEqual({ ok: true })
+
+    // The *same* original connection stays open and delivers the terminal
+    // crumb itself — cancelling never tears the stream down.
+    let terminal: BreadCrumb | undefined
+    while (!terminal) {
+      const crumb = await nextCrumb()
+      if (crumb.type === 'agent:run:end' || crumb.type === 'agent:error') terminal = crumb
+    }
+    expect(terminal!.type).toBe('agent:error')
+    expect((terminal as unknown as { error: { code: string } }).error.code).toBe('RUN_CANCELLED')
+  })
+
+  test('POST /runs/:runId/cancel on an unknown or already-finished run returns 404', async () => {
+    const { config, agents } = fixture()
+    const port = freePort()
+    const server = await startServer(config, agents, { port })
+    stops.push(server.stop)
+
+    const res = await fetch(`http://localhost:${port}/runs/nonexistent-run/cancel`, { method: 'POST' })
+    expect(res.status).toBe(404)
   })
 })

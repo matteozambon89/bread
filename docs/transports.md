@@ -67,6 +67,12 @@ with `seq >=` (bounded to one in-flight window of duplication).
 | `checkpointId` | `string` | The `human:required` crumb's checkpoint |
 | `response` | JSON | Human answer (input tools) or `{ approved }` (ask-gated tools) |
 
+### Cancel request
+
+| Field | Type | Meaning |
+|-------|------|---------|
+| `runId` | `string` | The run to stop — an explicit signal, never inferred from a dropped connection |
+
 ### Mappings
 
 | Envelope | `@breadai/transport-http-chunked` | `@breadai/transport-http-sse` | `@breadai/transport-redis` |
@@ -74,6 +80,7 @@ with `seq >=` (bounded to one in-flight window of duplication).
 | Run request | `POST /agents/:id/run` body | `POST /agents/:id/run` body | — (execution is ingress-local) |
 | Crumb frame | one Bread protocol `CrumbFrame` JSON line per NDJSON chunk | SSE `id: <seq>` + `data: {type, payload}`; catch-up via `Last-Event-ID` on `GET /runs/:runId/stream` | `XADD bread:run:{<runId>} … frame <json>` |
 | Resume frame | `POST /resume/:checkpointId` body | `POST /resume/:checkpointId` body | — |
+| Cancel request | `POST /runs/:runId/cancel` | `POST /runs/:runId/cancel` | — |
 
 ## The Bread protocol
 
@@ -163,6 +170,17 @@ family today** — `config.transport` is one slot, and no package fills both rol
 limitation applies to `@breadai/transport-stdout` (a `sink`, so no `mount` either) — it can back
 `bread chat`/`bread invoke`, but not `bread dev`/`bread start` on the same config.
 
+### Known gap: cancel doesn't cross replicas
+
+`@breadai/transport-http-chunked`/`-http-sse`'s `POST /runs/:runId/cancel` looks up the run's
+`AbortController` in a plain in-memory `Map`, scoped to the replica that's running it — the same
+precedent `@breadai/protocol-a2a-server`'s `tasks/cancel` already has and discloses (`docs/a2a.md`).
+Unlike the passive `GET /runs/:runId/stream` tail (which rides the shared `store`/`transport` and
+works from any replica), there is no shared channel today for a control action like cancel —
+`BreadTransport` only carries crumb frames. A cancel routed by the load balancer to a different
+replica than the one executing the run 404s and does nothing. Single-replica deployments are
+unaffected; this is not silently papered over, just not solved yet.
+
 ## Bring your own ingress
 
 Neither `@breadai/server` nor a transport's `mount()` is a privileged ingress — both compile against
@@ -184,16 +202,28 @@ bread.agents / bread.tasks             // registries, for discovery surfaces
 
 Map your protocol's request onto the envelope above, relay crumb frames in your encoding, and
 keep the dedup rule for reconnects. `@breadai/protocol-mcp-server` is a second worked example (agents and
-tasks exposed as MCP tools).
+tasks exposed as MCP tools). For cancellation, keep your own `Map<runId, AbortController>` and pass
+`{ signal }` into `bread.run(...)`/`resume(...)`/`runPipeline(...)` — never wire it to your
+transport's own connection-abort event; that's the mistake the HTTP transports' cancel endpoint
+exists to avoid. `@breadai/transport-http-chunked`/`-http-sse` and `@breadai/protocol-a2a-server`'s
+`tasks/cancel` are both worked examples of this registry pattern.
 
 ## Contracts & limits
 
 - **The transport has no durability requirement.** Replay is bounded and implementation-defined,
   aggressive trimming/eviction is expected. If a transport is down, runs still execute and
   persist — only cross-replica *live* fan-out (and its bounded replay) degrades.
-- **Execution is pull-driven by the ingress client.** The consumer of the run stream drives the
-  generator; an abandoned stream stalls its run. A work-queue/claim execution model (submit a run,
-  any replica picks it up) is deliberately **post-0.1** — nothing in these seams precludes it,
-  and it will be a separate interface, not a change to `BreadTransport`.
+- **Execution is pull-driven by the ingress client.** Something has to keep calling `next()` on the
+  run's generator for it to progress — an ingress that stops pulling stalls its run. The HTTP
+  transports choose to keep pulling even after their own client disconnects (see Cancellation in
+  [remote-agents.md](./remote-agents.md)), so a dropped connection alone never stalls anything there;
+  a custom ingress that instead ties its pull loop to one specific connection would see the "abandoned
+  stream stalls its run" behavior directly. A work-queue/claim execution model (submit a run, any
+  replica picks it up) is deliberately **post-0.1** — nothing in these seams precludes it, and it
+  will be a separate interface, not a change to `BreadTransport`.
+- **A dropped connection never cancels a run by itself.** Only an explicit cancel does (see
+  Cancellation in [remote-agents.md](./remote-agents.md)) — a disconnect and a deliberate cancel are
+  indistinguishable at the HTTP layer, so treating a disconnect as a cancel would kill runs on every
+  transient network blip.
 - **Crumb payloads must be JSON-serializable.** The one exception — live `BreadError` instances
   on `tool:error`/`agent:error` — is handled by the wire form (`toWireCrumb`/`fromWireCrumb`).

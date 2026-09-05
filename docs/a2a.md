@@ -241,7 +241,9 @@ next real event or the 15s heartbeat ping.
 Only ever cancels a task that's still live **and was started via this same `a2aServer()`
 instance's own `message/stream`/`SendStreamingMessage`** — an in-memory `Map<taskId,
 AbortController>`, scoped to the plugin instance, is populated the moment a stream's first crumb
-reveals its `runId`. A synchronous `message/send`/`SendMessage` task can never be cancelled this
+reveals its `runId` (the same pattern `@breadai/transport-http-chunked`/`-http-sse`'s
+`POST /runs/:runId/cancel` uses, see [transports.md](./transports.md); same per-replica scope, same
+gap in a load-balanced deployment). A synchronous `message/send`/`SendMessage` task can never be cancelled this
 way: its caller has no way to learn the `taskId` until the run has already finished, so there is no
 window in which cancelling it would mean anything — the same constraint `tasks/get`/
 `tasks/resubscribe` already have (both need a `taskId` learned from a prior streaming response to

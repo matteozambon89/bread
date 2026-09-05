@@ -33,18 +33,36 @@ async function* runToSseEvents(makeGen: () => AsyncIterable<BreadCrumb>): AsyncI
   }
 }
 
+// A client disconnect does NOT cancel the run — a dropped connection and a
+// deliberate cancel are indistinguishable at the HTTP layer, and conflating
+// them defeats remote-agent.ts's own reconnect logic. Only an explicit
+// POST /runs/:runId/cancel (see cancelRegistry below) aborts the signal; a
+// disconnect just stops writing into a pipe nobody's reading, while the run
+// keeps being pulled forward and persisted through bread.ts's choke point
+// regardless.
 function streamRun(
   c: { header(k: string, v: string): void },
   makeGen: (signal: AbortSignal) => AsyncIterable<BreadCrumb>,
+  cancelRegistry: Map<string, AbortController>,
 ) {
   return honoStream(c as never, async (s) => {
-    // Ties a client disconnect (or the client's own explicit cancel, relayed
-    // the same way) to the underlying bread.run()/runPipeline()/resume()
-    // call — without this, the agent keeps computing after the client is gone.
     const controller = new AbortController()
-    s.onAbort(() => controller.abort())
-    for await (const event of runToSseEvents(() => makeGen(controller.signal))) {
-      await writeSseEvent(s, event)
+    let disconnected = false
+    s.onAbort(() => {
+      disconnected = true
+    })
+    let runId: string | undefined
+    try {
+      for await (const event of runToSseEvents(() => makeGen(controller.signal))) {
+        const eventRunId = (event.payload as { runId?: string } | undefined)?.runId
+        if (eventRunId && eventRunId !== runId) {
+          runId = eventRunId
+          cancelRegistry.set(runId, controller)
+        }
+        if (!disconnected) await writeSseEvent(s, event)
+      }
+    } finally {
+      if (runId) cancelRegistry.delete(runId)
     }
   })
 }
@@ -62,6 +80,11 @@ export function transport(opts: TransportOptions = {}): BreadTransport {
 
     mount(app: unknown, bread: BreadInstance): void {
       const honoApp = app as Hono
+      // Scoped to this mount()/replica — same in-process-only precedent as
+      // @breadai/protocol-a2a-server's tasks/cancel registry (docs/a2a.md).
+      // A cancel routed to a different replica than the one running it 404s;
+      // see docs/transports.md's known-gap note.
+      const cancelRegistry = new Map<string, AbortController>()
 
       honoApp.post('/agents/:id/run', async (c) => {
         const id = c.req.param('id')
@@ -89,6 +112,7 @@ export function transport(opts: TransportOptions = {}): BreadTransport {
               ...(skill ? { skill } : {}),
               signal,
             }) as AsyncIterable<BreadCrumb>,
+          cancelRegistry,
         )
       })
 
@@ -105,8 +129,10 @@ export function transport(opts: TransportOptions = {}): BreadTransport {
         c.header('Cache-Control', 'no-cache')
         c.header('Connection', 'keep-alive')
 
-        return streamRun(c, (signal) =>
-          bread.runPipeline(pipelineId, (body as { input?: unknown }).input ?? {}, { signal }),
+        return streamRun(
+          c,
+          (signal) => bread.runPipeline(pipelineId, (body as { input?: unknown }).input ?? {}, { signal }),
+          cancelRegistry,
         )
       })
 
@@ -123,7 +149,32 @@ export function transport(opts: TransportOptions = {}): BreadTransport {
         c.header('Cache-Control', 'no-cache')
         c.header('Connection', 'keep-alive')
 
-        return streamRun(c, (signal) => bread.resume(checkpointId, (body as { response?: unknown }).response, { signal }))
+        return streamRun(
+          c,
+          (signal) => bread.resume(checkpointId, (body as { response?: unknown }).response, { signal }),
+          cancelRegistry,
+        )
+      })
+
+      // Explicit cancel — the only thing that stops a run server-side. Gated
+      // by the same authorizeStream hook as the passive tail below: it's now
+      // protecting a mutating action, not just a read.
+      honoApp.post('/runs/:runId/cancel', async (c) => {
+        const runId = c.req.param('runId')
+
+        if (opts.authorizeStream) {
+          const identity = c.get('identity' as never) as AuthIdentity | undefined
+          if (!(await opts.authorizeStream(identity, runId))) {
+            return c.json({ error: 'Forbidden' }, 403)
+          }
+        }
+
+        const controller = cancelRegistry.get(runId)
+        if (!controller) return c.json({ error: 'Run not found or not cancelable' }, 404)
+
+        controller.abort()
+        cancelRegistry.delete(runId)
+        return c.json({ ok: true })
       })
 
       // Passive run stream — tails a run without initiating it, from any

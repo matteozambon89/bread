@@ -101,6 +101,28 @@ export function remoteAgent(opts: HttpChunkedRemoteAgentOptions): RemoteAgent {
       let attempt = 0
       let delay = retryDelayMs
 
+      // Tell the server explicitly to stop the run — a dropped connection
+      // alone no longer cancels anything server-side (see transport.ts's
+      // cancelRegistry). Best-effort and fire-and-forget: the local throw
+      // below never waits on it. If the signal fires before any runId is
+      // known yet, there's nothing to target — a narrow, inherent gap.
+      runOpts?.signal?.addEventListener(
+        'abort',
+        () => {
+          if (!runId) return
+          void (async () => {
+            try {
+              const headers = new Headers(opts.headers)
+              await opts.signer?.sign(headers)
+              await doFetch(`${baseUrl}/runs/${runId}/cancel`, { method: 'POST', headers })
+            } catch {
+              // best-effort
+            }
+          })()
+        },
+        { once: true },
+      )
+
       while (true) {
         const url = runId ? `${baseUrl}/runs/${runId}/stream` : `${baseUrl}/agents/${agentId}/run`
         const headers = new Headers({ Accept: 'application/x-ndjson', ...opts.headers })

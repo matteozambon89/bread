@@ -31,35 +31,51 @@ function toClientError(err: unknown): BreadError {
 // `bread.pipelines` getter) — so both eager and lazy failures land the same
 // way: a synthetic agent:error crumb in the stream (HTTP status stays 200),
 // never a torn-down connection.
+//
+// A client disconnect does NOT cancel the run — a dropped connection and a
+// deliberate cancel are indistinguishable at the HTTP layer, and conflating
+// them defeats remote-agent.ts's own reconnect logic. Only an explicit
+// POST /runs/:runId/cancel (see cancelRegistry below) aborts the signal;
+// a disconnect just stops writing into a pipe nobody's reading, while the
+// run keeps being pulled forward and persisted through bread.ts's choke
+// point regardless.
 async function streamCrumbs(
   s: { write(chunk: string): Promise<unknown>; onAbort(cb: () => void): void },
   makeGen: (signal: AbortSignal) => AsyncIterable<BreadCrumb>,
   fallbackAgentId: string,
+  cancelRegistry: Map<string, AbortController>,
 ): Promise<void> {
-  // Ties a client disconnect (or the client's own explicit cancel, relayed
-  // the same way) to the underlying bread.run()/runPipeline()/resume() call —
-  // without this, the agent keeps computing after every client is gone.
   const controller = new AbortController()
-  s.onAbort(() => controller.abort())
+  let disconnected = false
+  s.onAbort(() => {
+    disconnected = true
+  })
 
   let lastAgentId = fallbackAgentId
   let lastRunId: string | undefined
   try {
     for await (const crumb of makeGen(controller.signal)) {
       lastAgentId = crumb.agentId
-      if (crumb.runId) lastRunId = crumb.runId
-      await s.write(crumbFrameLine(crumb.runId ?? lastRunId ?? '', crumb.seq ?? 0, crumb))
+      if (crumb.runId && crumb.runId !== lastRunId) {
+        lastRunId = crumb.runId
+        cancelRegistry.set(lastRunId, controller)
+      }
+      if (!disconnected) await s.write(crumbFrameLine(crumb.runId ?? lastRunId ?? '', crumb.seq ?? 0, crumb))
     }
   } catch (err) {
     console.error('[bread] transport-http-chunked: run failed:', err)
-    const errorCrumb: AgentErrorCrumb = {
-      type: 'agent:error',
-      agentId: lastAgentId,
-      ...(lastRunId ? { runId: lastRunId } : {}),
-      error: toClientError(err),
-      timestamp: Date.now(),
+    if (!disconnected) {
+      const errorCrumb: AgentErrorCrumb = {
+        type: 'agent:error',
+        agentId: lastAgentId,
+        ...(lastRunId ? { runId: lastRunId } : {}),
+        error: toClientError(err),
+        timestamp: Date.now(),
+      }
+      await s.write(crumbFrameLine(lastRunId ?? '', 0, errorCrumb))
     }
-    await s.write(crumbFrameLine(lastRunId ?? '', 0, errorCrumb))
+  } finally {
+    if (lastRunId) cancelRegistry.delete(lastRunId)
   }
 }
 
@@ -76,6 +92,11 @@ export function transport(opts: TransportOptions = {}): BreadTransport {
 
     mount(app: unknown, bread: BreadInstance): void {
       const honoApp = app as Hono
+      // Scoped to this mount()/replica — same in-process-only precedent as
+      // @breadai/protocol-a2a-server's tasks/cancel registry (docs/a2a.md).
+      // A cancel routed to a different replica than the one running it 404s;
+      // see docs/transports.md's known-gap note.
+      const cancelRegistry = new Map<string, AbortController>()
 
       honoApp.post('/agents/:id/run', async (c) => {
         const id = c.req.param('id')
@@ -102,6 +123,7 @@ export function transport(opts: TransportOptions = {}): BreadTransport {
                 signal,
               }) as AsyncIterable<BreadCrumb>,
             id,
+            cancelRegistry,
           ),
         )
       })
@@ -121,6 +143,7 @@ export function transport(opts: TransportOptions = {}): BreadTransport {
             s,
             (signal) => bread.runPipeline(pipelineId, (body as { input?: unknown }).input ?? {}, { signal }),
             pipelineId,
+            cancelRegistry,
           ),
         )
       })
@@ -140,8 +163,30 @@ export function transport(opts: TransportOptions = {}): BreadTransport {
             s,
             (signal) => bread.resume(checkpointId, (body as { response?: unknown }).response, { signal }),
             checkpointId,
+            cancelRegistry,
           ),
         )
+      })
+
+      // Explicit cancel — the only thing that stops a run server-side. Gated
+      // by the same authorizeStream hook as the passive tail below: it's now
+      // protecting a mutating action, not just a read.
+      honoApp.post('/runs/:runId/cancel', async (c) => {
+        const runId = c.req.param('runId')
+
+        if (opts.authorizeStream) {
+          const identity = c.get('identity' as never) as AuthIdentity | undefined
+          if (!(await opts.authorizeStream(identity, runId))) {
+            return c.json({ error: 'Forbidden' }, 403)
+          }
+        }
+
+        const controller = cancelRegistry.get(runId)
+        if (!controller) return c.json({ error: 'Run not found or not cancelable' }, 404)
+
+        controller.abort()
+        cancelRegistry.delete(runId)
+        return c.json({ ok: true })
       })
 
       // Passive run stream — tails a run without initiating it, from any

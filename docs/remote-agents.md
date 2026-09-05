@@ -90,14 +90,25 @@ const run = bread.run('researcher', input, { signal: controller.signal })
 setTimeout(() => controller.abort(), 5000)
 ```
 
-Both `@breadai/transport-http-chunked` and `@breadai/transport-http-sse`'s `remoteAgent()` attach the
-signal to the underlying `fetch()`, and their `mount()`-ed run-initiating routes tie a client
-disconnect (or this same explicit abort) to an `AbortController` passed into the remote's own
-`bread.run(...)` — so cancelling reaches the remote the same way `RunOptions.signal` already works
-locally (see [agents.md](./agents.md)'s Cancellation section), surfacing as a `RUN_CANCELLED`
-`BreadError` rather than silently being retried as a dropped connection. A genuine network drop
-(no explicit abort) is unaffected — it still reconnects via the existing `maxRetries`/`retryDelayMs`
-mechanism.
+Cancellation is its own explicit signal, not a side effect of the connection dropping — a dropped
+connection and a deliberate cancel are indistinguishable at the HTTP layer, so conflating them would
+either kill runs on every transient network blip or fail to stop a run the caller actually meant to
+cancel. Both `@breadai/transport-http-chunked` and `@breadai/transport-http-sse`'s `remoteAgent()`
+attach the signal to the local `fetch()` (so the local iterator throws `RUN_CANCELLED` immediately,
+per [agents.md](./agents.md)'s Cancellation section) *and*, best-effort, POST to
+`` `${url}/runs/${runId}/cancel` `` — their `mount()`-ed routes keep a per-run `AbortController` in an
+in-memory registry (the same pattern `@breadai/protocol-a2a-server`'s `tasks/cancel` already uses, see
+[a2a.md](./a2a.md)) and only that explicit call aborts it. A plain disconnect — the client's own
+`fetch()` breaking, a proxy timing out, a closed tab — never cancels a run by itself; the run keeps
+executing and persisting normally, and a reconnect via `GET /runs/:runId/stream` picks it back up
+(see [transports.md](./transports.md)'s reconnect/replay contract). If the caller aborts before any
+crumb has arrived, there's no `runId` yet to target — the remote run can't be told to stop in that
+narrow window, an inherent limit of any id-addressed cancel.
+
+**Known gap**: the cancel registry is scoped to one `mount()`/replica. In a load-balanced, multi-
+replica deployment, a cancel routed to a different replica than the one running it 404s — see
+[transports.md](./transports.md)'s Scaled deployment section and [a2a.md](./a2a.md)'s identical,
+already-disclosed limitation for `tasks/cancel`.
 
 ## Limitations
 
