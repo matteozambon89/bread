@@ -7,10 +7,13 @@ instances registered in `providers` (`BreadConfig.providers`, global) or an agen
 ## The built-in catalog
 
 Install [`@breadai/provider-catalog`](https://www.npmjs.com/package/@breadai/provider-catalog) for the
-18 common `@ai-sdk/*` built-ins (`openai`, `anthropic`, `google`, `google-vertex`, `azure`,
+20 common built-ins (`openai`, `anthropic`, `google`, `google-vertex`, `azure`,
 `amazon-bedrock`, `mistral`, `groq`, `cohere`, `xai`, `deepseek`, `togetherai`, `fireworks`,
-`deepinfra`, `cerebras`, `perplexity`, `baseten`, `ollama`), each imported lazily so only the
-provider you actually use pulls in its optional peer dependency:
+`deepinfra`, `cerebras`, `perplexity`, `baseten`, `ollama`, `openrouter`, `workers-ai`), each
+imported lazily so only the provider you actually use pulls in its optional peer dependency.
+`openai` reads `OPENAI_API_KEY` and optionally `OPENAI_BASE_URL`. `openrouter` reads
+`OPENROUTER_API_KEY` (e.g. `openai/gpt-4o-mini`). `workers-ai` reads `CLOUDFLARE_ACCOUNT_ID` and
+`CLOUDFLARE_API_TOKEN` (e.g. `@cf/meta/llama-3.1-8b-instruct`).
 
 ```ts
 import { defineConfig } from '@breadai/core'
@@ -21,6 +24,9 @@ export default defineConfig({
   providers: providerCatalog,
 })
 ```
+
+`@ai-sdk/openai-compatible` isn't included — it has no zero-config default instance (it needs a
+`baseURL`). Spread `createOpenAICompatible` into `providers` under whatever name you like.
 
 ## Bring your own
 
