@@ -119,4 +119,25 @@ describe('runProviderList', () => {
     const cwd = writeManifest()
     await expect(runProviderList({ cwd })).resolves.toBeUndefined()
   })
+
+  test('pads names to the longest catalog key so openai-compatible does not overflow', async () => {
+    const cwd = writeManifest()
+    const logs: string[] = []
+    const origLog = console.log
+    console.log = (...args: unknown[]) => logs.push(args.join(' '))
+    try {
+      await runProviderList({ cwd })
+    } finally {
+      console.log = origLog
+    }
+
+    const printed = logs.join('\n')
+    expect(printed).toContain('openai-compatible')
+    const compatible = logs.find((line) => line.includes('openai-compatible'))
+    const openai = logs.find((line) => / openai\s+/.test(line) || line.includes('  openai '))
+    expect(compatible).toBeDefined()
+    expect(openai).toBeDefined()
+    const pkgCol = (row: string) => row.search(/@ai-sdk\/|ollama-ai-provider|workers-ai-provider|@openrouter\//)
+    expect(pkgCol(compatible!)).toBe(pkgCol(openai!))
+  })
 })

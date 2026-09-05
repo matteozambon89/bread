@@ -8,13 +8,14 @@ interface CatalogEntry {
   // hint for `bread provider add/list` — the @ai-sdk/* package itself is the
   // actual source of truth and throws its own error if one is missing).
   envVars: string[]
-  // workers-ai has no default instance — construct via createWorkersAI(fromEnv()).
+  // No default instance — construct via createXxx(fromEnv()).
   create?: {
     fromEnv: () => Record<string, string>
   }
 }
 
 const WORKERS_AI_ENV = ['CLOUDFLARE_ACCOUNT_ID', 'CLOUDFLARE_API_TOKEN'] as const
+const OPENAI_COMPATIBLE_ENV = ['OPENAI_COMPATIBLE_BASE_URL'] as const
 
 // Every official @ai-sdk/* provider that exposes a default `provider(modelId)`
 // instance, plus catalog entries that construct one from env (see `create`).
@@ -74,6 +75,30 @@ const ENTRIES: Record<string, CatalogEntry> = {
       },
     },
   },
+  'openai-compatible': {
+    pkg: '@ai-sdk/openai-compatible',
+    export: 'createOpenAICompatible',
+    envVars: [...OPENAI_COMPATIBLE_ENV],
+    create: {
+      fromEnv: () => {
+        const unset = OPENAI_COMPATIBLE_ENV.filter((name) => !process.env[name])
+        if (unset.length > 0) {
+          throw new BreadError(
+            `Provider "openai-compatible" is not configured. Missing env vars: ${unset.join(', ')}`,
+            'PROVIDER_NOT_CONFIGURED',
+            { provider: 'openai-compatible', unset },
+          )
+        }
+        const settings: Record<string, string> = {
+          name: 'openai-compatible',
+          baseURL: process.env.OPENAI_COMPATIBLE_BASE_URL!,
+        }
+        const apiKey = process.env.OPENAI_COMPATIBLE_API_KEY
+        if (apiKey) settings.apiKey = apiKey
+        return settings
+      },
+    },
+  },
 }
 
 function missingProvider(provider: string, pkg: string): never {
@@ -113,7 +138,7 @@ async function resolveEntry(provider: string, entry: CatalogEntry, modelId: stri
   return (factory as (id: string) => LanguageModel)(modelId)
 }
 
-// The 20 catalog providers, ready to use as `config.providers` (or spread into
+// The 21 catalog providers, ready to use as `config.providers` (or spread into
 // a larger registry alongside custom entries):
 //
 //   import { providerCatalog } from '@breadai/provider-catalog'
@@ -122,12 +147,8 @@ async function resolveEntry(provider: string, entry: CatalogEntry, modelId: stri
 // Each factory lazy-imports its optional peer on first use, so spreading this
 // object never throws — env is checked on the first resolveModel only.
 //
-// @ai-sdk/openai-compatible is deliberately not included here — it has no
-// zero-config default instance (it needs a baseURL). Build your own entry with
-// `createOpenAICompatible()` and register it under whatever name you like:
-//
-//   import { createOpenAICompatible } from '@ai-sdk/openai-compatible'
-//   providers: { ...providerCatalog, 'my-host': createOpenAICompatible({ baseURL: '...' }) }
+// openai-compatible constructs via createOpenAICompatible(fromEnv()) —
+// OPENAI_COMPATIBLE_BASE_URL is required; OPENAI_COMPATIBLE_API_KEY is optional.
 export const providerCatalog: ProviderRegistry = Object.fromEntries(
   Object.entries(ENTRIES).map(([provider, entry]) => [
     provider,

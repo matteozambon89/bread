@@ -6,7 +6,7 @@
 
 # @breadai/provider-catalog
 
-The 20 official built-in providers, packaged as a ready-made `ProviderRegistry` for
+The 21 official built-in providers, packaged as a ready-made `ProviderRegistry` for
 `config.providers`. Each entry is imported lazily on first use, so installing this package doesn't
 pull in every SDK — you still `bun add` only the ones you actually use.
 
@@ -31,7 +31,8 @@ catalog supplies the common set: `openai` (`OPENAI_API_KEY`, optional `OPENAI_BA
 `anthropic`, `google`, `google-vertex`, `azure`, `amazon-bedrock`, `mistral`, `groq`, `cohere`,
 `xai`, `deepseek`, `togetherai`, `fireworks`, `deepinfra`, `cerebras`, `perplexity`, `baseten`,
 `ollama`, `openrouter` (`OPENROUTER_API_KEY`, e.g. `openai/gpt-4o-mini`), `workers-ai`
-(`CLOUDFLARE_ACCOUNT_ID` + `CLOUDFLARE_API_TOKEN`, e.g. `@cf/meta/llama-3.1-8b-instruct`).
+(`CLOUDFLARE_ACCOUNT_ID` + `CLOUDFLARE_API_TOKEN`, e.g. `@cf/meta/llama-3.1-8b-instruct`),
+`openai-compatible` (`OPENAI_COMPATIBLE_BASE_URL`, optional `OPENAI_COMPATIBLE_API_KEY`).
 
 ## Custom or additional instances
 
@@ -48,8 +49,14 @@ providers: {
 }
 ```
 
-`@ai-sdk/openai-compatible` isn't included — it has no zero-config default instance (it needs a
-`baseURL`). Register it yourself under whatever name you like:
+`openai-compatible` reads `OPENAI_COMPATIBLE_BASE_URL` (required) and optionally
+`OPENAI_COMPATIBLE_API_KEY` (local servers often need no key). Point a model at it:
+
+```ts
+model: { provider: 'openai-compatible', model: '<id>' }
+```
+
+For a second named host, spread `createOpenAICompatible` under another key:
 
 ```ts
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible'
