@@ -8,12 +8,13 @@ interface CatalogEntry {
   // hint for `bread provider add/list` — the @ai-sdk/* package itself is the
   // actual source of truth and throws its own error if one is missing).
   envVars: string[]
-  // No default instance: first resolveModel imports `pkg`, calls fromEnv(),
-  // then `mod[export](settings)(modelId)`. The created provider is cached.
+  // workers-ai has no default instance — construct via createWorkersAI(fromEnv()).
   create?: {
     fromEnv: () => Record<string, string>
   }
 }
+
+const WORKERS_AI_ENV = ['CLOUDFLARE_ACCOUNT_ID', 'CLOUDFLARE_API_TOKEN'] as const
 
 // Every official @ai-sdk/* provider that exposes a default `provider(modelId)`
 // instance, plus catalog entries that construct one from env (see `create`).
@@ -55,12 +56,10 @@ const ENTRIES: Record<string, CatalogEntry> = {
   'workers-ai': {
     pkg: 'workers-ai-provider',
     export: 'createWorkersAI',
-    envVars: ['CLOUDFLARE_ACCOUNT_ID', 'CLOUDFLARE_API_TOKEN'],
+    envVars: [...WORKERS_AI_ENV],
     create: {
       fromEnv: () => {
-        const unset = ['CLOUDFLARE_ACCOUNT_ID', 'CLOUDFLARE_API_TOKEN'].filter(
-          (name) => !process.env[name],
-        )
+        const unset = WORKERS_AI_ENV.filter((name) => !process.env[name])
         if (unset.length > 0) {
           throw new BreadError(
             `Provider "workers-ai" is not configured. Missing env vars: ${unset.join(', ')}`,
