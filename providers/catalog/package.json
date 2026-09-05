@@ -1,7 +1,7 @@
 {
   "name": "@breadai/provider-catalog",
   "version": "0.1.1",
-  "description": "The built-in @ai-sdk/* provider catalog for bread — 18 lazily-imported AI SDK providers as a ready-made ProviderRegistry for config.providers.",
+  "description": "The built-in provider catalog for bread — 20 lazily-imported AI SDK providers as a ready-made ProviderRegistry for config.providers.",
   "license": "MIT",
   "author": "Matteo Zambon <matteo@yeeti.co>",
   "keywords": [
@@ -61,7 +61,9 @@
     "@ai-sdk/perplexity": ">=4.0",
     "@ai-sdk/togetherai": ">=3.0",
     "@ai-sdk/xai": ">=4.0",
-    "ollama-ai-provider-v2": ">=4.0"
+    "@openrouter/ai-sdk-provider": ">=3.0",
+    "ollama-ai-provider-v2": ">=4.0",
+    "workers-ai-provider": ">=4.0"
   },
   "peerDependenciesMeta": {
     "@ai-sdk/openai": {
@@ -118,7 +120,13 @@
     "@ai-sdk/openai-compatible": {
       "optional": true
     },
+    "@openrouter/ai-sdk-provider": {
+      "optional": true
+    },
     "ollama-ai-provider-v2": {
+      "optional": true
+    },
+    "workers-ai-provider": {
       "optional": true
     }
   },

@@ -6,7 +6,7 @@
 
 # @breadai/provider-catalog
 
-The 18 official `@ai-sdk/*` built-in providers, packaged as a ready-made `ProviderRegistry` for
+The 20 official built-in providers, packaged as a ready-made `ProviderRegistry` for
 `config.providers`. Each entry is imported lazily on first use, so installing this package doesn't
 pull in every SDK — you still `bun add` only the ones you actually use.
 
@@ -27,9 +27,11 @@ export default defineConfig({
 
 Core has no built-in providers of its own — `model.provider` resolves against whatever you register
 in `providers` (global) or an agent's own `providers` (per-agent override, checked first). This
-catalog supplies the common set: `openai`, `anthropic`, `google`, `google-vertex`, `azure`,
-`amazon-bedrock`, `mistral`, `groq`, `cohere`, `xai`, `deepseek`, `togetherai`, `fireworks`,
-`deepinfra`, `cerebras`, `perplexity`, `baseten`, `ollama`.
+catalog supplies the common set: `openai` (`OPENAI_API_KEY`, optional `OPENAI_BASE_URL`),
+`anthropic`, `google`, `google-vertex`, `azure`, `amazon-bedrock`, `mistral`, `groq`, `cohere`,
+`xai`, `deepseek`, `togetherai`, `fireworks`, `deepinfra`, `cerebras`, `perplexity`, `baseten`,
+`ollama`, `openrouter` (`OPENROUTER_API_KEY`, e.g. `openai/gpt-4o-mini`), `workers-ai`
+(`CLOUDFLARE_ACCOUNT_ID` + `CLOUDFLARE_API_TOKEN`, e.g. `@cf/meta/llama-3.1-8b-instruct`).
 
 ## Custom or additional instances
 
