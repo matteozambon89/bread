@@ -6,6 +6,7 @@ on:
     paths:
       - 'docs/**'
       - 'assets/brand/**'
+      - 'extensions/ui-orb/**'
       - 'package.json'
       - 'bun.lock'
       - '.github/workflows/pages.yml'
@@ -27,6 +28,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
       - run: bun install --frozen-lockfile
+      - run: bun run --filter='@breadai/ui-orb' build
       - run: bun run docs:build
       - uses: actions/upload-pages-artifact@v4
         with:

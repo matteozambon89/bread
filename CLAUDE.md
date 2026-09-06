@@ -43,6 +43,7 @@ Inside an example or app: `bread dev` (hot-reload server), `bread build`, `bread
 | `@breadai/auth-api-key` | `extensions/auth-api-key` | API-key auth strategy + signer |
 | `@breadai/auth-jwt` | `extensions/auth-jwt` | JWT auth strategy (verification only) |
 | `@breadai/auth-oauth2` | `extensions/auth-oauth2` | OAuth2 bearer-token verify + client-credentials signer |
+| `@breadai/ui-orb` | `extensions/ui-orb` | WebGPU liquid-orb status widget (idle/thinking) — no runtime dependency |
 | `@breadai/transport-stdout` | `transports/stdout` | Terminal-rendering `BreadTransport` (`sink`) for `bread chat`/`bread invoke` |
 | `@breadai/transport-redis` | `transports/redis` | Redis Streams `BreadTransport` (cross-replica crumb fan-out; no `mount`) |
 | `@breadai/transport-http-chunked` | `transports/http-chunked` | HTTP ingress `BreadTransport` (NDJSON) + `remoteAgent()`; recommended default |
