@@ -1,6 +1,6 @@
 {
   "name": "@breadai/store-s3",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "S3-backed BlobStore for bread — binary/file storage via presigned URLs, for any S3-compatible service (AWS S3, R2, MinIO, ...).",
   "license": "MIT",
   "author": "Matteo Zambon <matteo@yeeti.co>",

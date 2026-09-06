@@ -1,6 +1,6 @@
 {
   "name": "@breadai/protocol-mcp-server",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "MCP server plugin for bread — expose selected agents, tasks, tools, and skills as MCP tools over stdio or Streamable HTTP, riding whatever auth middleware your server already has configured.",
   "license": "MIT",
   "author": "Matteo Zambon <matteo@yeeti.co>",
