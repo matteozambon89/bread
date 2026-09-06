@@ -1,0 +1,49 @@
+{
+  "name": "@breadai/ui-orb",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    ".": {
+      "bread-source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@webgpu/types": "^0.1.72",
+    "typescript": "^5.8.3"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "bun build ./src/index.ts --outdir dist --target browser --format esm --packages external && tsc --emitDeclarationOnly --outDir dist"
+  },
+  "description": "Bread's WebGPU liquid-orb UI widget — an idle/thinking status indicator for agent UIs, framework-agnostic (plain factory + optional custom element).",
+  "license": "MIT",
+  "author": "Matteo Zambon <matteo@yeeti.co>",
+  "keywords": [
+    "ai",
+    "agents",
+    "webgpu",
+    "canvas",
+    "widget",
+    "ui",
+    "bread"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/matteozambon89/bread.git",
+    "directory": "extensions/ui-orb"
+  },
+  "homepage": "https://github.com/matteozambon89/bread",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
+}
