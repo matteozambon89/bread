@@ -6,6 +6,7 @@
       "name": "bread",
       "devDependencies": {
         "@braintree/sanitize-url": "^7.1.2",
+        "@breadai/ui-orb": "workspace:*",
         "@types/bun": "latest",
         "@types/node": "^20.0.0",
         "@types/semver": "^7.7.3",
