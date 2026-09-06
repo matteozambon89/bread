@@ -193,6 +193,7 @@ Start with [`docs/architecture.md`](./docs/architecture.md), then:
 [auth](./docs/auth.md) ·
 [otel](./docs/otel.md) ·
 [AG-UI](./docs/ag-ui.md) ·
+[orb](./docs/orb.md) ·
 [HTTP API](./docs/http-api.md) ·
 [store](./docs/store.md) ·
 [glossary](./docs/glossary.md).
