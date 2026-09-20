@@ -11,7 +11,7 @@ the moving parts.
 | `@breadai/server` | File-system loader + Hono server (importable library) |
 | `@breadai/cli` | The `bread` binary |
 | `@breadai/store-postgres`, `@breadai/store-sqlite`, `@breadai/store-memory` | `BreadStore` backends — see [store.md](./store.md) |
-| `@breadai/provider-catalog` | The 20 catalog providers as a `ProviderRegistry` — see [agents.md#providers](./agents.md#providers) |
+| `@breadai/provider-catalog` | The 21 catalog providers as a `ProviderRegistry` — see [agents.md#providers](./agents.md#providers) |
 | `@breadai/otel`, `@breadai/protocol-ag-ui`, `@breadai/protocol-a2a-server`, `@breadai/a2ui`, `@breadai/protocol-mcp-client`, `@breadai/protocol-mcp-server` | Plugins |
 | `@breadai/auth-api-key`, `@breadai/auth-jwt`, `@breadai/auth-oauth2` | Standalone `BreadAuthStrategy`/`BreadSigner` factories — not plugins themselves; wrap with `@breadai/server`'s `authPlugin()` to attach — see [auth.md](./auth.md) |
 | `@breadai/transport-http-chunked`, `@breadai/transport-http-sse` | HTTP ingress `BreadTransport`s — `mount()` the four streaming routes + `remoteAgent()` for `config.remoteAgents` (`transports/http-chunked`, `transports/http-sse`) — see [transports.md](./transports.md) |
