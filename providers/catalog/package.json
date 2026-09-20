@@ -1,6 +1,6 @@
 {
   "name": "@breadai/provider-catalog",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "The built-in provider catalog for bread — 21 lazily-imported AI SDK providers as a ready-made ProviderRegistry for config.providers.",
   "license": "MIT",
   "author": "Matteo Zambon <matteo@yeeti.co>",
