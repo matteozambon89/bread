@@ -65,7 +65,7 @@ export interface ReasoningDeltaCrumb extends BaseCrumb {
 }
 
 // A file the model generated directly as part of its own generation (e.g. an
-// image-generation-capable model) — sourced from the AI SDK's fullStream 'file'
+// image-generation-capable model) — sourced from the AI SDK's stream 'file'
 // part, independent of any tool call. Emitted the instant the file is stored via
 // BlobStore.put(); see AgentRunEndCrumb.files for the run's full accumulated list.
 export interface FileGeneratedCrumb extends BaseCrumb {
@@ -94,7 +94,7 @@ export interface ToolResultCrumb extends BaseCrumb {
 // AsyncIterable<R> return instead of a single Promise<R>) — one crumb per
 // yield, sourced entirely from bread's own drain of the iterable (see
 // executeStreamingToolWithHooks in runner.ts), not from the AI SDK's
-// fullStream 'tool-result'/preliminary parts — same single-source-of-truth
+// stream 'tool-result'/preliminary parts — same single-source-of-truth
 // rule as tool:call/tool:result. No durationMs: not final, no meaningful
 // duration yet.
 export interface ToolResultPartialCrumb extends BaseCrumb {
@@ -106,7 +106,7 @@ export interface ToolResultPartialCrumb extends BaseCrumb {
 
 // Emitted when a tool's execute throws and no onError hook recovers it. The AI
 // SDK's own `tool-error` stream part isn't otherwise surfaced by the runner's
-// fullStream consumer, so this is the only crumb-level signal a passive
+// stream consumer, so this is the only crumb-level signal a passive
 // observer (no hooks configured) gets for a failed tool call.
 export interface ToolErrorCrumb extends BaseCrumb {
   type: 'tool:error'
@@ -119,7 +119,7 @@ export interface ToolErrorCrumb extends BaseCrumb {
 // The tool-call arg-assembly lifecycle, streamed ahead of the existing
 // tool:call crumb (which still carries the complete, parsed args once
 // assembly finishes) — additive, sourced from the AI SDK's
-// tool-input-start/-delta/-end fullStream parts. Named tool:input:* rather
+// tool-input-start/-delta/-end stream parts. Named tool:input:* rather
 // than tool:call:* so `tool:input:end` (assembly finished) can't be misread
 // as "execution finished" (that's tool:result).
 export interface ToolInputStartCrumb extends BaseCrumb {

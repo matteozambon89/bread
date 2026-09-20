@@ -1,13 +1,13 @@
-import type { CallSettings, JSONValue, LanguageModel } from 'ai'
+import type { JSONValue, LanguageModel, LanguageModelCallOptions } from 'ai'
 import { BreadError } from './types.js'
 
 export interface ModelRef {
   provider: string
   model: string
   // Universal AI SDK call settings (maxOutputTokens, temperature, topP, topK,
-  // presencePenalty, frequencyPenalty, stopSequences, seed) — identical shape
-  // for every provider, spread as-is into streamText/generateObject.
-  settings?: CallSettings
+  // presencePenalty, frequencyPenalty, stopSequences, seed, reasoning) —
+  // identical shape for every provider, spread as-is into streamText/generateObject.
+  settings?: LanguageModelCallOptions
   // Provider-specific knobs (e.g. ollama's `think`, anthropic's `thinking`,
   // groq's `reasoningEffort`) — namespaced under `provider` automatically
   // (`providerOptions: { [provider]: providerOptions }`) rather than making
@@ -29,7 +29,7 @@ export type ProviderRegistry = Record<
 // Flattens a ModelRef's settings/providerOptions into what streamText/
 // generateObject expect — the one place this shape is assembled, so
 // runner.ts's two call sites and task.ts's stay in sync.
-export function modelCallOptions(ref: ModelRef): CallSettings & {
+export function modelCallOptions(ref: ModelRef): LanguageModelCallOptions & {
   providerOptions?: Record<string, Record<string, JSONValue>>
 } {
   return {

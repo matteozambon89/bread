@@ -90,8 +90,10 @@ describe('run cancellation — AbortSignal', () => {
 
       expect(error).toBeInstanceOf(BreadError)
       expect((error as BreadError).code).toBe('RUN_CANCELLED')
-      // The supervisor never got to compose its final answer.
-      expect(crumbs.map((c) => c.type)).not.toContain('agent:run:end')
+      expect(crumbs.at(-1)!.type).toBe('agent:error')
+      // The child's run may already have finished (its crumbs were buffered
+      // before abort was observed); the host must not compose a final answer.
+      expect(crumbs.filter((c) => c.type === 'agent:run:end' && c.agentId === 'host')).toHaveLength(0)
     } finally {
       await stop()
     }
