@@ -22,7 +22,7 @@
   },
   "private": true,
   "scripts": {
-    "build": "bun run --filter='*' build",
+    "build": "bun run --filter='!@bread-examples/*' build",
     "typecheck": "bun run --filter='*' typecheck",
     "test": "bun test --conditions bread-source",
     "test:coverage": "bun test --conditions bread-source --coverage",

@@ -10,7 +10,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
       - run: bun install --frozen-lockfile
-      # Build packages first so the `bread` binary and its dist deps exist.
+      # Root build is packages-only; the loop is the example `bread build`.
       - run: bun run build
       - name: bread build every example
         run: |
