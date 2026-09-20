@@ -8,7 +8,7 @@ Internal notes for working on the **bread** monorepo. User-facing docs live in
 ```bash
 bun install               # install all workspace deps
 bun run typecheck         # tsc --noEmit across every package
-bun run build             # build every package to its dist/ (bun build + tsc declarations)
+bun run build             # build every package to its dist/ (bun build + tsc declarations); excludes examples (those are `bread build` inside examples/*)
 bun run test              # bun test
 ```
 
