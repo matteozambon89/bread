@@ -11,7 +11,7 @@ builds the same Hono app via `createServer`, then serves `app.fetch` with
 [`@hono/node-server`](https://github.com/honojs/node-server).
 
 Use this when you need a **Node** process (e.g. Amazon Bedrock AgentCore's
-managed Node runtime). Prefer Bun's `startServer` from `@breadai/server` when
+managed Node runtime). Prefer Bun's `startServer` from `@breadai/runtime-bun` when
 you are already on Bun — that path stays `Bun.serve` and is unchanged by this
 package.
 

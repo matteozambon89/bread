@@ -10,7 +10,7 @@ import { serve } from '@hono/node-server'
 
 const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '::1'])
 
-// Mirrored from @breadai/server's startServer — same floor warning when binding
+// Mirrored from @breadai/runtime-bun's startServer — same floor warning when binding
 // off loopback with no plugin middleware. Not a security gate.
 function warnIfUnguardedNonLoopback(host: string, config: BreadConfig): void {
   if (LOOPBACK_HOSTS.has(host)) return
@@ -25,7 +25,7 @@ function warnIfUnguardedNonLoopback(host: string, config: BreadConfig): void {
 }
 
 /**
- * Node.js counterpart to `@breadai/server`'s Bun `startServer`.
+ * Node.js counterpart to `@breadai/runtime-bun`'s Bun `startServer`.
  *
  * Same opts shape (`port` / `host` / `idleTimeout` from opts or `config.server`,
  * falling back to port 3000 / host `localhost`). For Amazon Bedrock AgentCore
