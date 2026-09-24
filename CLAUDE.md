@@ -27,6 +27,7 @@ Inside an example or app: `bread dev` (hot-reload server), `bread build`, `bread
 |---------|-----|-------|
 | `@breadai/core` | `packages/core` | Core SDK — runtime, runner, types |
 | `@breadai/server` | `packages/server` | Hono server + loader (importable library) |
+| `@breadai/runtime-bun` | `packages/runtime-bun` | Bun listen adapter (`startServer` via `Bun.serve`) |
 | `@breadai/runtime-node` | `packages/runtime-node` | Node listen adapter (`startServerNode` via `@hono/node-server`) |
 | `@breadai/cli` | `packages/cli` | `bread` bin; depends on `@breadai/server` |
 | `@breadai/test-utils` | `packages/test-utils` | Private test harness (`makeBread`, mock models, `storeContractCases`) — not published |

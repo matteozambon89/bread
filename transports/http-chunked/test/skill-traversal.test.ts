@@ -4,7 +4,7 @@ import type { AgentRegistry, BreadConfig, BreadCrumb } from '@breadai/core'
 import { store } from '@breadai/store-memory'
 import { defineTestAgent, mockProvider, mockTextModel } from '@breadai/test-utils'
 import { remoteAgent, transport } from '@breadai/transport-http-chunked'
-import { startServer } from '@breadai/server'
+import { startServer } from '@breadai/runtime-bun'
 
 // Live regression test for SEC-01: a traversal `skill` id reaching
 // `POST /agents/:id/run` must not escape `agentDir/skills/` — real HTTP

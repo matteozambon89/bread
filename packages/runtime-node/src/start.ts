@@ -10,8 +10,7 @@ import { serve } from '@hono/node-server'
 
 const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '::1'])
 
-// Mirrored from @breadai/server's startServer — same floor warning when binding
-// off loopback with no plugin middleware. Not a security gate.
+// Floor warning when binding off loopback with no plugin middleware. Not a security gate.
 function warnIfUnguardedNonLoopback(host: string, config: BreadConfig): void {
   if (LOOPBACK_HOSTS.has(host)) return
   const hasMiddleware = (config.plugins ?? []).some((p) => typeof p.middleware === 'function')
@@ -25,8 +24,6 @@ function warnIfUnguardedNonLoopback(host: string, config: BreadConfig): void {
 }
 
 /**
- * Node.js counterpart to `@breadai/server`'s Bun `startServer`.
- *
  * Same opts shape (`port` / `host` / `idleTimeout` from opts or `config.server`,
  * falling back to port 3000 / host `localhost`). Container hosts often pass
  * `{ host: '0.0.0.0', port: 8080 }` — those are not the defaults here, so local

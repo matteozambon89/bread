@@ -22,12 +22,16 @@ const config = await loadConfig(process.cwd())
 const agents = await loadAgents(process.cwd(), config.entrypoints)
 const { bread, app } = createServer(config, agents, await loadTasks(process.cwd()))
 await bread.start()
-// `app` is a Hono app — mount it yourself, or bind with startServer(config, agents).
+// `app` is a Hono app — mount it yourself, or bind with a runtime adapter:
+//   Bun:  startServer from @breadai/runtime-bun
+//   Node: startServerNode from @breadai/runtime-node
 ```
 
-`startServer` binds via `Bun.serve`. Bread applies no default auth posture — add one yourself via
-`authPlugin(...)` in `config.plugins` (see [auth](https://github.com/matteozambon89/bread/blob/HEAD/docs/auth.md))
-if you want it. Errors reach clients as `{ code, message }` only.
+This package owns `createServer` (and `app.fetch`) only — listen adapters live in
+`@breadai/runtime-bun` / `@breadai/runtime-node`. Bread applies no default auth
+posture — add one yourself via `authPlugin(...)` in `config.plugins` (see
+[auth](https://github.com/matteozambon89/bread/blob/HEAD/docs/auth.md)) if you want
+it. Errors reach clients as `{ code, message }` only.
 
 Part of **[bread](https://github.com/matteozambon89/bread)** — an explicit-by-design framework for AI agents.
 Docs: [HTTP API](https://github.com/matteozambon89/bread/blob/HEAD/docs/http-api.md) ·

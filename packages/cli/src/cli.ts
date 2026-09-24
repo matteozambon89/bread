@@ -12,6 +12,7 @@ import {
   runProviderList,
   runStart,
 } from '@breadai/server'
+import { startServer } from '@breadai/runtime-bun'
 
 async function readStdin(): Promise<string> {
   const chunks: Buffer[] = []
@@ -34,7 +35,7 @@ function enterProjectRoot(dir: string): string {
 
 // Commander options carry no defaults for port/host/idleTimeout so an omitted
 // flag falls through to config.server.{port,host,idleTimeout} (then
-// 3000/localhost/Bun's own default) in startServer — a flag default here
+// 3000/localhost/Bun's own default) in the listen adapter — a flag default here
 // would silently shadow the config.
 function serveOverrides(opts: { port?: string; host?: string; idleTimeout?: string }): {
   port?: number
@@ -64,7 +65,7 @@ program
   )
   .option('--cwd <dir>', 'Project root directory', process.cwd())
   .action(async (opts) => {
-    await runDev({ cwd: enterProjectRoot(opts.cwd), ...serveOverrides(opts) })
+    await runDev({ cwd: enterProjectRoot(opts.cwd), listen: startServer, ...serveOverrides(opts) })
   })
 
 program
@@ -86,7 +87,7 @@ program
   )
   .option('--cwd <dir>', 'Project root directory', process.cwd())
   .action(async (opts) => {
-    await runStart({ cwd: enterProjectRoot(opts.cwd), ...serveOverrides(opts) })
+    await runStart({ cwd: enterProjectRoot(opts.cwd), listen: startServer, ...serveOverrides(opts) })
   })
 
 program

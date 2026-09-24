@@ -6,7 +6,7 @@ import { FIXTURES, spawnCli } from './spawn-helper.js'
 // the flag-beats-config precedence documented in cli.ts's serveOverrides()
 // comment, and (since it's reachable from here) the Phase 2 non-loopback
 // bind warning actually firing through the real CLI, not just the in-process
-// startServer unit test in packages/server/test/bind-warning.test.ts.
+// startServer unit test in packages/runtime-bun/test/bind-warning.test.ts.
 
 const serveProject = resolve(FIXTURES, 'serve-project')
 

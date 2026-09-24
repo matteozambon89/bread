@@ -19,7 +19,8 @@
     "@breadai/test-utils": "workspace:*",
     "@types/bun": "latest",
     "typescript": "^5.8.3",
-    "zod": "^4.4.3"
+    "zod": "^4.4.3",
+    "@breadai/runtime-bun": "workspace:*"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
