@@ -101,4 +101,18 @@ describe('startServerNode', () => {
     const res = await fetch(`http://127.0.0.1:${port}/agents`)
     expect(res.status).toBe(200)
   })
+
+  // Guards the bun-test monorepo: @hono/node-server must not replace
+  // globalThis.Response, or later Bun.serve / MCP / transport files fail with
+  // CLIENT_HTTP_UNEXPECTED_CONTENT (text/plain lightweight Response).
+  test('does not replace globalThis.Response after listen', async () => {
+    const Original = globalThis.Response
+    const { config, agents } = fixture()
+    const port = await freePort()
+    ;({ stop } = await startServerNode(config, agents, { port, host: '127.0.0.1' }))
+    expect(globalThis.Response).toBe(Original)
+    const res = await fetch(`http://127.0.0.1:${port}/agents`)
+    expect(res).toBeInstanceOf(Original)
+    expect(res.status).toBe(200)
+  })
 })

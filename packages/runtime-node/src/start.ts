@@ -52,10 +52,18 @@ export async function startServerNode(
   const { bread, app } = createServer(config, agents, tasks)
   await bread.start()
 
+  // @hono/node-server defaults to overrideGlobalObjects: true, which replaces
+  // globalThis.Request/Response with lightweight polyfills. That is fine on a
+  // dedicated Node process, but under Bun (our monorepo test runner, or any
+  // mixed Bun.serve + node-server process) it poisons native fetch: responses
+  // become "Response (lightweight)" with content-type text/plain, breaking
+  // Bun.serve, MCP SDK CLIENT_HTTP_UNEXPECTED_CONTENT, and transport tests for
+  // every subsequent file in the same process. Keep the platform Response.
   const server = serve({
     fetch: app.fetch,
     port,
     hostname: host,
+    overrideGlobalObjects: false,
   })
 
   if (idleTimeout !== undefined) {
