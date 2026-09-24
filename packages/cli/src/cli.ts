@@ -3,6 +3,7 @@ import { Command } from 'commander'
 import {
   cleanupSessions,
   listSessions,
+  loadConfig,
   runBuild,
   runChat,
   runDev,
@@ -12,7 +13,12 @@ import {
   runProviderList,
   runStart,
 } from '@breadai/server'
-import { startServer } from '@breadai/runtime-bun'
+import {
+  loadBunListen,
+  resolveRuntime,
+  spawnNodeServe,
+  type ServeRuntime,
+} from './runtime.js'
 
 async function readStdin(): Promise<string> {
   const chunks: Buffer[] = []
@@ -49,6 +55,36 @@ function serveOverrides(opts: { port?: string; host?: string; idleTimeout?: stri
   }
 }
 
+const RUNTIME_OPTION =
+  'Listen runtime: bun (in-process) or node (spawn @breadai/runtime-node). Default: config.server.runtime, then bun'
+
+async function runServe(
+  command: 'dev' | 'start',
+  opts: { cwd: string; runtime?: string; port?: string; host?: string; idleTimeout?: string },
+): Promise<void> {
+  const cwd = enterProjectRoot(opts.cwd)
+  const overrides = serveOverrides(opts)
+  const runtime: ServeRuntime = await resolveRuntime({
+    flag: opts.runtime,
+    cwd,
+    loadConfig,
+  })
+
+  // Bun-hosted CLI: in-process only for bun. Node listen always spawns a child
+  // so @hono/node-server never runs inside the Bun process.
+  if (runtime === 'node') {
+    await spawnNodeServe({ command, cwd, ...overrides })
+    return
+  }
+
+  const listen = await loadBunListen()
+  if (command === 'dev') {
+    await runDev({ cwd, listen, ...overrides })
+  } else {
+    await runStart({ cwd, listen, ...overrides })
+  }
+}
+
 const program = new Command()
   .name('bread')
   .description('bread — an explicit-by-design framework for AI agents')
@@ -61,11 +97,12 @@ program
   .option('-H, --host <host>', 'Host to bind (default: config.server.host, then localhost)')
   .option(
     '--idle-timeout <seconds>',
-    'Connection idle timeout (default: config.server.idleTimeout, then Bun.serve\'s own default of 10s)',
+    'Connection idle timeout (seconds). The 10s default is Bun only; node leaves the socket timeout unset unless this flag or config.server.idleTimeout is set',
   )
+  .option('--runtime <name>', RUNTIME_OPTION)
   .option('--cwd <dir>', 'Project root directory', process.cwd())
   .action(async (opts) => {
-    await runDev({ cwd: enterProjectRoot(opts.cwd), listen: startServer, ...serveOverrides(opts) })
+    await runServe('dev', opts)
   })
 
 program
@@ -83,11 +120,12 @@ program
   .option('-H, --host <host>', 'Host to bind (default: config.server.host, then localhost)')
   .option(
     '--idle-timeout <seconds>',
-    'Connection idle timeout (default: config.server.idleTimeout, then Bun.serve\'s own default of 10s)',
+    'Connection idle timeout (seconds). The 10s default is Bun only; node leaves the socket timeout unset unless this flag or config.server.idleTimeout is set',
   )
+  .option('--runtime <name>', RUNTIME_OPTION)
   .option('--cwd <dir>', 'Project root directory', process.cwd())
   .action(async (opts) => {
-    await runStart({ cwd: enterProjectRoot(opts.cwd), listen: startServer, ...serveOverrides(opts) })
+    await runServe('start', opts)
   })
 
 program
