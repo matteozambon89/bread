@@ -8,11 +8,18 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
-    }
+    },
+    "./bin": {
+      "bread-source": "./src/bin.ts",
+      "types": "./dist/bin.d.ts",
+      "import": "./dist/bin.js",
+      "default": "./dist/bin.js"
+    },
+    "./package.json": "./package.json"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "build": "bun build ./src/index.ts --outdir dist --target node --format esm --packages external && tsc --emitDeclarationOnly --outDir dist"
+    "build": "bun build ./src/index.ts ./src/bin.ts --outdir dist --target node --format esm --packages external && tsc --emitDeclarationOnly --outDir dist"
   },
   "dependencies": {
     "@breadai/core": "workspace:>=0.1.1 <1.0.0",
@@ -54,9 +61,12 @@
     "README.md"
   ],
   "engines": {
-    "node": ">=22"
+    "node": ">=22.18"
   },
   "publishConfig": {
     "access": "public"
+  },
+  "bin": {
+    "bread-runtime-node": "./dist/bin.js"
   }
 }

@@ -5,6 +5,8 @@ import type { AgentRegistry } from '@breadai/core'
 
 export interface DevOptions {
   cwd: string
+  // bread-runtime-node injects startServerNode; the Bun CLI omits this and uses startServer.
+  listen?: typeof startServer
   // Omitted flags fall through to config.server.{port,host,idleTimeout} in startServer.
   port?: number | undefined
   host?: string | undefined
@@ -12,6 +14,7 @@ export interface DevOptions {
 }
 
 export async function runDev(opts: DevOptions): Promise<void> {
+  const listen = opts.listen ?? startServer
   let stop: (() => Promise<void>) | null = null
   let agents: AgentRegistry = new Map()
 
@@ -26,7 +29,7 @@ export async function runDev(opts: DevOptions): Promise<void> {
     agents = await loadAgents(opts.cwd, config.entrypoints)
     const tasks = await loadTasks(opts.cwd)
 
-    const server = await startServer(
+    const server = await listen(
       config,
       agents,
       {

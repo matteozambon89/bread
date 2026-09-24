@@ -3,6 +3,8 @@ import { startServer } from '../server.js'
 
 export interface StartOptions {
   cwd: string
+  // bread-runtime-node injects startServerNode; the Bun CLI omits this and uses startServer.
+  listen?: typeof startServer
   // Omitted flags fall through to config.server.{port,host,idleTimeout} in startServer.
   port?: number | undefined
   host?: string | undefined
@@ -10,10 +12,11 @@ export interface StartOptions {
 }
 
 export async function runStart(opts: StartOptions): Promise<void> {
+  const listen = opts.listen ?? startServer
   const config = await loadConfig(opts.cwd)
   const agents = await loadAgents(opts.cwd, config.entrypoints)
   const tasks = await loadTasks(opts.cwd)
-  const { stop } = await startServer(
+  const { stop } = await listen(
     config,
     agents,
     {
