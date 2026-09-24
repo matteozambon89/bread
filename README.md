@@ -77,6 +77,7 @@ export default defineConfig({
 ### Runtime
 
 `bread` runs on **Bun** — the `@breadai/store-sqlite` store (`bun:sqlite`) works out of the box.
+For a Node process, `@breadai/runtime-node` (`startServerNode` via `@hono/node-server`) is the listen adapter; on Bun, use `startServer` from `@breadai/server`.
 
 ## Project layout
 
