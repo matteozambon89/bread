@@ -10,6 +10,7 @@ the moving parts.
 | `@breadai/core` | SDK: `defineAgent`/`defineTool`/…, the runner, sessions, KG/documents, checkpoints, plugins, types |
 | `@breadai/server` | File-system loader + Hono server (importable library) |
 | `@breadai/cli` | The `bread` binary |
+| `@breadai/runtime-bun`, `@breadai/runtime-node` | Listen adapters (`Bun.serve` / `@hono/node-server`); CLI selects via `--runtime` / `config.server.runtime` |
 | `@breadai/store-postgres`, `@breadai/store-sqlite`, `@breadai/store-memory` | `BreadStore` backends — see [store.md](./store.md) |
 | `@breadai/provider-catalog` | The 21 catalog providers as a `ProviderRegistry` — see [agents.md#providers](./agents.md#providers) |
 | `@breadai/otel`, `@breadai/protocol-ag-ui`, `@breadai/protocol-a2a-server`, `@breadai/a2ui`, `@breadai/protocol-mcp-client`, `@breadai/protocol-mcp-server` | Plugins |
