@@ -126,11 +126,25 @@ export default defineConfig({
 | `bread sessions cleanup` | Bulk delete (`--older-than <days>`, `--tag`) |
 | `bread provider list` | List catalog providers with install/env status for this project |
 | `bread provider add <name>` | Install a catalog provider's peer package and show required env vars |
-| `bread init [dir]` | Scaffold a project (`--runtime`, `--store`, `--transport`, `--agent`, `--provider`, `--model`, `--no-install`). `--provider` and `--model` are required. A TTY missing another choice errors and names the flag |
-| `bread agent add <id>` | Add an agent (`--provider` and `--model` required) and insert its id into a plain `entrypoints` list |
-| `bread tool add <agent> <name>` | Write a tool (`--human` for a human tool). Names match `^[a-z][a-z0-9_]*$` |
-| `bread skill add <agent> <id>` | Write `SKILL.md` |
-| `bread agent eval <agent> <name>` | Write an eval file (does not run `bread eval`) |
+| `bread init [dir]` | Scaffold a project. On a TTY, a wizard asks the questions below. Without a TTY, runtime, store, transport, agent, and install keep their defaults; `--provider` and `--model` are required |
+| `bread agent add [id]` | Add an agent and insert its id into a plain `entrypoints` list. A TTY asks for a missing id, `--provider`, and `--model` |
+| `bread tool add [agent] [name]` | Write a tool (`--human` for a human tool). Names match `^[a-z][a-z0-9_]*$` |
+| `bread skill add [agent] [id]` | Write `SKILL.md` (`--description` stays a flag) |
+| `bread agent eval [agent] [name]` | Write an eval file (does not run `bread eval`) |
+
+On a TTY, `bread init` asks in this order. A passed flag is not asked. An existing `bread.config.ts`, `package.json`, or `agents/` throws `SCAFFOLD_EXISTS` before the first question. Enter accepts the default for runtime, store, transport, agent, and install. Provider and model have no default: a blank answer is asked again. Cancel exits 0 and, before any write, leaves the directory unchanged. Without a TTY, missing `--provider` or `--model` throws and writes nothing. A flag-only init that never asks is unchanged.
+
+| Order | Question | Prompt | Default |
+|-------|----------|--------|---------|
+| 1 | Runtime | select | `bun` |
+| 2 | Store | select | `sqlite` on bun; on node, `memory` or `postgres` only, default `memory` |
+| 3 | Transport | select | `chunked` |
+| 4 | Agent id | text | `assistant` (an invalid id is asked again) |
+| 5 | Install | confirm | yes |
+| 6 | Provider | text | none — a blank answer is asked again |
+| 7 | Model id | text | none — a blank answer is asked again |
+
+The chosen provider and model are written into `agents/<id>/agent.ts`. When install runs, `bread provider add <provider>` runs after `bun install`. `--no-install` prints that command instead. The outro names that provider, not a hardcoded one. Add commands ask with text only for a missing name; `--human` and `--description` stay flags. Tool, skill, and eval do not ask for a provider or model.
 
 ## HTTP API
 

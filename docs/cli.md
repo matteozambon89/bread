@@ -16,11 +16,11 @@ through the same core `bread.run(agentId, input, opts)` the HTTP server uses.
 | `bread sessions cleanup` | Bulk delete (`--older-than <days>`, `--tag`) |
 | `bread provider list` | List catalog providers with install/env status for this project |
 | `bread provider add <name>` | Install a catalog provider's peer package and show required env vars |
-| `bread init [dir]` | Scaffold a project (flags only; `--provider` and `--model` are required; a TTY missing another choice errors and names the flag) |
-| `bread agent add <id>` | Add an agent (`--provider` and `--model` required) and insert its id into `entrypoints` |
-| `bread agent eval <agent> <name>` | Write `agents/<agent>/evals/<name>.eval.ts` (does not run evals) |
-| `bread tool add <agent> <name>` | Write a `defineTool` (`--human` writes `defineHumanTool`) |
-| `bread skill add <agent> <id>` | Write `agents/<agent>/skills/<id>/SKILL.md` |
+| `bread init [dir]` | Scaffold a project (TTY wizard; without a TTY, runtime, store, transport, agent, and install keep their defaults, and `--provider` and `--model` are required) |
+| `bread agent add [id]` | Add an agent (`--provider` and `--model`; a TTY asks when omitted) and insert its id into `entrypoints` |
+| `bread agent eval [agent] [name]` | Write `agents/<agent>/evals/<name>.eval.ts` (does not run evals) |
+| `bread tool add [agent] [name]` | Write a `defineTool` (`--human` writes `defineHumanTool`) |
+| `bread skill add [agent] [id]` | Write `agents/<agent>/skills/<id>/SKILL.md` |
 
 All commands accept `--cwd <dir>` to point at a project root other than the current
 directory. The command **enters** that directory, so relative paths in `bread.config.ts`
@@ -102,14 +102,28 @@ A `.gitignore` already in that directory is not a project marker. Its bytes stay
 any of `node_modules`, `.env`, `bread.db`, `bread.db-shm`, and `bread.db-wal` that are
 not already lines in the file are appended.
 
-This layer is flags only. It does not prompt. On a TTY, a missing `--runtime`,
-`--store`, `--transport`, or `--agent` throws and names the flag. Without a TTY those
-use defaults, and install still runs unless `--no-install` is set. `--provider` and
-`--model` have no default: missing either throws and writes nothing, on a TTY and
-without one. An unknown provider throws `UNKNOWN_PROVIDER` before any file is written.
-Only the catalog's own keys count, so an inherited name such as `constructor` throws
-`UNKNOWN_PROVIDER` before any write and before `bun install`. The model is any non-empty
-string.
+On a TTY, `@clack/prompts` runs one wizard (`intro('bread')` once). A flag that was
+passed is not asked. Enter accepts the default for runtime, store, transport, agent,
+and install. Provider and model have no default: a blank answer is asked again, and it
+is not a skip. Without a TTY, runtime, store, transport, agent, and install keep their
+defaults (`bun`, `sqlite` or `memory` on node, `chunked`, `assistant`, install), and a
+missing `--provider` or `--model` throws and writes nothing. An existing
+`bread.config.ts`, `package.json`, or `agents/` throws `SCAFFOLD_EXISTS` before the
+first question, with the same error `runInit` throws. `runInit` checks those markers
+again. A flag-only init that never asks is unchanged. Cancel (`isCancel`) calls
+`cancel` and exits 0. If that happens before any write, the directory is unchanged.
+That exit 0 is only the question path. The wizard lives in the CLI. `runInit` and the
+add runners do not read stdin.
+
+| Order | Question | Prompt | Default |
+|-------|----------|--------|---------|
+| 1 | Runtime | select | `bun` (`node` is the other choice) |
+| 2 | Store | select | `sqlite` on bun. On node the choices are `memory` and `postgres` only, default `memory` |
+| 3 | Transport | select | `chunked` (`sse` is the other choice) |
+| 4 | Agent id | text | `assistant`. An invalid id is asked again |
+| 5 | Install | confirm | yes (`initialValue: true`). Skipped when `--no-install` was passed |
+| 6 | Provider | text | none. A blank answer is asked again. Checked against the catalog before any write |
+| 7 | Model id | text | none. A blank answer is asked again. Any non-empty string |
 
 | Flag | Meaning |
 |------|---------|
@@ -117,9 +131,9 @@ string.
 | `--store sqlite\|memory\|postgres` | Default `sqlite` for bun, `memory` for node, when there is no TTY. |
 | `--transport chunked\|sse` | HTTP ingress. Default `chunked` when there is no TTY. |
 | `--agent <id>` | Agent to create. Default `assistant` when there is no TTY. |
-| `--provider <name>` | Catalog provider id. Required. Written into `agents/<id>/agent.ts`. |
-| `--model <id>` | Model id. Required. Any non-empty string. Written into `agents/<id>/agent.ts`. |
-| `--no-install` | Skip `bun install`. |
+| `--provider <name>` | Catalog provider id. Required. No default. Written into `agents/<id>/agent.ts`. |
+| `--model <id>` | Model id. Required. No default. Any non-empty string. Written into `agents/<id>/agent.ts`. |
+| `--no-install` | Skip `bun install` and the provider package install. Not asked when passed. |
 
 `--runtime node` depends on `@breadai/runtime-node`, sets `engines.node` to `>=22.18`, and
 defaults the store to memory. Bun projects do not depend on `@breadai/runtime-bun`.
@@ -127,13 +141,25 @@ defaults the store to memory. Bun projects do not depend on `@breadai/runtime-bu
 `bun:sqlite`. Postgres uses `store()` from `@breadai/store-postgres`. SSE imports
 `@breadai/transport-http-sse`.
 
-`agents/<id>/agent.ts` sets `model.provider` and `model.model` to those strings.
-`bread.config.ts` keeps `providers: providerCatalog`. Init does not install the provider
-package. Success text names `bread provider add <provider>`, then `bread dev`. A postgres
-project also says to set `DATABASE_URL`. If `bun install` fails, the files stay and the
-error says they were written and install failed. If a write fails, only the paths
-this call created are removed and a pre-existing `.gitignore` is left as it was. A
-failed `bun install` is not rolled back.
+`agents/<id>/agent.ts` sets `model.provider` and `model.model` to JSON string literals
+for the chosen provider and model. `bread.config.ts` keeps `providers: providerCatalog`.
+An unknown provider throws `UNKNOWN_PROVIDER` before any file is written. Only the
+catalog's own keys count, so an inherited name such as `constructor` throws before any
+write and before `bun install` or `bun add`. When install
+runs, `bread provider add <provider>` runs after `bun install` succeeds. Each command
+prints a status line, then its output — not a Clack spinner, which would take raw mode
+and `process.exit(0)` on Ctrl+C without signalling the child. Ctrl+C during either
+command kills that child and exits non-zero. `--no-install` prints
+`bread provider add <provider>` instead of installing it. The outro names that provider,
+then `bread dev` — it does not name a different provider. The outro also names the
+scaffolded directory. A postgres project also says to set `DATABASE_URL`. If
+`bun install` fails, the files stay and the error says they were written and install
+failed. If a write fails, only the paths this call created are removed and a
+pre-existing `.gitignore` is left as it was. A failed `bun install` is not rolled back.
+If the catalog package install fails after those files were written, the error says
+the project files were already written, that a second `bread init` will refuse with
+`SCAFFOLD_EXISTS`, and it keeps the underlying `bun add` failure. `bread provider add`
+on an existing project keeps its own error and does not add that wording.
 
 ### Adding files
 
@@ -142,10 +168,14 @@ require `agents/<agent>/agent.ts` — they do not create the agent. A duplicate 
 directory, tool file, skill directory, or eval file writes nothing. A missing name throws
 and writes nothing.
 
-- `bread agent add <id>` requires `--provider` and `--model`, writes those into the agent file, then inserts the id into `entrypoints`. Tool, skill, and eval do not take those flags.
-- `bread tool add <agent> <name>` writes `defineTool`. `--human` writes `defineHumanTool`.
-- `bread skill add <agent> <id>` writes `SKILL.md`. Optional `--description`.
-- `bread agent eval <agent> <name>` writes one functional eval. It does not change `bread eval`.
+On a TTY, each missing name is one text prompt. There is no default. Without a TTY, a
+missing name throws before prompting and writes nothing. `--human` and `--description`
+stay flags and are not asked. Cancel exits 0; before any write, the directory is unchanged.
+
+- `bread agent add [id]` also takes `--provider` and `--model`. A TTY asks for each one that was not passed; a blank answer is asked again. Without a TTY, missing either throws and writes nothing. It writes those strings into the agent file, then inserts the id into `entrypoints`.
+- `bread tool add [agent] [name]` writes `defineTool`. `--human` writes `defineHumanTool`. It does not take `--provider` or `--model`.
+- `bread skill add [agent] [id]` writes `SKILL.md`. Optional `--description`. It does not take `--provider` or `--model`.
+- `bread agent eval [agent] [name]` writes one functional eval. It does not change `bread eval`, and it does not take `--provider` or `--model`.
 
 **Names.** Agent ids match `^[a-z][a-z0-9]*([_-][a-z0-9]+)*$` (`assistant`, `ticket-lookup`).
 Tool names, skill ids, and eval stems use `assertName` (`^[a-z][a-z0-9_]*$`). `web-search`
