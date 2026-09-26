@@ -22,6 +22,10 @@ bun add -g @breadai/cli   # or: npm i -g @breadai/cli
 | `bread eval` | Run the project's evals |
 | `bread sessions list\|cleanup` | Inspect / prune stored sessions |
 
+## Listen runtime
+
+Default listen is Bun (`@breadai/runtime-bun`, a dependency of `@breadai/cli`, in-process). For Node listen, install the optional peer `@breadai/runtime-node` and pass `--runtime node` (or set `config.server.runtime: 'node'`) — the CLI spawns a Node child so `@hono/node-server` never runs inside the Bun process. That child loads `bread.config.ts` and agents, so `bun:` imports (`@breadai/store-sqlite`) fail and the postgres or memory store is required.
+
 ## Requires Bun
 
 **`bread` requires [Bun](https://bun.sh).** It runs `bun:sqlite` (`@breadai/store-sqlite`) with

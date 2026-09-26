@@ -46,6 +46,15 @@
     "@breadai/transport-stdout": "workspace:*",
     "@types/bun": "latest",
     "typescript": "^5.8.3",
-    "zod": "^4.4.3"
+    "zod": "^4.4.3",
+    "@breadai/runtime-node": "workspace:*"
+  },
+  "peerDependencies": {
+    "@breadai/runtime-node": "workspace:>=0.1.0 <1.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@breadai/runtime-node": {
+      "optional": true
+    }
   }
 }

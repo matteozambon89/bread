@@ -63,11 +63,16 @@ private export condition, **not** `publishConfig` (bun ignores `publishConfig.ex
 
 Builds use `--packages external` so deps (`ai`, `zod`, `@breadai/core`, …) stay external instead of being inlined.
 
-## CLI runtime (Bun-only)
+## CLI runtime (Bun-hosted; listen via runtime-*)
 
 `@breadai/cli` ships one bin built from a shared program (`src/cli.ts`, shebang-free, exports
 `run()`): `bread` → `src/bin.ts` (`#!/usr/bin/env bun`) — runs under Bun so `bun:sqlite`
 (`@breadai/store-sqlite`) resolves with no extra flags.
+
+Listen is injected as a `ListenFn`: `--runtime` / `config.server.runtime` maps `bun` →
+`@breadai/runtime-bun` (in-process) and `node` → `@breadai/runtime-node` (spawn Node child).
+Never import `@hono/node-server` inside the Bun CLI process. `@breadai/runtime-bun` is a
+dependency of `@breadai/cli`; `@breadai/runtime-node` is an optional peer.
 
 Bundled `--target node` (a node-target ESM bundle runs fine under Bun) so `bun run dev`/
 `bun run build` respect the bin's shebang, with no per-example config.

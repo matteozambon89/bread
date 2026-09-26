@@ -855,7 +855,16 @@ export interface BreadConfig {
   // `bodyLimit` (see `createServer`). Defaults to 1 MB; a caller over the
   // limit gets a 413. Rate limiting / concurrency protection is deliberately
   // not built in — front the server with a gateway/rate limiter if you need it.
-  server?: { port?: number; host?: string; idleTimeout?: number; maxBodyBytes?: number }
+  // runtime: which listen adapter the CLI uses (`bun` → @breadai/runtime-bun,
+  // `node` → @breadai/runtime-node). CLI `--runtime` beats this; default `bun`.
+  // Deno / Workers / AgentCore are intentionally not part of this map.
+  server?: {
+    port?: number
+    host?: string
+    idleTimeout?: number
+    maxBodyBytes?: number
+    runtime?: 'bun' | 'node'
+  }
   // Run-wide default credential resolver, consulted by any tool that doesn't
   // set its own `credentialProvider`. Omit it to keep today's behavior
   // (unscoped `process.env` access via the implicit `envProvider()` fallback).

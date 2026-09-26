@@ -330,6 +330,7 @@
       },
       "devDependencies": {
         "@breadai/core": "workspace:*",
+        "@breadai/runtime-node": "workspace:*",
         "@breadai/store-memory": "workspace:*",
         "@breadai/test-utils": "workspace:*",
         "@breadai/transport-http-chunked": "workspace:*",
@@ -338,6 +339,12 @@
         "typescript": "^5.8.3",
         "zod": "^4.4.3",
       },
+      "peerDependencies": {
+        "@breadai/runtime-node": "workspace:>=0.1.0 <1.0.0",
+      },
+      "optionalPeers": [
+        "@breadai/runtime-node",
+      ],
     },
     "packages/core": {
       "name": "@breadai/core",
@@ -374,6 +381,9 @@
     "packages/runtime-node": {
       "name": "@breadai/runtime-node",
       "version": "0.1.0",
+      "bin": {
+        "bread-runtime-node": "./dist/bin.js",
+      },
       "dependencies": {
         "@breadai/core": "workspace:>=0.1.1 <1.0.0",
         "@breadai/server": "workspace:>=0.1.3 <1.0.0",

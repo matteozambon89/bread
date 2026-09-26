@@ -6,9 +6,9 @@ through the same core `bread.run(agentId, input, opts)` the HTTP server uses.
 
 | Command | What it does |
 |---------|--------------|
-| `bread dev` | Dev server with hot reload (`-p` port, `-H` host — omitted flags fall through to `config.server.{port,host}`, then `3000`/`localhost`) |
+| `bread dev` | Dev server with hot reload (`-p` port, `-H` host, `--runtime bun or node` — omitted flags fall through to `config.server.{port,host,runtime}`, then `3000`/`localhost`/`bun`) |
 | `bread build` | Validate every agent has an `inputSchema`, `outputSchema`, and complete `model` config |
-| `bread start` | Production server (no watch) |
+| `bread start` | Production server (no watch; same port/host/runtime flags as `dev`) |
 | `bread chat [agent]` | Interactive REPL with an agent (supports HITL) |
 | `bread invoke <agent> [input]` | Run an agent once, non-interactively (no HITL) |
 | `bread eval [path]` | Run evals in `agents/**/evals/*.eval.ts` |
@@ -21,6 +21,19 @@ All commands accept `--cwd <dir>` to point at a project root other than the curr
 directory. The command **enters** that directory, so relative paths in `bread.config.ts`
 (e.g. a SQLite file) resolve against the project root, exactly as if you had run the
 command from there.
+
+## Listen runtime (`--runtime` / `config.server.runtime`)
+
+`bread` is Bun-hosted (`#!/usr/bin/env bun`). Listen adapters are separate packages:
+
+| Runtime | Package | How the CLI listens |
+|---------|---------|---------------------|
+| `bun` (default) | `@breadai/runtime-bun` | In-process `Bun.serve` |
+| `node` | `@breadai/runtime-node` | Spawns a `node` child running that package's bin — never loads `@hono/node-server` into the Bun process |
+
+Resolution: `--runtime` → `config.server.runtime` → `bun`. `@breadai/runtime-bun` is a dependency of `@breadai/cli`. `@breadai/runtime-node` is an optional peer.
+
+The node child loads `bread.config.ts` and agents, so `bun:` imports (`@breadai/store-sqlite`) fail and the postgres or memory store is required.
 
 ## `build`
 
