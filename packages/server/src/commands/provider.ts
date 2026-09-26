@@ -1,5 +1,6 @@
 import { BreadError } from '@breadai/core'
 import { providerEntries } from '@breadai/provider-catalog'
+import { spawnCommand } from './spawn.js'
 
 export interface ProviderListOptions {
   cwd: string
@@ -8,6 +9,8 @@ export interface ProviderListOptions {
 export interface ProviderAddOptions {
   cwd: string
   name: string
+  /** Collect status and installer output instead of writing to the terminal. */
+  log?: (line: string) => void
 }
 
 interface PackageManifest {
@@ -66,17 +69,18 @@ export async function runProviderList(opts: ProviderListOptions): Promise<void> 
 export async function runProviderAdd(opts: ProviderAddOptions): Promise<void> {
   const entry = requireEntry(opts.name)
   const manifest = await readManifest(opts.cwd)
+  const log = (line: string): void => {
+    if (opts.log) opts.log(line)
+    else console.log(line)
+  }
+  const capture = opts.log !== undefined
 
   if (isInstalled(manifest, entry.pkg)) {
-    console.log(`[bread] ${entry.pkg} is already installed`)
+    log(`[bread] ${entry.pkg} is already installed`)
   } else {
-    console.log(`[bread] Installing ${entry.pkg}...`)
-    const proc = Bun.spawn(['bun', 'add', entry.pkg], {
-      cwd: opts.cwd,
-      stdout: 'inherit',
-      stderr: 'inherit',
-    })
-    const exitCode = await proc.exited
+    log(`[bread] Installing ${entry.pkg}...`)
+    const { exitCode, output } = await spawnCommand(['bun', 'add', entry.pkg], opts.cwd, capture)
+    if (output.trim() !== '') log(output.trimEnd())
     if (exitCode !== 0) {
       throw new BreadError(`\`bun add ${entry.pkg}\` failed (exit ${exitCode})`, 'PROVIDER_INSTALL_FAILED', {
         provider: opts.name,
@@ -87,15 +91,15 @@ export async function runProviderAdd(opts: ProviderAddOptions): Promise<void> {
 
   if (entry.envVars.length > 0) {
     const missing = missingEnvVars(entry.envVars)
-    console.log(`[bread] ${opts.name} reads: ${entry.envVars.join(', ')}`)
+    log(`[bread] ${opts.name} reads: ${entry.envVars.join(', ')}`)
     if (missing.length > 0) {
-      console.log(`[bread] Not currently set: ${missing.join(', ')}`)
+      log(`[bread] Not currently set: ${missing.join(', ')}`)
     }
   } else {
-    console.log(`[bread] ${opts.name} needs no env vars (zero-config)`)
+    log(`[bread] ${opts.name} needs no env vars (zero-config)`)
   }
 
-  console.log(
+  log(
     `[bread] Set this agent's model to use it: model: { provider: '${opts.name}', model: '<model-id>' }` +
       ' (or via env vars, if the agent reads process.env for them).',
   )

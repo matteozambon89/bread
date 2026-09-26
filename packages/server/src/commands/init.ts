@@ -3,6 +3,7 @@ import { join, resolve } from 'node:path'
 import { BreadError } from '@breadai/core'
 import { assertKnownProvider, assertModelId } from '../scaffold/catalog.js'
 import { assertAgentId, pathExists } from '../scaffold/names.js'
+import { spawnCommand } from './spawn.js'
 import {
   GITIGNORE,
   PROMPT_MD,
@@ -23,6 +24,8 @@ export interface InitOptions {
   provider: string
   model: string
   noInstall?: boolean
+  /** When false, skip the next-step lines. The CLI wizard prints those itself. */
+  announce?: boolean
 }
 
 const RUNTIMES = new Set<ListenRuntime>(['bun', 'node'])
@@ -44,6 +47,10 @@ function assertChoices(opts: InitOptions): void {
       { runtime: opts.runtime, store: opts.store },
     )
   }
+}
+
+export async function assertInitTarget(dir: string): Promise<void> {
+  await assertTarget(resolve(dir))
 }
 
 async function assertTarget(root: string): Promise<void> {
@@ -131,24 +138,24 @@ export async function runInit(opts: InitOptions): Promise<void> {
     throw err
   }
 
-  if (!opts.noInstall) {
-    const proc = Bun.spawn(['bun', 'install'], {
-      cwd: root,
-      stdout: 'inherit',
-      stderr: 'inherit',
-    })
-    const exitCode = await proc.exited
-    if (exitCode !== 0) {
-      throw new BreadError(
-        `Project files were written, but bun install failed (exit ${exitCode}).`,
-        'SCAFFOLD_INSTALL_FAILED',
-        { cwd: root, exitCode },
-      )
-    }
-  }
+  if (!opts.noInstall) await runScaffoldInstall(root)
 
+  if (opts.announce === false) return
   console.log(`[bread] Scaffolded ${root}`)
   console.log(`[bread] bread provider add ${provider}`)
   console.log('[bread] bread dev')
   if (opts.store === 'postgres') console.log('[bread] Set DATABASE_URL')
+}
+
+export async function runScaffoldInstall(cwd: string, opts?: { capture?: boolean }): Promise<string> {
+  const capture = opts?.capture === true
+  const { exitCode, output } = await spawnCommand(['bun', 'install'], cwd, capture)
+  if (exitCode !== 0) {
+    throw new BreadError(
+      `Project files were written, but bun install failed (exit ${exitCode}).`,
+      'SCAFFOLD_INSTALL_FAILED',
+      { cwd, exitCode, ...(capture && output ? { output } : {}) },
+    )
+  }
+  return output
 }
