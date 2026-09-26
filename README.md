@@ -126,6 +126,11 @@ export default defineConfig({
 | `bread sessions cleanup` | Bulk delete (`--older-than <days>`, `--tag`) |
 | `bread provider list` | List catalog providers with install/env status for this project |
 | `bread provider add <name>` | Install a catalog provider's peer package and show required env vars |
+| `bread init [dir]` | Scaffold a project (`--runtime`, `--store`, `--transport`, `--agent`, `--provider`, `--model`, `--no-install`). `--provider` and `--model` are required. A TTY missing another choice errors and names the flag |
+| `bread agent add <id>` | Add an agent (`--provider` and `--model` required) and insert its id into a plain `entrypoints` list |
+| `bread tool add <agent> <name>` | Write a tool (`--human` for a human tool). Names match `^[a-z][a-z0-9_]*$` |
+| `bread skill add <agent> <id>` | Write `SKILL.md` |
+| `bread agent eval <agent> <name>` | Write an eval file (does not run `bread eval`) |
 
 ## HTTP API
 

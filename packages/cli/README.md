@@ -21,6 +21,11 @@ bun add -g @breadai/cli   # or: npm i -g @breadai/cli
 | `bread invoke <agent> [input]` | One-shot run (`--json` for structured output) |
 | `bread eval` | Run the project's evals |
 | `bread sessions list\|cleanup` | Inspect / prune stored sessions |
+| `bread init [dir]` | Scaffold a project. Flags only — a TTY missing a choice errors and names the flag. `--provider` and `--model` are required (`--runtime`, `--store`, `--transport`, `--agent`, `--no-install`) |
+| `bread agent add <id>` | Add an agent (`--provider` and `--model` required) to a plain `entrypoints` list (`assistant`, `ticket-lookup`) |
+| `bread tool add <agent> <name>` | Write a tool (`--human`). `web-search` is not a valid tool name |
+| `bread skill add <agent> <id>` | Write `SKILL.md` |
+| `bread agent eval <agent> <name>` | Write an eval file. Does not change `bread eval` |
 
 ## Listen runtime
 
