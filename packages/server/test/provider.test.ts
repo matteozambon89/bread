@@ -62,6 +62,15 @@ describe('runProviderAdd — install path (Bun.spawn stubbed)', () => {
     expect(calls[0]?.[0]).toEqual(['bun', 'add', 'ollama-ai-provider-v2'])
   })
 
+  test('constructor is not a catalog provider and does not spawn', async () => {
+    const cwd = writeManifest()
+    const { calls } = stubSpawn(0)
+    await expect(runProviderAdd({ cwd, name: 'constructor' })).rejects.toMatchObject({
+      code: 'UNKNOWN_PROVIDER',
+    })
+    expect(calls).toEqual([])
+  })
+
   test('throws PROVIDER_INSTALL_FAILED when `bun add` exits non-zero', async () => {
     const cwd = writeManifest()
     stubSpawn(1)
