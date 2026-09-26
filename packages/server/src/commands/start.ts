@@ -1,22 +1,21 @@
 import { loadAgents, loadConfig, loadTasks } from '../loader.js'
-import { startServer } from '../server.js'
+import type { ListenFn } from './listen.js'
 
 export interface StartOptions {
   cwd: string
-  // bread-runtime-node injects startServerNode; the Bun CLI omits this and uses startServer.
-  listen?: typeof startServer
-  // Omitted flags fall through to config.server.{port,host,idleTimeout} in startServer.
+  /** Injected by the CLI — e.g. `startServer` from `@breadai/runtime-bun`. */
+  listen: ListenFn
+  // Omitted flags fall through to config.server.{port,host,idleTimeout} in listen.
   port?: number | undefined
   host?: string | undefined
   idleTimeout?: number | undefined
 }
 
 export async function runStart(opts: StartOptions): Promise<void> {
-  const listen = opts.listen ?? startServer
   const config = await loadConfig(opts.cwd)
   const agents = await loadAgents(opts.cwd, config.entrypoints)
   const tasks = await loadTasks(opts.cwd)
-  const { stop } = await listen(
+  const { stop } = await opts.listen(
     config,
     agents,
     {

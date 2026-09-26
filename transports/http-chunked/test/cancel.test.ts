@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import type { AgentRegistry, BreadConfig, BreadCrumb } from '@breadai/core'
 import { BreadError, decodeFrame } from '@breadai/core'
-import { startServer } from '@breadai/server'
+import { startServer } from '@breadai/runtime-bun'
 import { store } from '@breadai/store-memory'
 import { defineTestAgent, mockChunkedTextModel, mockProvider } from '@breadai/test-utils'
 import { remoteAgent, transport } from '@breadai/transport-http-chunked'

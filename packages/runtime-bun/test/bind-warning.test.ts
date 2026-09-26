@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, spyOn, test } from 'bun:test'
 import type { AgentRegistry, BreadConfig } from '@breadai/core'
-import { authPlugin, startServer } from '@breadai/server'
+import { startServer } from '@breadai/runtime-bun'
+import { authPlugin } from '@breadai/server'
 import { store } from '@breadai/store-memory'
 import { transport } from '@breadai/transport-http-sse'
 import { defineTestAgent, mockProvider, mockTextModel } from '@breadai/test-utils'

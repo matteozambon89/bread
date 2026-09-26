@@ -35,7 +35,8 @@
   },
   "dependencies": {
     "@breadai/server": "workspace:>=0.1.1 <1.0.0",
-    "commander": "^14.0.0"
+    "commander": "^14.0.0",
+    "@breadai/runtime-bun": "workspace:>=0.1.0 <1.0.0"
   },
   "devDependencies": {
     "@breadai/core": "workspace:*",

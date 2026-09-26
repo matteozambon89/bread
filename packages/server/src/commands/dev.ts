@@ -1,20 +1,19 @@
 import { watch } from 'chokidar'
-import { loadAgents, loadConfig, loadTasks } from '../loader.js'
-import { startServer } from '../server.js'
 import type { AgentRegistry } from '@breadai/core'
+import { loadAgents, loadConfig, loadTasks } from '../loader.js'
+import type { ListenFn } from './listen.js'
 
 export interface DevOptions {
   cwd: string
-  // bread-runtime-node injects startServerNode; the Bun CLI omits this and uses startServer.
-  listen?: typeof startServer
-  // Omitted flags fall through to config.server.{port,host,idleTimeout} in startServer.
+  /** Injected by the CLI — e.g. `startServer` from `@breadai/runtime-bun`. */
+  listen: ListenFn
+  // Omitted flags fall through to config.server.{port,host,idleTimeout} in listen.
   port?: number | undefined
   host?: string | undefined
   idleTimeout?: number | undefined
 }
 
 export async function runDev(opts: DevOptions): Promise<void> {
-  const listen = opts.listen ?? startServer
   let stop: (() => Promise<void>) | null = null
   let agents: AgentRegistry = new Map()
 
@@ -29,7 +28,7 @@ export async function runDev(opts: DevOptions): Promise<void> {
     agents = await loadAgents(opts.cwd, config.entrypoints)
     const tasks = await loadTasks(opts.cwd)
 
-    const server = await listen(
+    const server = await opts.listen(
       config,
       agents,
       {

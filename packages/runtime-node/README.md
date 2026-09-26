@@ -10,9 +10,7 @@ Node.js listen adapter for [`@breadai/server`](https://github.com/matteozambon89
 builds the same Hono app via `createServer`, then serves `app.fetch` with
 [`@hono/node-server`](https://github.com/honojs/node-server).
 
-Use this when you need a **Node** process. On Bun, use `startServer` from
-[`@breadai/server`](https://github.com/matteozambon89/bread/tree/HEAD/packages/server) —
-that path stays `Bun.serve` and is unchanged by this package.
+Use this when you need a **Node** process.
 
 ```bash
 npm i @breadai/runtime-node   # or: bun add @breadai/runtime-node
