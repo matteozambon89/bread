@@ -93,6 +93,8 @@ approval.
 
 ## Scaffold
 
+![bread init](./assets/bread-init.gif)
+
 `bread init [dir]` writes `package.json`, `bread.config.ts`, `agents/<id>/agent.ts`,
 `prompt.md`, and `.gitignore`, then runs `bun install` unless `--no-install` is set.
 `dir` resolves against the current directory and defaults to `.`. Init does not take

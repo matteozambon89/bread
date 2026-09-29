@@ -134,6 +134,8 @@ export default defineConfig({
 
 On a TTY, `bread init` asks in this order. A passed flag is not asked. An existing `bread.config.ts`, `package.json`, or `agents/` throws `SCAFFOLD_EXISTS` before the first question. Enter accepts the default for runtime, store, transport, agent, and install. Provider and model have no default: a blank answer is asked again. Cancel exits 0 and, before any write, leaves the directory unchanged. Without a TTY, missing `--provider` or `--model` throws and writes nothing. A flag-only init that never asks is unchanged.
 
+![bread init](docs/assets/bread-init.gif)
+
 | Order | Question | Prompt | Default |
 |-------|----------|--------|---------|
 | 1 | Runtime | select | `bun` |
