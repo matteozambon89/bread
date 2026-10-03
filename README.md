@@ -32,13 +32,13 @@ export default defineAgent({
 import { defineConfig } from '@breadai/core'
 import { store } from '@breadai/store-sqlite'
 import { transport } from '@breadai/transport-http-chunked'
-import { providerCatalog } from '@breadai/provider-catalog'
+import { providerLlm } from '@breadai/provider-llm'
 
 export default defineConfig({
   entrypoints: ['echo'],
   store: store({ path: './bread.db' }),
   transport: transport(),
-  providers: providerCatalog,
+  providers: providerLlm,
 })
 ```
 
@@ -57,20 +57,21 @@ bun add -d @breadai/cli    # dev server + `bread` CLI
 ```
 
 Core has no built-in model providers — register them explicitly via `providers` in
-`bread.config.ts`. `@breadai/provider-catalog` packages 21 lazily-imported providers (each
-still an optional peer dep, installed only if you use it):
+`bread.config.ts`. `@breadai/provider-llm` packages 21 lazily-imported providers (each
+still an optional peer dep, installed only if you use it). `@breadai/provider-catalog`
+re-exports `providerLlm` and `providerEntries` from that package.
 
 ```bash
-bun add @breadai/provider-catalog
+bun add @breadai/provider-llm
 bun add @ai-sdk/anthropic       # provider: 'anthropic'
 ```
 
 ```ts
-import { providerCatalog } from '@breadai/provider-catalog'
+import { providerLlm } from '@breadai/provider-llm'
 
 export default defineConfig({
   entrypoints: ['echo'],
-  providers: providerCatalog,
+  providers: providerLlm,
 })
 ```
 

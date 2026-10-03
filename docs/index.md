@@ -34,7 +34,7 @@ export default defineConfig({
   entrypoints: ['researcher', 'writer'],
   store: store({ path: './bread.db' }),  // @breadai/store-sqlite
   transport: transport(),                // @breadai/transport-http-chunked
-  providers: providerCatalog,            // @breadai/provider-catalog
+  providers: providerLlm,                // @breadai/provider-llm
 })
 ```
 

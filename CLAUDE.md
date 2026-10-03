@@ -51,7 +51,8 @@ Server runners do not read stdin for init or add.
 | `@breadai/store-sqlite` | `stores/sqlite` | SQLite store via `bun:sqlite` |
 | `@breadai/store-memory` | `stores/memory` | In-memory store (tests, ephemeral) |
 | `@breadai/store-s3` | `stores/s3` | S3-backed `BlobStore` — binary/file storage via presigned URLs |
-| `@breadai/provider-catalog` | `providers/catalog` | The 21 catalog providers as a `ProviderRegistry` |
+| `@breadai/provider-llm` | `providers/llm` | The 21 language-model providers as a `ProviderRegistry` (`providerLlm`) |
+| `@breadai/provider-catalog` | `providers/catalog` | Re-exports `providerLlm` and `providerEntries` from `@breadai/provider-llm` |
 | `@breadai/protocol-ag-ui` | `protocols/ag-ui` | AG-UI protocol |
 | `@breadai/protocol-a2a-server` | `protocols/a2a-server` | Agent-to-agent (A2A) protocol |
 | `@breadai/protocol-mcp-client` | `protocols/mcp-client` | Consume MCP servers (config-level + per-agent `cfg.plugins.mcp_client`) |
@@ -136,7 +137,7 @@ The CLI loader (`packages/server/src/loader.ts`) attaches private fields to each
   SSE framing instead, for wire compatibility.
 - **Providers** — `resolveModel(ref, registries)` (`packages/core/src/model-provider.ts`) takes an
   ordered array of `ProviderRegistry` objects and returns the first match — agent → global →
-  `UNKNOWN_PROVIDER`. Core has no built-ins of its own; `@breadai/provider-catalog` supplies the 21
+  `UNKNOWN_PROVIDER`. Core has no built-ins of its own; `@breadai/provider-llm` supplies the 21
   lazy provider factories as a `ProviderRegistry` to spread into `config.providers`.
 - **Lifecycle unification** — `BreadPlugin.close` (renamed from `destroy`) runs on `bread.stop()`;
   stores keep `migrate?`/`close?`; transports use `init?`/`close?`. `RemoteAgent` (the remote-agent
