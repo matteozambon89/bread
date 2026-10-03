@@ -1,6 +1,6 @@
 import { defineConfig } from '@breadai/core'
 import { a2aServer } from '@breadai/protocol-a2a-server'
-import { providerCatalog } from '@breadai/provider-catalog'
+import { providerLlm } from '@breadai/provider-llm'
 import { store } from '@breadai/store-sqlite'
 import { transport } from '@breadai/transport-http-chunked'
 
@@ -8,6 +8,6 @@ export default defineConfig({
   entrypoints: ['assistant'],
   store: store({ path: './.v03.db' }),
   transport: transport(),
-  providers: providerCatalog,
+  providers: providerLlm,
   plugins: [a2aServer({ agentId: 'assistant', url: 'http://localhost:3000/a2a', cardPath: '/.well-known/agent-card.json' })],
 })

@@ -1,7 +1,7 @@
 import { store } from '@breadai/store-sqlite'
 import { transport } from '@breadai/transport-http-sse'
 import { defineConfig } from '@breadai/core'
-import { providerCatalog } from '@breadai/provider-catalog'
+import { providerLlm } from '@breadai/provider-llm'
 
 // Self-contained: a local SQLite file, no external service. Swap for
 // the Postgres store() (with DATABASE_URL) in production.
@@ -14,5 +14,5 @@ export default defineConfig({
   entrypoints: ['publisher'],
   store: store({ path: './bread.db' }),
   transport: transport(),
-  providers: providerCatalog,
+  providers: providerLlm,
 })

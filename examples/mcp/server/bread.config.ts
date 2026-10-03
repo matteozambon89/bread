@@ -1,6 +1,6 @@
 import { defineConfig } from '@breadai/core'
 import { mcpServer } from '@breadai/protocol-mcp-server'
-import { providerCatalog } from '@breadai/provider-catalog'
+import { providerLlm } from '@breadai/provider-llm'
 import { store } from '@breadai/store-sqlite'
 import { transport } from '@breadai/transport-http-chunked'
 
@@ -11,6 +11,6 @@ export default defineConfig({
   entrypoints: ['echo'],
   store: store({ path: './.server.db' }),
   transport: transport(),
-  providers: providerCatalog,
+  providers: providerLlm,
   plugins: [mcpServer({ transport: 'http', agents: ['echo'] })],
 })

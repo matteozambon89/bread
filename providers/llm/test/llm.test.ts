@@ -1,10 +1,10 @@
 import { describe, expect, test } from 'bun:test'
 import { resolveModel } from '@breadai/core'
-import { providerCatalog, providerEntries } from '@breadai/provider-catalog'
+import { providerLlm, providerEntries } from '@breadai/provider-llm'
 
-describe('providerCatalog', () => {
+describe('providerLlm', () => {
   test('exposes all 21 built-in provider names', () => {
-    expect(Object.keys(providerCatalog).sort()).toEqual(
+    expect(Object.keys(providerLlm).sort()).toEqual(
       [
         'amazon-bedrock',
         'anthropic',
@@ -31,19 +31,19 @@ describe('providerCatalog', () => {
     )
   })
 
-  test('spreading providerCatalog does not throw', () => {
-    expect(() => ({ ...providerCatalog })).not.toThrow()
+  test('spreading providerLlm does not throw', () => {
+    expect(() => ({ ...providerLlm })).not.toThrow()
   })
 
   test('throws MISSING_PROVIDER when the @ai-sdk package is not installed', async () => {
     // None of the @ai-sdk/* peer deps are installed in this workspace.
     await expect(
-      resolveModel({ provider: 'anthropic', model: 'x' }, [providerCatalog]),
+      resolveModel({ provider: 'anthropic', model: 'x' }, [providerLlm]),
     ).rejects.toMatchObject({ code: 'MISSING_PROVIDER' })
   })
 
   test('the missing-provider error names the provider and the package to install', async () => {
-    const err = await resolveModel({ provider: 'baseten', model: 'x' }, [providerCatalog]).catch(
+    const err = await resolveModel({ provider: 'baseten', model: 'x' }, [providerLlm]).catch(
       (e) => e,
     )
     expect(err.code).toBe('MISSING_PROVIDER')
@@ -53,13 +53,13 @@ describe('providerCatalog', () => {
 
   test('uninstalled workers-ai still throws MISSING_PROVIDER', async () => {
     await expect(
-      resolveModel({ provider: 'workers-ai', model: 'x' }, [providerCatalog]),
+      resolveModel({ provider: 'workers-ai', model: 'x' }, [providerLlm]),
     ).rejects.toMatchObject({ code: 'MISSING_PROVIDER' })
   })
 
   test('uninstalled openai-compatible still throws MISSING_PROVIDER', async () => {
     await expect(
-      resolveModel({ provider: 'openai-compatible', model: 'x' }, [providerCatalog]),
+      resolveModel({ provider: 'openai-compatible', model: 'x' }, [providerLlm]),
     ).rejects.toMatchObject({ code: 'MISSING_PROVIDER' })
   })
 

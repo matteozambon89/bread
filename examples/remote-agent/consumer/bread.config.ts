@@ -1,6 +1,6 @@
 import { defineConfig } from '@breadai/core'
 import { signer } from '@breadai/auth-api-key'
-import { providerCatalog } from '@breadai/provider-catalog'
+import { providerLlm } from '@breadai/provider-llm'
 import { store } from '@breadai/store-sqlite'
 import { remoteAgent, transport } from '@breadai/transport-http-chunked'
 
@@ -12,7 +12,7 @@ export default defineConfig({
   entrypoints: ['planner'],
   store: store({ path: './.consumer.db' }),
   transport: transport(),
-  providers: providerCatalog,
+  providers: providerLlm,
   remoteAgents: {
     researcher: remoteAgent({
       url: process.env.RESEARCH_URL ?? 'http://localhost:4001',

@@ -1,5 +1,5 @@
 import { BreadError } from '@breadai/core'
-import { providerEntries } from '@breadai/provider-catalog'
+import { providerEntries } from '@breadai/provider-llm'
 
 export function assertKnownProvider(name: string): string {
   const provider = name.trim()

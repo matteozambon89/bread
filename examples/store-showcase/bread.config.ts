@@ -1,5 +1,5 @@
 import { type BreadStore, defineConfig } from '@breadai/core'
-import { providerCatalog } from '@breadai/provider-catalog'
+import { providerLlm } from '@breadai/provider-llm'
 import { transport } from '@breadai/transport-http-chunked'
 
 // Pick a store from the STORE env var so this one example demonstrates every
@@ -30,6 +30,6 @@ async function pickStore(): Promise<BreadStore> {
 export default defineConfig({
   entrypoints: ['echo'],
   transport: transport(),
-  providers: providerCatalog,
+  providers: providerLlm,
   store: await pickStore(),
 })

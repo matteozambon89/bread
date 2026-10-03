@@ -10,7 +10,7 @@
   "dependencies": {
     "@breadai/cli": "workspace:*",
     "@breadai/core": "workspace:*",
-    "@breadai/provider-catalog": "workspace:*",
+    "@breadai/provider-llm": "workspace:*",
     "@breadai/store-sqlite": "workspace:*",
     "@breadai/transport-http-sse": "workspace:*",
     "ollama-ai-provider-v2": "^4",

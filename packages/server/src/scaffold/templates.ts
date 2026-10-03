@@ -53,7 +53,7 @@ function sorted(entries: Record<string, string>): Record<string, string> {
 export function dependencySet(choices: ScaffoldChoices): Record<string, string> {
   const deps: Record<string, string> = {
     '@breadai/core': RANGE,
-    '@breadai/provider-catalog': RANGE,
+    '@breadai/provider-llm': RANGE,
     [STORE_PACKAGES[choices.store]]: RANGE,
     [TRANSPORT_PACKAGES[choices.transport]]: RANGE,
     zod: '^4.4.3',
@@ -90,7 +90,7 @@ export function packageJson(dir: string, choices: ScaffoldChoices): string {
 export function breadConfig(choices: ScaffoldChoices): string {
   const storeCall = choices.store === 'sqlite' ? "store({ path: './bread.db' })" : 'store()'
   return `import { defineConfig } from '@breadai/core'
-import { providerCatalog } from '@breadai/provider-catalog'
+import { providerLlm } from '@breadai/provider-llm'
 import { store } from '${STORE_PACKAGES[choices.store]}'
 import { transport } from '${TRANSPORT_PACKAGES[choices.transport]}'
 
@@ -99,7 +99,7 @@ export default defineConfig({
   server: { runtime: '${choices.runtime}' },
   store: ${storeCall},
   transport: transport(),
-  providers: providerCatalog,
+  providers: providerLlm,
 })
 `
 }

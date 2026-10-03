@@ -105,7 +105,7 @@ describe('bread init', () => {
     expect(config).toContain("store({ path: './bread.db' })")
     expect(config).toContain("from '@breadai/transport-http-chunked'")
     expect(config).toContain("entrypoints: ['assistant']")
-    expect(config).toContain('providerCatalog')
+    expect(config).toContain('providerLlm')
     expect(config).not.toContain('@breadai/runtime-bun')
 
     const pkg = JSON.parse(await readFile(join(dir, 'package.json'), 'utf8'))
@@ -118,7 +118,7 @@ describe('bread init', () => {
     })
     expect(pkg.dependencies).toEqual({
       '@breadai/core': '>=0.1.0 <1.0.0',
-      '@breadai/provider-catalog': '>=0.1.0 <1.0.0',
+      '@breadai/provider-llm': '>=0.1.0 <1.0.0',
       '@breadai/store-sqlite': '>=0.1.0 <1.0.0',
       '@breadai/transport-http-chunked': '>=0.1.0 <1.0.0',
       zod: '^4.4.3',
