@@ -31,8 +31,9 @@ function missingEnvVars(envVars: string[]): string[] {
   return envVars.filter((v) => !process.env[v])
 }
 
-function requireEntry(name: string): (typeof providerEntries)[string] {
-  const entry = providerEntries[name]
+function requireEntry(name: string): NonNullable<(typeof providerEntries)[string]> {
+  // Inherited names have no pkg. Throw before `bun add` can spawn undefined.
+  const entry = Object.hasOwn(providerEntries, name) ? providerEntries[name] : undefined
   if (!entry) {
     const available = Object.keys(providerEntries).sort().join(', ')
     throw new BreadError(`Unknown provider "${name}". Available: ${available}`, 'UNKNOWN_PROVIDER', {

@@ -19,7 +19,10 @@ against an in-process pglite (no Docker/DB) via `withPglite()`.
 
 Inside an example or app: `bread dev` (hot-reload server), `bread build`, `bread start`,
 `bread chat` (interactive REPL, HITL), `bread invoke` (one-shot, no HITL), `bread eval`,
-`bread sessions`.
+`bread sessions`, `bread init` (flags only; a TTY missing a choice names the flag; `--provider` and `--model` are required),
+`bread agent add` (also requires `--provider` and `--model`), `bread agent eval`, `bread tool add`, `bread skill add`. Agent ids match
+`assistant` / `ticket-lookup`; tool, skill, and eval names match `^[a-z][a-z0-9_]*$`.
+`agent add` only edits a plain quoted `entrypoints` list.
 
 ## Package layout
 

@@ -4,15 +4,21 @@ import {
   cleanupSessions,
   listSessions,
   loadConfig,
+  runAgentAdd,
+  runAgentEval,
   runBuild,
   runChat,
   runDev,
   runEvalCommand,
+  runInit,
   runInvoke,
   runProviderAdd,
   runProviderList,
+  runSkillAdd,
   runStart,
+  runToolAdd,
 } from '@breadai/server'
+import { resolveAddNames, resolveInitChoices, type Ask } from './prompt.js'
 import {
   loadBunListen,
   resolveRuntime,
@@ -220,6 +226,140 @@ provider
   .action(async (name, opts) => {
     await runProviderAdd({ cwd: enterProjectRoot(opts.cwd), name })
   })
+
+function isInteractiveTTY(): boolean {
+  return Boolean(process.stdin.isTTY && process.stdout.isTTY)
+}
+
+const refuseAsk: Ask = () => {
+  throw new Error('Pass flags. This bread version does not prompt.')
+}
+
+program
+  .command('init [dir]')
+  .description('Scaffold a new bread project')
+  .option('--runtime <name>', 'Listen runtime: bun or node')
+  .option('--store <kind>', 'Store: sqlite, memory, or postgres')
+  .option('--transport <kind>', 'HTTP transport: chunked or sse')
+  .option('--agent <id>', 'Agent id to create')
+  .option('--provider <name>', 'Catalog provider id (required)')
+  .option('--model <id>', 'Model id (required)')
+  .option('--no-install', 'Skip bun install')
+  .action(async (dir: string | undefined, opts) => {
+    const choices = resolveInitChoices(
+      {
+        ...(opts.runtime ? { runtime: String(opts.runtime) } : {}),
+        ...(opts.store ? { store: String(opts.store) } : {}),
+        ...(opts.transport ? { transport: String(opts.transport) } : {}),
+        ...(opts.agent ? { agent: String(opts.agent) } : {}),
+        ...(opts.provider ? { provider: String(opts.provider) } : {}),
+        ...(opts.model ? { model: String(opts.model) } : {}),
+        install: opts.install !== false,
+      },
+      isInteractiveTTY(),
+      refuseAsk,
+    )
+    await runInit({
+      dir: dir ?? '.',
+      runtime: choices.runtime,
+      store: choices.store,
+      transport: choices.transport,
+      agent: choices.agent,
+      provider: choices.provider,
+      model: choices.model,
+      ...(choices.install ? {} : { noInstall: true }),
+    })
+  })
+
+const agentCmd = program.command('agent').description('Add agents and eval files')
+
+agentCmd
+  .command('add <id>')
+  .description('Add an agent and insert its id into entrypoints')
+  .option('--provider <name>', 'Catalog provider id (required)')
+  .option('--model <id>', 'Model id (required)')
+  .option('--cwd <dir>', 'Project root directory', process.cwd())
+  .action(async (id: string, opts) => {
+    const names = resolveAddNames(
+      {
+        kind: 'agent',
+        id,
+        ...(opts.provider ? { provider: String(opts.provider) } : {}),
+        ...(opts.model ? { model: String(opts.model) } : {}),
+      },
+      isInteractiveTTY(),
+      refuseAsk,
+    )
+    await runAgentAdd({
+      cwd: enterProjectRoot(opts.cwd),
+      id: requiredName(names.id, '<id>'),
+      provider: requiredName(names.provider, '--provider'),
+      model: requiredName(names.model, '--model'),
+    })
+  })
+
+agentCmd
+  .command('eval <agent> <name>')
+  .description('Write agents/<agent>/evals/<name>.eval.ts (does not run evals)')
+  .option('--cwd <dir>', 'Project root directory', process.cwd())
+  .action(async (agentId: string, name: string, opts) => {
+    const names = resolveAddNames({ kind: 'eval', agent: agentId, name }, isInteractiveTTY(), refuseAsk)
+    await runAgentEval({
+      cwd: enterProjectRoot(opts.cwd),
+      agent: requiredName(names.agent, '<agent>'),
+      name: requiredName(names.name, '<name>'),
+    })
+  })
+
+const tool = program.command('tool').description('Add agent tools')
+
+tool
+  .command('add <agent> <name>')
+  .description('Write a defineTool file (--human writes defineHumanTool)')
+  .option('--human', 'Write a defineHumanTool')
+  .option('--cwd <dir>', 'Project root directory', process.cwd())
+  .action(async (agentId: string, name: string, opts) => {
+    const names = resolveAddNames({ kind: 'tool', agent: agentId, name }, isInteractiveTTY(), refuseAsk)
+    await runToolAdd({
+      cwd: enterProjectRoot(opts.cwd),
+      agent: requiredName(names.agent, '<agent>'),
+      name: requiredName(names.name, '<name>'),
+      ...(opts.human ? { human: true } : {}),
+    })
+  })
+
+const skill = program.command('skill').description('Add agent skills')
+
+skill
+  .command('add <agent> <id>')
+  .description('Write agents/<agent>/skills/<id>/SKILL.md')
+  .option('--description <text>', 'Skill description')
+  .option('--cwd <dir>', 'Project root directory', process.cwd())
+  .action(async (agentId: string, id: string, opts) => {
+    const names = resolveAddNames(
+      {
+        kind: 'skill',
+        agent: agentId,
+        id,
+        ...(opts.description ? { description: String(opts.description) } : {}),
+      },
+      isInteractiveTTY(),
+      refuseAsk,
+    )
+    await runSkillAdd({
+      cwd: enterProjectRoot(opts.cwd),
+      agent: requiredName(names.agent, '<agent>'),
+      id: requiredName(names.id, '<id>'),
+      ...(names.description ? { description: names.description } : {}),
+    })
+  })
+
+function requiredName(value: string | undefined, label: string): string {
+  if (value === undefined || value.trim() === '') {
+    throw new Error(`Missing ${label}. Nothing was written.`)
+  }
+  return value
+}
 
 export function run() {
   program.parseAsync(process.argv).catch((err) => {
