@@ -30,9 +30,21 @@ function isWs(ch: string | undefined): boolean {
   return ch === ' ' || ch === '\t' || ch === '\n' || ch === '\r'
 }
 
+type BraceKind = 'value' | 'type' | 'other'
+
+interface ScanCtx {
+  braces: BraceKind[]
+}
+
+interface CodeToken {
+  index: number
+  punct?: string
+  word?: string
+}
+
 function findEntrypointColons(source: string, id: string): number[] {
   const hits: number[] = []
-  scanCode(source, 0, source.length, hits, null, id)
+  scanCode(source, 0, source.length, hits, null, id, { braces: [] })
   return hits
 }
 
@@ -43,6 +55,7 @@ function scanCode(
   hits: number[],
   stopBrace: number | null,
   id: string,
+  ctx: ScanCtx,
 ): number {
   const key = 'entrypoints'
   let i = start
@@ -65,7 +78,7 @@ function scanCode(
       continue
     }
     if (ch === '`') {
-      i = skipTemplate(source, i, end, hits, id)
+      i = skipTemplate(source, i, end, hits, id, ctx)
       continue
     }
     // A regexp or division is not a comment. `$` joins an identifier
@@ -75,6 +88,7 @@ function scanCode(
       throw uneditable(id)
     }
     if (ch === '{') {
+      ctx.braces.push(openBraceKind(source, i, ctx))
       if (depth !== null) depth++
       i++
       continue
@@ -84,8 +98,10 @@ function scanCode(
         depth--
         i++
         if (depth === 0) return i
+        ctx.braces.pop()
         continue
       }
+      ctx.braces.pop()
       i++
       continue
     }
@@ -97,7 +113,7 @@ function scanCode(
     ) {
       let j = i + key.length
       while (j < end && isWs(source[j])) j++
-      if (j < end && source[j] === ':') hits.push(j)
+      if (j < end && source[j] === ':' && ctx.braces[ctx.braces.length - 1] === 'value') hits.push(j)
       i += key.length
       continue
     }
@@ -120,7 +136,7 @@ function skipQuoted(source: string, i: number, end: number, quote: string): numb
   return i
 }
 
-function skipTemplate(source: string, i: number, end: number, hits: number[], id: string): number {
+function skipTemplate(source: string, i: number, end: number, hits: number[], id: string, ctx: ScanCtx): number {
   i++
   while (i < end) {
     if (source[i] === '\\') {
@@ -129,12 +145,118 @@ function skipTemplate(source: string, i: number, end: number, hits: number[], id
     }
     if (source[i] === '`') return i + 1
     if (source[i] === '$' && source[i + 1] === '{') {
-      i = scanCode(source, i + 2, end, hits, 1, id)
+      i = scanCode(source, i + 2, end, hits, 1, id, ctx)
       continue
     }
     i++
   }
   return i
+}
+
+const VALUE_BRACE_WORDS = new Set(['return', 'default', 'yield'])
+
+// Only an object-literal property is the runtime list. A type alias,
+// interface, or annotation uses the same colon and must not be edited.
+function openBraceKind(source: string, brace: number, ctx: ScanCtx): BraceKind {
+  const prev = previousToken(source, brace)
+  if (!prev) return 'other'
+  if (prev.punct === '(' || prev.punct === '[' || prev.punct === ',') return 'value'
+  if (prev.punct === '=') return equalsIsTypeAlias(source, prev.index) ? 'type' : 'value'
+  if (prev.punct === ':') return ctx.braces[ctx.braces.length - 1] === 'value' ? 'value' : 'type'
+  if (prev.word !== undefined && VALUE_BRACE_WORDS.has(prev.word)) return 'value'
+  if (isInterfaceOpen(source, prev)) return 'type'
+  return 'other'
+}
+
+function equalsIsTypeAlias(source: string, eqIndex: number): boolean {
+  let i = skipTriviaBack(source, eqIndex - 1)
+  if (i >= 0 && source[i] === '>') i = skipGenericsBack(source, i)
+  if (i < 0 || !isIdent(source[i])) return false
+  while (i > 0 && isIdent(source[i - 1])) i--
+  return previousToken(source, i)?.word === 'type'
+}
+
+function isInterfaceOpen(source: string, prev: CodeToken): boolean {
+  const name = nameIntroducingBrace(source, prev)
+  if (!name) return false
+  return previousToken(source, name.index)?.word === 'interface'
+}
+
+function nameIntroducingBrace(source: string, prev: CodeToken): CodeToken | null {
+  if (prev.word) return prev
+  if (prev.punct !== '>') return null
+  const before = skipGenericsBack(source, prev.index)
+  return before < 0 ? null : previousToken(source, before + 1)
+}
+
+function skipGenericsBack(source: string, gtIndex: number): number {
+  let i = gtIndex - 1
+  let depth = 1
+  while (i >= 0 && depth > 0) {
+    const ch = source[i]
+    if (ch === '>') depth++
+    else if (ch === '<') depth--
+    i--
+  }
+  return skipTriviaBack(source, i)
+}
+
+function previousToken(source: string, index: number): CodeToken | null {
+  const i = skipTriviaBack(source, index - 1)
+  if (i < 0) return null
+  const ch = source[i]
+  if (ch === undefined) return null
+  if (isIdent(ch)) {
+    let start = i
+    while (start > 0 && isIdent(source[start - 1])) start--
+    return { index: start, word: source.slice(start, i + 1) }
+  }
+  return { index: i, punct: ch }
+}
+
+function skipTriviaBack(source: string, i: number): number {
+  while (i >= 0) {
+    const ch = source[i]
+    if (ch === undefined) return -1
+    if (isWs(ch)) {
+      i--
+      continue
+    }
+    if (ch === '/' && source[i - 1] === '*') {
+      i -= 2
+      while (i >= 0 && !(source[i] === '/' && source[i + 1] === '*')) i--
+      i--
+      continue
+    }
+    const comment = lineCommentStart(source, i)
+    if (comment !== null && comment <= i) {
+      i = comment - 1
+      continue
+    }
+    return i
+  }
+  return -1
+}
+
+function lineCommentStart(source: string, i: number): number | null {
+  const lineStart = source.lastIndexOf('\n', i) + 1
+  let j = lineStart
+  while (j < i) {
+    const ch = source[j]
+    if (ch === '/' && source[j + 1] === '/') return j
+    if (ch === '"' || ch === "'" || ch === '`') {
+      const quote = ch
+      j++
+      while (j < i && source[j] !== quote) {
+        if (source[j] === '\\') j += 2
+        else j++
+      }
+      j++
+      continue
+    }
+    j++
+  }
+  return null
 }
 
 function parseStringArray(source: string, open: number, id: string): { close: number; elements: Quoted[] } {

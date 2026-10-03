@@ -698,6 +698,48 @@ export default {
     )
   })
 
+  test('a type-position entrypoints list is left unchanged and nothing is written', async () => {
+    const dir = await fresh('type-position')
+    await mkdir(dir)
+    const cases = [
+      `type Config = { entrypoints: ['echo'] }\nexport default defineConfig({ entrypoints })\n`,
+      `interface Config { entrypoints: ['echo'] }\nexport default defineConfig({ entrypoints })\n`,
+      `interface Config<T> { entrypoints: ['echo'] }\nexport default defineConfig({ entrypoints })\n`,
+      `class Box {\n  #entrypoints: ['echo']\n}\nexport default defineConfig({ entrypoints })\n`,
+      `const config: { entrypoints: ['echo'] } = { entrypoints }\nexport default config\n`,
+    ]
+    for (const source of cases) {
+      await writeFile(join(dir, 'bread.config.ts'), source)
+      await expect(addAgent({ cwd: dir, id: 'writer' })).rejects.toMatchObject({
+        code: 'ENTRYPOINTS_UNEDITABLE',
+      })
+      expect(await readFile(join(dir, 'bread.config.ts'), 'utf8')).toBe(source)
+      expect(await exists(join(dir, 'agents', 'writer'))).toBe(false)
+    }
+  })
+
+  test('a value entrypoints array is edited when a type alias also names one', async () => {
+    const dir = await fresh('type-and-value')
+    await mkdir(dir)
+    const source = `type Config = { entrypoints: ['echo'] }\nexport default {\n  entrypoints: ['echo'],\n}\n`
+    await writeFile(join(dir, 'bread.config.ts'), source)
+    await addAgent({ cwd: dir, id: 'writer' })
+    const after = await readFile(join(dir, 'bread.config.ts'), 'utf8')
+    expect(after).toContain("type Config = { entrypoints: ['echo'] }")
+    expect(after).toContain("entrypoints: ['echo', 'writer']")
+  })
+
+  test('satisfies on the runtime array still appends the id', async () => {
+    const dir = await fresh('satisfies-array')
+    await mkdir(dir)
+    const source = `export default {\n  entrypoints: ['echo'] satisfies string[],\n}\n`
+    await writeFile(join(dir, 'bread.config.ts'), source)
+    await addAgent({ cwd: dir, id: 'writer' })
+    expect(await readFile(join(dir, 'bread.config.ts'), 'utf8')).toBe(
+      `export default {\n  entrypoints: ['echo', 'writer'] satisfies string[],\n}\n`,
+    )
+  })
+
   test('a newline or carriage return before the colon edits that key, and two keys still refuse', async () => {
     const dir = await fresh('newline-colon')
     await mkdir(dir)
