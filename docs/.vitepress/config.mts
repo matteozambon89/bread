@@ -55,6 +55,7 @@ export default withMermaid({
         text: 'Composition',
         items: [
           { text: 'Pipelines', link: '/pipelines' },
+          { text: 'Pipeline → graph (proposed)', link: '/pipeline-graph' },
           { text: 'Loops', link: '/loops' },
           { text: 'Tasks', link: '/tasks' },
           { text: 'Evals', link: '/evals' },

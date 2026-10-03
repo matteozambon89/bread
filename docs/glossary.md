@@ -47,3 +47,7 @@ stateless), **skill** (loadable instruction pack), **loop** (agent-driven iterat
 (human-in-the-loop), **remote agent** (`RemoteAgent`, `remoteAgent()` — the peer-transport seam to
 another bread instance), and **frame** (`BusFrame`/`CrumbFrame` — the local/wire envelope for a
 crumb). Each has a doc page under [docs/](./).
+
+There is **no** public type named Graph, Branch, or Handover. Industry “workflow graph” language
+maps onto pipeline today (series / parallel / map) plus the proposed declared-branch layers in
+[pipeline-graph.md](./pipeline-graph.md). Model-chosen next-agent routing stays **supervisor**.

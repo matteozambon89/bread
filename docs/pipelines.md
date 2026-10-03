@@ -10,6 +10,8 @@ Two ways to compose multiple agents, with deliberately distinct roles:
 
 (A third composition, [loops](./loops.md), re-runs a pipeline until an agent judge is satisfied.)
 
+Pipeline today is **series / parallel / map** only — a series-parallel fragment of a DAG, not a full workflow graph. Declared conditional branches (and the later named-graph form) are specified in [pipeline-graph.md](./pipeline-graph.md) (**proposed**; code follows that page). Supervisor covers dynamic routing now and stays outside the declared graph.
+
 ## Pipelines
 
 Define pipelines in config; run them at `POST /pipelines/:id/run`. A pipeline is an ordered list of
