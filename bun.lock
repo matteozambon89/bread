@@ -324,13 +324,13 @@
         "bread": "./dist/bin.js",
       },
       "dependencies": {
+        "@breadai/core": "workspace:>=0.1.1 <1.0.0",
         "@breadai/runtime-bun": "workspace:>=0.1.0 <1.0.0",
         "@breadai/server": "workspace:>=0.1.1 <1.0.0",
         "@clack/prompts": "^1.8.1",
         "commander": "^14.0.0",
       },
       "devDependencies": {
-        "@breadai/core": "workspace:*",
         "@breadai/runtime-node": "workspace:*",
         "@breadai/store-memory": "workspace:*",
         "@breadai/test-utils": "workspace:*",
