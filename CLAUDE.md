@@ -19,10 +19,22 @@ against an in-process pglite (no Docker/DB) via `withPglite()`.
 
 Inside an example or app: `bread dev` (hot-reload server), `bread build`, `bread start`,
 `bread chat` (interactive REPL, HITL), `bread invoke` (one-shot, no HITL), `bread eval`,
-`bread sessions`, `bread init` (flags only; a TTY missing a choice names the flag; `--provider` and `--model` are required),
-`bread agent add` (also requires `--provider` and `--model`), `bread agent eval`, `bread tool add`, `bread skill add`. Agent ids match
+`bread sessions`, `bread init` (TTY wizard below; an existing `bread.config.ts`, `package.json`, or `agents/` throws `SCAFFOLD_EXISTS` before the first question; without a TTY the runtime, store, transport, agent, and install keep their defaults, and missing `--provider` or `--model` throws and writes nothing; a flag-only init that never asks is unchanged; cancel exits 0, and before any write the directory is unchanged),
+`bread agent add` (a TTY asks for a missing id, `--provider`, and `--model`; without a TTY those are required), `bread agent eval`, `bread tool add`, `bread skill add`. Agent ids match
 `assistant` / `ticket-lookup`; tool, skill, and eval names match `^[a-z][a-z0-9_]*$`.
-`agent add` only edits a plain quoted `entrypoints` list.
+`agent add` only edits a plain quoted `entrypoints` list. Add commands use text only for a
+missing name (`--human` and `--description` stay flags). Tool, skill, and eval do not ask for a provider or model.
+Server runners do not read stdin for init or add.
+
+| Order | Question | Prompt | Default |
+|-------|----------|--------|---------|
+| 1 | Runtime | select | `bun` |
+| 2 | Store | select | `sqlite` on bun; on node, `memory` or `postgres` only, default `memory` |
+| 3 | Transport | select | `chunked` |
+| 4 | Agent id | text | `assistant` (an invalid id is asked again) |
+| 5 | Install | confirm | yes |
+| 6 | Provider | text | none — a blank answer is asked again |
+| 7 | Model id | text | none — a blank answer is asked again; any non-empty string |
 
 ## Package layout
 
