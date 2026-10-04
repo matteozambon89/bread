@@ -251,6 +251,7 @@
         "@breadai/cli": "workspace:*",
         "@breadai/core": "workspace:*",
         "@breadai/protocol-ag-ui": "workspace:*",
+        "@breadai/provider-decisions": "workspace:*",
         "@breadai/provider-llm": "workspace:*",
         "@breadai/store-sqlite": "workspace:*",
         "@breadai/transport-http-chunked": "workspace:*",
