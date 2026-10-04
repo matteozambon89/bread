@@ -129,6 +129,7 @@ Compose agents without reaching for a second framework:
     <ul>
       <li><a href="/agents">Agents</a></li>
       <li><a href="/providers">Providers</a></li>
+      <li><a href="/decisions">Decisions</a></li>
       <li><a href="/tools">Tools</a></li>
       <li><a href="/skills">Skills</a></li>
       <li><a href="/sessions">Sessions</a></li>

@@ -39,6 +39,7 @@ Step types:
 | `agent` | Run one agent. Optional `skill` activates a caller-driven skill. |
 | `parallel` | Run nested steps concurrently, merge crumb streams. The step's output is the **ordered array of branch outputs**. |
 | `map` | Fan the input array out across `agentId` — each element runs through the agent; output is the array of per-element outputs. |
+| `decision` | Ask one System One question. The step-end output is `{ label, answer }`. The next step still receives the pre-decision value. See [decisions.md](./decisions.md). |
 
 ```bash
 curl -N -X POST localhost:3000/pipelines/article/run -d '{"input":{"topic":"bread"}}'

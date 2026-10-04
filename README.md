@@ -199,6 +199,7 @@ Start with [`docs/architecture.md`](./docs/architecture.md), then:
 [CLI](./docs/cli.md) ·
 [agents](./docs/agents.md) ·
 [providers](./docs/providers.md) ·
+[decisions](./docs/decisions.md) ·
 [tools](./docs/tools.md) ·
 [skills](./docs/skills.md) ·
 [sessions](./docs/sessions.md) ·
