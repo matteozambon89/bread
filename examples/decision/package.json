@@ -1,0 +1,19 @@
+{
+  "name": "@bread-examples/decision",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "../../packages/cli/dist/bin.js dev",
+    "build": "../../packages/cli/dist/bin.js build"
+  },
+  "dependencies": {
+    "@breadai/cli": "workspace:*",
+    "@breadai/core": "workspace:*",
+    "@breadai/provider-decisions": "workspace:*",
+    "@breadai/provider-llm": "workspace:*",
+    "@breadai/store-sqlite": "workspace:*",
+    "@breadai/transport-http-chunked": "workspace:*",
+    "zod": "^4.4.3"
+  }
+}

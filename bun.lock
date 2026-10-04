@@ -80,6 +80,19 @@
         "zod": "^4.4.3",
       },
     },
+    "examples/decision": {
+      "name": "@bread-examples/decision",
+      "version": "0.0.0",
+      "dependencies": {
+        "@breadai/cli": "workspace:*",
+        "@breadai/core": "workspace:*",
+        "@breadai/provider-decisions": "workspace:*",
+        "@breadai/provider-llm": "workspace:*",
+        "@breadai/store-sqlite": "workspace:*",
+        "@breadai/transport-http-chunked": "workspace:*",
+        "zod": "^4.4.3",
+      },
+    },
     "examples/evals": {
       "name": "@bread-examples/evals",
       "version": "0.0.0",
@@ -802,6 +815,8 @@
     "@bread-examples/ag-ui-plugin": ["@bread-examples/ag-ui-plugin@workspace:examples/ag-ui-plugin"],
 
     "@bread-examples/auth-api-key": ["@bread-examples/auth-api-key@workspace:examples/auth-api-key"],
+
+    "@bread-examples/decision": ["@bread-examples/decision@workspace:examples/decision"],
 
     "@bread-examples/evals": ["@bread-examples/evals@workspace:examples/evals"],
 
