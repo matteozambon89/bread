@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       bump:
-        description: 'Version bump type applied to every affected package'
+        description: 'Version bump type applied to affected packages that already existed at the previous release'
         required: true
         type: choice
         options: [patch, minor, major, prepatch, preminor, premajor, prerelease]
@@ -83,13 +83,15 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add -u -- packages stores providers protocols extensions transports
           if git diff --cached --quiet; then
-            echo "::error::bump reported packages but nothing is staged"
-            exit 1
+            echo "No version changes. Tagging the current commit so first publishes still ship."
+            git tag "$TAG"
+            git push origin "$TAG"
+          else
+            git commit -m "chore: bump affected package versions"
+            git tag "$TAG"
+            git push origin HEAD:main
+            git push origin "$TAG"
           fi
-          git commit -m "chore: bump affected package versions"
-          git tag "$TAG"
-          git push origin HEAD:main
-          git push origin "$TAG"
 
       - name: Create GitHub release
         if: ${{ !inputs.dry_run }}
@@ -102,10 +104,24 @@ jobs:
           {
             echo "## Packages"
             echo
-            echo "| Package | From | To |"
-            echo "| --- | --- | --- |"
-            jq -r '.bumps[] | "| `\(.name)` | \(.from) | \(.to) |"' "$PLAN"
-            echo
+            changed=$(jq -r '.bumps[] | select(.from != .to) | "| `\(.name)` | \(.from) | \(.to) |"' "$PLAN")
+            if [ -n "$changed" ]; then
+              echo "| Package | From | To |"
+              echo "| --- | --- | --- |"
+              echo "$changed"
+              echo
+            fi
+            first=$(jq -r '.bumps[] | select(.from == .to) | "| `\(.name)` | \(.to) |"' "$PLAN")
+            if [ -n "$first" ]; then
+              echo "### First publish"
+              echo
+              echo "These packages were not in the previous release. Their current version is published as-is."
+              echo
+              echo "| Package | Version |"
+              echo "| --- | --- |"
+              echo "$first"
+              echo
+            fi
             gh api "repos/${{ github.repository }}/releases/generate-notes" \
               -f tag_name="$TAG" --jq .body
           } > "$notes"
@@ -120,9 +136,21 @@ jobs:
           {
             echo "🔍 Dry run — would tag **${TAG}**. Build/test passed, nothing committed, tagged, released, or published."
             echo
-            echo "| Package | From | To |"
-            echo "| --- | --- | --- |"
-            jq -r '.bumps[] | "| `\(.name)` | \(.from) | \(.to) |"' "$PLAN"
-            echo
+            changed=$(jq -r '.bumps[] | select(.from != .to) | "| `\(.name)` | \(.from) | \(.to) |"' "$PLAN")
+            if [ -n "$changed" ]; then
+              echo "| Package | From | To |"
+              echo "| --- | --- | --- |"
+              echo "$changed"
+              echo
+            fi
+            first=$(jq -r '.bumps[] | select(.from == .to) | "| `\(.name)` | \(.to) |"' "$PLAN")
+            if [ -n "$first" ]; then
+              echo "### First publish"
+              echo
+              echo "| Package | Version |"
+              echo "| --- | --- |"
+              echo "$first"
+              echo
+            fi
             echo "Re-run with \`dry_run: false\` to actually release."
           } >> "$GITHUB_STEP_SUMMARY"

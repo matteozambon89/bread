@@ -1,13 +1,14 @@
-// Affected-only version bump: bump every publishable package whose
-// publishable files changed since the last release tag, write nothing
-// if a planned version would leave a dependent's range unsatisfied.
+// Affected-only version bump: bump every previously released package whose
+// publishable files changed since the last release tag. A package that did
+// not exist at that tag keeps the version in package.json and is still released.
+// Write nothing if a planned version would leave a dependent's range unsatisfied.
 //
 //   bun scripts/bump.ts --bump patch
 //   bun scripts/bump.ts --bump prerelease --preid alpha
 //   bun scripts/bump.ts --bump minor --dry-run --plan-out bump-plan.json
 import { affectedFromChangedFiles } from './lib/affected.ts'
 import { loadWorkspacePackages, writeManifest } from './lib/packages.ts'
-import { planBump, type BumpPlan } from './lib/plan.ts'
+import { planBump, unpublishedNames, type BumpPlan } from './lib/plan.ts'
 import type { ReleaseType } from 'semver'
 
 const PRE_TYPES = new Set(['premajor', 'preminor', 'prepatch', 'prerelease'])
@@ -98,6 +99,16 @@ async function lastReleaseTag(): Promise<string> {
   return result.stdout
 }
 
+async function packageExistedAt(tag: string, dir: string): Promise<boolean> {
+  const result = await gitOutput(['cat-file', '-e', `${tag}:${dir}/package.json`])
+  if (result.ok) return true
+  // Present in the working tree but absent from the previous release.
+  if (result.stderr.includes('not in') || result.stderr.includes('does not exist in')) return false
+  console.error(`bump: could not check ${dir}/package.json at ${tag}`)
+  if (result.stderr) console.error(result.stderr)
+  process.exit(1)
+}
+
 async function changedFilesSince(tag: string): Promise<string[]> {
   const result = await gitOutput(['diff', '--name-only', `${tag}...HEAD`])
   if (!result.ok) {
@@ -116,6 +127,10 @@ function printPlan(since: string, plan: BumpPlan): void {
   }
   console.log('affected:')
   for (const bump of plan.bumps) {
+    if (bump.from === bump.to) {
+      console.log(`  ${bump.name}: ${bump.from} (first publish)`)
+      continue
+    }
     console.log(`  ${bump.name}: ${bump.from} → ${bump.to}`)
   }
 }
@@ -125,11 +140,19 @@ const since = args.since ?? (await lastReleaseTag())
 const packages = await loadWorkspacePackages()
 const changed = await changedFilesSince(since)
 const affected = affectedFromChangedFiles(changed, packages)
+const existedAtTag = new Map<string, boolean>()
+for (const pkg of affected) {
+  existedAtTag.set(pkg.dir, await packageExistedAt(since, pkg.dir))
+}
 const plan = planBump(
   packages,
   affected.map((pkg) => pkg.manifest.name),
   args.bumpType,
   args.preid,
+  unpublishedNames(
+    affected.map((pkg) => ({ name: pkg.manifest.name, dir: pkg.dir })),
+    (dir) => existedAtTag.get(dir) === true,
+  ),
 )
 
 printPlan(since, plan)
@@ -169,11 +192,15 @@ if (args.dryRun) {
 }
 
 const byPath = new Map(packages.map((pkg) => [pkg.manifestPath, pkg]))
+let bumped = 0
 for (const bump of plan.bumps) {
+  if (bump.from === bump.to) continue
   const pkg = byPath.get(bump.manifestPath)
   if (!pkg) continue
   pkg.manifest.version = bump.to
   await writeManifest(pkg)
+  bumped++
 }
 
-console.log(`\n${plan.bumps.length} package(s) bumped.`)
+const firstPublishes = plan.bumps.length - bumped
+console.log(`\n${bumped} package(s) bumped, ${firstPublishes} package(s) kept for a first publish.`)

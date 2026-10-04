@@ -186,8 +186,10 @@ Actions tab (or `gh workflow run release.yml -f bump=patch -f preid=none -f dry_
 
 1. Diffs publishable files (`src/**`, `package.json`, `README.md`, `tsconfig.json`) since the last
    `v*` tag. `scripts/bump.ts --bump <type> [--preid alpha|beta]` bumps **only** those affected
-   packages (`type` is `major`/`minor`/`patch` or their `pre*` variants). Tests, docs, CI, and
-   examples do not count. Private `@breadai/test-utils` is never published.
+   packages that already had a `package.json` at that tag (`type` is `major`/`minor`/`patch` or
+   their `pre*` variants). A package added since the tag keeps the version in its `package.json`
+   and is still released. Tests, docs, CI, and examples do not count. Private `@breadai/test-utils`
+   is never published.
 2. Verifies every runtime `@breadai/*` range still satisfies the planned versions. Ranges are
    `workspace:>=x.y.z <(major+1).0.0` so patch and minor flow through without republishing
    dependents; a major does not. If a planned version would leave a dependent's range unsatisfied,
@@ -195,8 +197,9 @@ Actions tab (or `gh workflow run release.yml -f bump=patch -f preid=none -f dry_
    in a commit, then re-run. The script never edits dependents for you.
 3. Allocates the next free `vYYYYMMDD.N` tag (a release event, not a package version), then
    runs typecheck → build → test before touching git.
-4. Commits the affected `package.json` versions, tags, pushes to `main`, and creates the GitHub
-   Release (package table + `--generate-notes`).
+4. Commits `package.json` versions that actually changed, tags, pushes to `main`, and creates the
+   GitHub Release (package table + `--generate-notes`). A release that only introduces packages
+   tags the current commit, because those versions were already written.
 5. `publish.yml` fires on `release: published` (the release is created with `RELEASE_TOKEN`, which
    does fire that event), builds, and `bun publish`es only package versions that are not already
    on npm, in runtime-dependency order, stripping `devDependencies` first (they reference the
@@ -209,12 +212,12 @@ flowchart TD
   A[workflow_dispatch bump type] --> B[Diff since last v* tag]
   B --> C{Affected packages?}
   C -->|none| D[Fail: nothing to release]
-  C -->|some| E[Plan next versions in memory]
+  C -->|some| E[Plan versions; new packages keep theirs]
   E --> F{Every runtime @breadai dep still satisfies?}
   F -->|no| G[Fail: print offenders, write nothing]
   F -->|yes| H{dry_run?}
   H -->|true| I[Print plan / typecheck HEAD]
-  H -->|false| J[Write versions on affected only]
+  H -->|false| J[Write versions that changed]
   J --> K[typecheck / build / test]
   K --> L[Tag next free vYYYYMMDD.N, GitHub release]
 ```
