@@ -42,7 +42,9 @@ authoritative "no".
 The rest of the vocabulary is deliberately literal: **agent**, **tool**, **task** (one-shot,
 stateless), **skill** (loadable instruction pack), **loop** (agent-driven iteration),
 **pipeline** (declared step sequence), **decision** (a pipeline step that records a System One
-label on its step-end crumb and leaves the value passed onward unchanged), **supervisor** (LLM-driven delegation to sub-agents via
+label on its step-end crumb and leaves the value passed onward unchanged), **branch** (an exclusive
+pipeline step: one arm, strict string equality on `on` or the latest decision label, required
+default), **supervisor** (LLM-driven delegation to sub-agents via
 `core_delegate`), **store**
 (`BreadStore` persistence), **session**, **checkpoint** (HITL suspension point), **HITL**
 (human-in-the-loop), **remote agent** (`RemoteAgent`, `remoteAgent()` — the peer-transport seam to
