@@ -13,16 +13,27 @@ export interface PipelineRunOpts {
   // picks up after the suspended step instead of restarting at 0 (which would
   // collide with the original run's step runIds).
   baseIndex?: number
-  // Set when this invocation runs a single parallel-branch step: the checkpoint
-  // parent template carrying the OUTER continuation (remaining steps after the
-  // parallel step) plus this branch's position. Sibling data is filled in by
-  // runParallelSteps after every branch settles.
-  branchParent?: PipelineCheckpointParent
+  // Frames that continue after this step list finishes. The innermost is
+  // `outer`; each frame's own `outer` is the next one. A suspension pushes
+  // this step's frame in front of them.
+  outer?: PipelineCheckpointParent
+  // Latest decision label from an earlier step or a resumed checkpoint. A branch
+  // with no `on` reads it. An arm returns its own label so the outer run updates.
+  decisionLabel?: string
 }
 
-export async function* runPipeline(opts: PipelineRunOpts): AsyncGenerator<BreadCrumb> {
-  const { pipelineId, steps, input, ctx, baseIndex = 0, branchParent } = opts
+interface PipelineResult {
+  output: unknown
+  decisionLabel?: string
+  suspended: boolean
+}
+
+export async function* runPipeline(opts: PipelineRunOpts): AsyncGenerator<BreadCrumb, PipelineResult> {
+  const { pipelineId, steps, input, ctx, baseIndex = 0 } = opts
   let current: unknown = input
+  // Kept off `current` so the next step still sees the pre-decision value.
+  // A branch with no `on` reads it, including after HITL and from inside an arm.
+  let lastDecision = opts.decisionLabel
 
   for (let i = 0; i < steps.length; i++) {
     const step = steps[i]!
@@ -39,17 +50,18 @@ export async function* runPipeline(opts: PipelineRunOpts): AsyncGenerator<BreadC
     }
     yield startCrumb
 
-    // The checkpoint parent for a suspension inside this step: a parallel
-    // branch inherits the outer continuation; a top-level step's continuation
-    // is simply the steps after it.
-    const stepParent = (): PipelineCheckpointParent =>
-      branchParent ?? {
-        kind: 'pipeline',
-        pipelineId,
-        stepIndex: index,
-        stepAgentId: getStepAgentId(step),
-        remainingSteps: steps.slice(i + 1),
-      }
+    // This step's suffix only. The branch step and each parallel slot are
+    // already their own frames on `outer` — copying them here drops the inner
+    // arm when a parallel frame is returned in their place.
+    const stepParent = (): PipelineCheckpointParent => ({
+      kind: 'pipeline',
+      pipelineId,
+      stepIndex: index,
+      stepAgentId: getStepAgentId(step),
+      remainingSteps: steps.slice(i + 1),
+      ...(lastDecision !== undefined ? { decisionLabel: lastDecision } : {}),
+      ...(opts.outer ? { outer: opts.outer } : {}),
+    })
 
     let output: unknown
     let suspended = false
@@ -67,10 +79,12 @@ export async function* runPipeline(opts: PipelineRunOpts): AsyncGenerator<BreadC
     } else if (step.type === 'parallel') {
       const res = yield* runParallelSteps(step.steps, current, ctx, pipelineId, index, {
         remainingSteps: steps.slice(i + 1),
-        nested: branchParent !== undefined,
+        ...(lastDecision !== undefined ? { decisionLabel: lastDecision } : {}),
+        ...(opts.outer ? { outer: opts.outer } : {}),
       })
       output = res.output
       suspended = res.suspended
+      if (res.decisionLabel !== undefined) lastDecision = res.decisionLabel
     } else if (step.type === 'map') {
       // `map` fans out: input must be an array; each element runs through agentId
       const items = Array.isArray(current) ? current : [current]
@@ -100,12 +114,58 @@ export async function* runPipeline(opts: PipelineRunOpts): AsyncGenerator<BreadC
       })
       const decided = decisionLabel(step.question, response.answers)
       output = { label: decided.label, answer: decided.answer }
+      lastDecision = decided.label
+    } else if (step.type === 'branch') {
+      if (step.default === undefined) {
+        throw new BreadError(
+          `Pipeline "${pipelineId}" step ${index} is a branch without a default arm.`,
+          'PIPELINE_BRANCH_DEFAULT',
+          { pipelineId, stepIndex: index },
+        )
+      }
+      const taken = selectArm(step, current, lastDecision, pipelineId, index)
+      yield {
+        type: 'pipeline:branch:taken',
+        pipelineId,
+        stepIndex: index,
+        agentId: 'branch',
+        runId: stepRunId,
+        eq: taken.eq,
+        caseIndex: taken.caseIndex,
+        timestamp: Date.now(),
+      }
+      if (taken.arm.length === 0) {
+        output = current
+      } else {
+        // The arm suffix lives on the inner frame. This frame is what remains
+        // after the arm: close the branch step, then run the steps after it.
+        const armOuter: PipelineCheckpointParent = {
+          kind: 'pipeline',
+          pipelineId,
+          stepIndex: index,
+          stepAgentId: 'branch',
+          remainingSteps: steps.slice(i + 1),
+          ...(lastDecision !== undefined ? { decisionLabel: lastDecision } : {}),
+          ...(opts.outer ? { outer: opts.outer } : {}),
+        }
+        const driven = yield* runPipeline({
+          pipelineId: `${pipelineId}:${index}:branch`,
+          steps: taken.arm,
+          input: current,
+          ctx,
+          ...(lastDecision !== undefined ? { decisionLabel: lastDecision } : {}),
+          outer: armOuter,
+        })
+        if (driven.decisionLabel !== undefined) lastDecision = driven.decisionLabel
+        output = driven.output
+        suspended = driven.suspended
+      }
     }
 
     // A suspended step ends the stream at human:required — same contract as a
     // single-agent run. The checkpoint's parent linkage (persisted atomically
     // with it via RunOptions._parent) lets resume continue the remaining steps.
-    if (suspended) return
+    if (suspended) return pipelineResult(current, lastDecision, true)
 
     const endCrumb: BreadCrumb = {
       type: 'pipeline:step:end',
@@ -120,17 +180,130 @@ export async function* runPipeline(opts: PipelineRunOpts): AsyncGenerator<BreadC
 
     if (step.type !== 'decision') current = output
   }
+
+  return pipelineResult(current, lastDecision, false)
 }
 
 function getStepAgentId(step: PipelineStep): string {
   if (step.type === 'agent' || step.type === 'map') return step.agentId
   if (step.type === 'decision') return 'decision'
+  if (step.type === 'branch') return 'branch'
   return 'parallel'
+}
+
+interface TakenArm {
+  caseIndex: number
+  eq: string | null
+  arm: PipelineStep[]
+}
+
+// Strict string equality, first hit. A missing path or a non-string is not a
+// match, so the default arm runs. No `on` and no decision label is an error.
+function selectArm(
+  step: Extract<PipelineStep, { type: 'branch' }>,
+  current: unknown,
+  lastDecision: string | undefined,
+  pipelineId: string,
+  stepIndex: number,
+): TakenArm {
+  let label: unknown
+  if (step.on !== undefined) {
+    label = readPath(current, step.on)
+  } else if (lastDecision === undefined) {
+    throw new BreadError(
+      `Pipeline "${pipelineId}" step ${stepIndex} is a branch without \`on\` and no decision step has run.`,
+      'PIPELINE_BRANCH_NO_LABEL',
+      { pipelineId, stepIndex },
+    )
+  } else {
+    label = lastDecision
+  }
+  if (typeof label === 'string') {
+    const caseIndex = step.cases.findIndex((item) => item.eq === label)
+    if (caseIndex >= 0) {
+      const matched = step.cases[caseIndex]!
+      return { caseIndex, eq: matched.eq, arm: matched.steps }
+    }
+  }
+  return { caseIndex: -1, eq: null, arm: step.default }
+}
+
+function readPath(value: unknown, path: string): unknown {
+  let current = value
+  for (const segment of path.split('.')) {
+    if (typeof current !== 'object' || current === null) return undefined
+    current = (current as Record<string, unknown>)[segment]
+  }
+  return current
+}
+
+function pipelineResult(
+  output: unknown,
+  decisionLabel: string | undefined,
+  suspended: boolean,
+): PipelineResult {
+  return {
+    output,
+    suspended,
+    ...(decisionLabel !== undefined ? { decisionLabel } : {}),
+  }
+}
+
+// The parallel slot for this step sits on its own frame. Nested arms push
+// frames in front of it, so the checkpoint parent is not always that frame.
+function findParallelFrame(
+  parent: PipelineCheckpointParent,
+  pipelineId: string,
+  stepIndex: number,
+): PipelineCheckpointParent | undefined {
+  let frame: PipelineCheckpointParent | undefined = parent
+  while (frame) {
+    if (frame.parallel && frame.pipelineId === pipelineId && frame.stepIndex === stepIndex) return frame
+    frame = frame.outer
+  }
+  return undefined
 }
 
 interface ParallelResult {
   output?: unknown[]
   suspended: boolean
+  decisionLabel?: string
+}
+
+// One new slot label replaces the label the parallel step was entered with.
+// A second, different label is an error: slots have no order to call latest.
+function joinSlotLabel(
+  incoming: string | undefined,
+  current: string | undefined,
+  slotLabel: string | undefined,
+  where: { pipelineId: string; stepIndex: number },
+): string | undefined {
+  if (slotLabel === undefined || slotLabel === incoming) return current
+  if (current === undefined || current === incoming || current === slotLabel) return slotLabel
+  throw new BreadError(
+    `Pipeline "${where.pipelineId}" step ${where.stepIndex} has parallel slots with different decision labels ("${current}" and "${slotLabel}").`,
+    'PIPELINE_DECISION_CONFLICT',
+    { pipelineId: where.pipelineId, stepIndex: where.stepIndex },
+  )
+}
+
+function writeDecisionLabel(frame: PipelineCheckpointParent, label: string | undefined): void {
+  if (label === undefined) delete frame.decisionLabel
+  else frame.decisionLabel = label
+}
+
+function adoptSlotLabel(frame: PipelineCheckpointParent, slotLabel: string): void {
+  if (!frame.parallel) {
+    frame.decisionLabel = slotLabel
+    return
+  }
+  writeDecisionLabel(
+    frame,
+    joinSlotLabel(frame.parallel.incomingLabel, frame.decisionLabel, slotLabel, {
+      pipelineId: frame.pipelineId,
+      stepIndex: frame.stepIndex,
+    }),
+  )
 }
 
 async function* runParallelSteps(
@@ -139,7 +312,11 @@ async function* runParallelSteps(
   ctx: RunnerContext,
   pipelineId: string,
   stepIndex: number,
-  outer: { remainingSteps: PipelineStep[]; nested: boolean },
+  outer: {
+    remainingSteps: PipelineStep[]
+    decisionLabel?: string
+    outer?: PipelineCheckpointParent
+  },
 ): AsyncGenerator<BreadCrumb, ParallelResult> {
   type QueueItem = BreadCrumb | null
 
@@ -148,8 +325,21 @@ async function* runParallelSteps(
   const outputs: (unknown | null)[] = branchSteps.map(() => null)
   const suspendedCheckpoints: string[] = []
   const heldHumanRequired: BreadCrumb[] = []
+  let joined = outer.decisionLabel
+  let conflictRecorded = false
   let pending = branchSteps.length
   let resolver: (() => void) | null = null
+
+  // Sync on purpose: drains overlap only at awaits, and the join itself does not.
+  function adoptJoined(slotLabel: string | undefined) {
+    if (conflictRecorded) return
+    try {
+      joined = joinSlotLabel(outer.decisionLabel, joined, slotLabel, { pipelineId, stepIndex })
+    } catch (err) {
+      conflictRecorded = true
+      failures.push(err)
+    }
+  }
 
   function push(item: QueueItem) {
     queue.push(item)
@@ -159,40 +349,50 @@ async function* runParallelSteps(
 
   async function drain(step: PipelineStep, branchIndex: number) {
     const subId = `${pipelineId}:${stepIndex}:parallel:${branchIndex}`
-    // ponytail: a parallel step nested inside another parallel branch gets no
-    // continuation linkage — a suspension there resumes only the suspended
-    // agent. Chain the parent records if that shape ever matters.
-    const branchParent: PipelineCheckpointParent | undefined = outer.nested
-      ? undefined
-      : {
-          kind: 'pipeline',
-          pipelineId,
-          stepIndex,
-          stepAgentId: 'parallel',
-          remainingSteps: outer.remainingSteps,
-          parallel: { branchIndex, settledOutputs: [], pendingCheckpointIds: [] },
-        }
+    const parallelFrame: PipelineCheckpointParent = {
+      kind: 'pipeline',
+      pipelineId,
+      stepIndex,
+      stepAgentId: 'parallel',
+      remainingSteps: outer.remainingSteps,
+      parallel: {
+        branchIndex,
+        settledOutputs: [],
+        pendingCheckpointIds: [],
+        ...(outer.decisionLabel !== undefined ? { incomingLabel: outer.decisionLabel } : {}),
+      },
+      ...(outer.decisionLabel !== undefined ? { decisionLabel: outer.decisionLabel } : {}),
+      ...(outer.outer ? { outer: outer.outer } : {}),
+    }
     try {
-      for await (const crumb of runPipeline({
+      // for-await drops the return value. That value is the slot's label, and
+      // it has to join the accumulator before this generator is discarded.
+      const gen = runPipeline({
         pipelineId: subId,
         steps: [step],
         input,
         ctx,
-        ...(branchParent ? { branchParent } : {}),
-      })) {
+        ...(outer.decisionLabel !== undefined ? { decisionLabel: outer.decisionLabel } : {}),
+        outer: parallelFrame,
+      })
+      let next = await gen.next()
+      while (!next.done) {
+        const crumb = next.value
         if (crumb.type === 'human:required') {
           // Held back until every branch settles and the checkpoint has its
           // sibling data — a client resuming the instant it sees this crumb
           // must find complete parallel linkage, not a half-filled record.
           suspendedCheckpoints.push(crumb.checkpointId)
           heldHumanRequired.push(crumb)
-          continue
+        } else {
+          if (crumb.type === 'pipeline:step:end' && crumb.pipelineId === subId) {
+            outputs[branchIndex] = crumb.output
+          }
+          push(crumb)
         }
-        if (crumb.type === 'pipeline:step:end' && crumb.pipelineId === subId) {
-          outputs[branchIndex] = crumb.output
-        }
-        push(crumb)
+        next = await gen.next()
       }
+      if (!next.value.suspended) adoptJoined(next.value.decisionLabel)
     } catch (err) {
       // A failed branch fails the whole parallel step — but only after every
       // sibling settles, so sibling crumbs still reach the consumer before the
@@ -236,30 +436,39 @@ async function* runParallelSteps(
     // durable do the held human:required crumbs surface to the client.
     for (const checkpointId of suspendedCheckpoints) {
       const cp = await ctx.store.getCheckpoint(checkpointId)
-      if (cp?.parent?.kind === 'pipeline' && cp.parent.parallel) {
-        cp.parent.parallel.settledOutputs = outputs.slice()
-        cp.parent.parallel.pendingCheckpointIds = suspendedCheckpoints.slice()
-        await ctx.store.saveCheckpoint(cp)
-      }
+      if (cp?.parent?.kind !== 'pipeline') continue
+      const frame = findParallelFrame(cp.parent, pipelineId, stepIndex)
+      if (!frame?.parallel) continue
+      frame.parallel.settledOutputs = outputs.slice()
+      frame.parallel.pendingCheckpointIds = suspendedCheckpoints.slice()
+      writeDecisionLabel(frame, joined)
+      await ctx.store.saveCheckpoint(cp)
     }
     for (const crumb of heldHumanRequired) yield crumb
     return { suspended: true }
   }
 
-  return { output: outputs as unknown[], suspended: false }
+  return {
+    output: outputs as unknown[],
+    suspended: false,
+    ...(joined !== undefined ? { decisionLabel: joined } : {}),
+  }
 }
 
 // Continues a pipeline whose step suspended for HITL, after the suspended
 // sub-run has been resumed to completion. Called by resumeRun with the
 // checkpoint's parent linkage and the resumed run's output; yields the rest of
 // the pipeline's crumbs (and may itself suspend again — new checkpoints carry
-// fresh parent linkage).
+// fresh parent linkage). One call finishes one frame, then pops `outer`.
 export async function* continuePipelineParent(
   parent: PipelineCheckpointParent,
   resumedOutput: unknown,
   ctx: RunnerContext,
+  slotLabel?: string,
 ): AsyncGenerator<BreadCrumb> {
+  if (slotLabel !== undefined) adoptSlotLabel(parent, slotLabel)
   let stepOutput: unknown = resumedOutput
+  let carriedLabel = parent.decisionLabel
 
   // Finish an interrupted map fan-out: the resumed item's output joins the
   // already-settled ones, then the remaining items run.
@@ -318,10 +527,18 @@ export async function* continuePipelineParent(
       // into a store-side atomic update if concurrent resumes ever matter.
       for (const id of stillPending) {
         const cp = await ctx.store.getCheckpoint(id)
-        if (cp?.parent?.kind === 'pipeline' && cp.parent.parallel) {
-          cp.parent.parallel.settledOutputs[branchIndex] = stepOutput
-          await ctx.store.saveCheckpoint(cp)
-        }
+        if (cp?.parent?.kind !== 'pipeline') continue
+        const frame = findParallelFrame(cp.parent, parent.pipelineId, parent.stepIndex)
+        if (!frame?.parallel) continue
+        frame.parallel.settledOutputs[branchIndex] = stepOutput
+        writeDecisionLabel(
+          frame,
+          joinSlotLabel(frame.parallel.incomingLabel, frame.decisionLabel, parent.decisionLabel, {
+            pipelineId: frame.pipelineId,
+            stepIndex: frame.stepIndex,
+          }),
+        )
+        await ctx.store.saveCheckpoint(cp)
       }
       return // pipeline stays suspended on the remaining branches
     }
@@ -340,11 +557,15 @@ export async function* continuePipelineParent(
   }
   yield endCrumb
 
-  yield* runPipeline({
+  const driven = yield* runPipeline({
     pipelineId: parent.pipelineId,
     steps: parent.remainingSteps,
     input: stepOutput,
     ctx,
     baseIndex: parent.stepIndex + 1,
+    ...(carriedLabel !== undefined ? { decisionLabel: carriedLabel } : {}),
+    ...(parent.outer ? { outer: parent.outer } : {}),
   })
+  if (driven.suspended || !parent.outer) return
+  yield* continuePipelineParent(parent.outer, driven.output, ctx, driven.decisionLabel)
 }
