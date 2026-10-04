@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { planBump } from './plan.ts'
+import { planBump, unpublishedNames } from './plan.ts'
 import type { WorkspacePackage } from './packages.ts'
 
 function pkg(opts: {
@@ -102,5 +102,48 @@ describe('planBump', () => {
   test('bumps server too when it is in the affected set alongside a core major', () => {
     const plan = planBump([core, serverOnMajor], ['@breadai/core', '@breadai/server'], 'major')
     expect(plan.bumps.map((bump) => bump.name)).toEqual(['@breadai/core', '@breadai/server'])
+  })
+
+  test('keeps the current version of a package that has never been published', () => {
+    const runtime = pkg({ name: '@breadai/runtime-bun', dir: 'packages/runtime-bun', version: '0.1.0' })
+    const plan = planBump([core, runtime], ['@breadai/core', '@breadai/runtime-bun'], 'patch', undefined, [
+      '@breadai/runtime-bun',
+    ])
+    expect(plan.bumps.map((bump) => `${bump.name}:${bump.from}:${bump.to}`)).toEqual([
+      '@breadai/core:0.1.1:0.1.2',
+      '@breadai/runtime-bun:0.1.0:0.1.0',
+    ])
+    expect(plan.leftBehind).toEqual([])
+  })
+
+  test('refuses a first publish when a dependent range requires a higher version', () => {
+    const runtime = pkg({ name: '@breadai/runtime-bun', dir: 'packages/runtime-bun', version: '0.1.0' })
+    const cli = pkg({
+      name: '@breadai/cli',
+      dir: 'packages/cli',
+      deps: { '@breadai/runtime-bun': 'workspace:>=0.1.1 <1.0.0' },
+    })
+    const plan = planBump([runtime, cli], ['@breadai/runtime-bun'], 'patch', undefined, ['@breadai/runtime-bun'])
+    expect(plan.leftBehind).toEqual([
+      {
+        dependent: '@breadai/cli',
+        dependency: '@breadai/runtime-bun',
+        range: '>=0.1.1 <1.0.0',
+        version: '0.1.0',
+      },
+    ])
+  })
+})
+
+describe('unpublishedNames', () => {
+  test('keeps a package whose directory was absent from the previous release tag', () => {
+    const names = unpublishedNames(
+      [
+        { name: '@breadai/core', dir: 'packages/core' },
+        { name: '@breadai/runtime-bun', dir: 'packages/runtime-bun' },
+      ],
+      (dir) => dir === 'packages/core',
+    )
+    expect(names).toEqual(['@breadai/runtime-bun'])
   })
 })
