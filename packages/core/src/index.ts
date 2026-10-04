@@ -38,6 +38,14 @@ export { isFileOutput } from './storage/blob-store.js'
 export type { AgentRegistry, RunnerContext } from './runner.js'
 export { resolveModel } from './model-provider.js'
 export type { ModelRef, ProviderRegistry } from './model-provider.js'
+export type {
+  DecisionBucket,
+  DecisionClient,
+  DecisionHostAnswer,
+  DecisionHostQuestion,
+  DecisionQuestion,
+  DecisionRegistry,
+} from './decision.js'
 export { buildToolCredentials } from './runner.js'
 export type { Skill, SkillMeta, SkillToolEntry } from './skills.js'
 export { injectSkillPrompt, loadSkill, loadSkillMeta } from './skills.js'

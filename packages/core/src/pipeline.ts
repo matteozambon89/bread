@@ -1,3 +1,4 @@
+import { decisionLabel, resolveDecisionClient, toHostQuestion } from './decision.js'
 import type { BreadCrumb, PipelineCheckpointParent, PipelineStep, RunOptions } from './types.js'
 import { BreadError } from './types.js'
 import { runAgent } from './runner.js'
@@ -91,6 +92,14 @@ export async function* runPipeline(opts: PipelineRunOpts): AsyncGenerator<BreadC
         if (suspended) break
       }
       output = results
+    } else if (step.type === 'decision') {
+      const client = await resolveDecisionClient(ctx.decisions, step.provider, step.model)
+      const response = await client.systemOne({
+        state: current,
+        questions: [toHostQuestion(step.question)],
+      })
+      const decided = decisionLabel(step.question, response.answers)
+      output = { label: decided.label, answer: decided.answer }
     }
 
     // A suspended step ends the stream at human:required — same contract as a
@@ -109,13 +118,13 @@ export async function* runPipeline(opts: PipelineRunOpts): AsyncGenerator<BreadC
     }
     yield endCrumb
 
-    current = output
+    if (step.type !== 'decision') current = output
   }
 }
 
 function getStepAgentId(step: PipelineStep): string {
-  if (step.type === 'agent') return step.agentId
-  if (step.type === 'map') return step.agentId
+  if (step.type === 'agent' || step.type === 'map') return step.agentId
+  if (step.type === 'decision') return 'decision'
   return 'parallel'
 }
 

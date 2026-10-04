@@ -1,11 +1,16 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
-import { defineHumanTool } from '@breadai/core'
+import { BreadError, defineHumanTool } from '@breadai/core'
 import type {
   BreadCrumb,
   BreadInstance,
+  DecisionClient,
+  DecisionHostAnswer,
+  DecisionHostQuestion,
+  DecisionQuestion,
   HumanRequiredCrumb,
   PipelineStep,
   PipelineStepEndCrumb,
+  PipelineStepStartCrumb,
 } from '@breadai/core'
 import { store as memoryStore } from '@breadai/store-memory'
 import {
@@ -348,6 +353,487 @@ describe('bread.runPipeline — an agent step that splits text into an array fee
         (c) => c.type === 'agent:run:end' && (c as { agentId: string }).agentId === 'writer',
       )
       expect(writerRuns).toHaveLength(3)
+    } finally {
+      await stop()
+    }
+  })
+})
+
+const TICKET = 'TICKET-8841 refund the duplicate charge'
+
+function choiceQuestion(minConfidence?: number): DecisionQuestion {
+  return {
+    type: 'choice',
+    text: 'Which desk owns this ticket?',
+    options: ['billing', 'shipping'],
+    otherwise: 'needs_review',
+    ...(minConfidence !== undefined ? { minConfidence } : {}),
+  }
+}
+
+function fakeClient(
+  answer: DecisionHostAnswer | undefined,
+  seen: { state?: unknown; questions?: DecisionHostQuestion[]; model?: string },
+): (modelId: string) => DecisionClient {
+  return (modelId) => {
+    seen.model = modelId
+    return {
+      async systemOne(request) {
+        seen.state = request.state
+        seen.questions = request.questions
+        return { answers: answer ? [answer] : [] }
+      },
+    }
+  }
+}
+
+async function drain(gen: AsyncIterable<BreadCrumb>): Promise<{ crumbs: BreadCrumb[]; error?: unknown }> {
+  const crumbs: BreadCrumb[] = []
+  try {
+    for await (const crumb of gen) crumbs.push(crumb)
+    return { crumbs }
+  } catch (error) {
+    return { crumbs, error }
+  }
+}
+
+describe('bread.runPipeline — decision step', () => {
+  test('keeps the label off the following agent input and records it on step end', async () => {
+    const seen: { state?: unknown; questions?: DecisionHostQuestion[]; model?: string } = {}
+    const reply = mockTextModel('noted') as MockLanguageModelV4
+    const { bread, stop } = await makeBread({
+      agents: { reply: defineTestAgent({ model: 'reply' }) },
+      models: { reply },
+      config: {
+        decisions: { typesafe: fakeClient({ type: 'choice', choice: 'billing', confidence: 0.91 }, seen) },
+        pipelines: {
+          classify: [
+            {
+              type: 'decision',
+              provider: 'typesafe',
+              model: 'jev-latest',
+              question: choiceQuestion(),
+            },
+            { type: 'agent', agentId: 'reply' },
+          ],
+        },
+      },
+    })
+    try {
+      const crumbs = await collect(bread.runPipeline('classify', TICKET))
+      const start = crumbs.find((c) => c.type === 'pipeline:step:start') as PipelineStepStartCrumb
+      expect(start.agentId).toBe('decision')
+      const end = crumbs.find((c) => c.type === 'pipeline:step:end' && c.agentId === 'decision') as PipelineStepEndCrumb
+      expect(end.output).toEqual({
+        label: 'billing',
+        answer: { type: 'choice', choice: 'billing', confidence: 0.91 },
+      })
+      expect(seen.model).toBe('jev-latest')
+      expect(seen.state).toBe(TICKET)
+      expect(seen.questions).toEqual([
+        { type: 'choice', text: 'Which desk owns this ticket?', options: ['billing', 'shipping'] },
+      ])
+      const prompt = JSON.stringify(reply.doStreamCalls[0]!.prompt)
+      expect(prompt).toContain(TICKET)
+      expect(prompt).not.toContain('billing')
+      expect(prompt).not.toContain('needs_review')
+    } finally {
+      await stop()
+    }
+  })
+
+  test('writes otherwise when confidence is below minConfidence', async () => {
+    const reply = mockTextModel('noted') as MockLanguageModelV4
+    const { bread, stop } = await makeBread({
+      agents: { reply: defineTestAgent({ model: 'reply' }) },
+      models: { reply },
+      config: {
+        decisions: {
+          typesafe: fakeClient({ type: 'choice', choice: 'billing', confidence: 0.2 }, {}),
+        },
+        pipelines: {
+          classify: [
+            { type: 'decision', provider: 'typesafe', model: 'jev-latest', question: choiceQuestion(0.8) },
+            { type: 'agent', agentId: 'reply' },
+          ],
+        },
+      },
+    })
+    try {
+      const crumbs = await collect(bread.runPipeline('classify', TICKET))
+      const end = crumbs.find((c) => c.type === 'pipeline:step:end' && c.agentId === 'decision') as PipelineStepEndCrumb
+      expect((end.output as { label: string }).label).toBe('needs_review')
+      expect(JSON.stringify(reply.doStreamCalls[0]!.prompt)).toContain(TICKET)
+    } finally {
+      await stop()
+    }
+  })
+
+  test('accepts confidence equal to minConfidence', async () => {
+    const { bread, stop } = await makeBread({
+      agents: { reply: defineTestAgent({ model: 'reply' }) },
+      models: { reply: mockTextModel('noted') },
+      config: {
+        decisions: { typesafe: fakeClient({ type: 'choice', choice: 'billing', confidence: 0.8 }, {}) },
+        pipelines: {
+          classify: [
+            { type: 'decision', provider: 'typesafe', model: 'jev-latest', question: choiceQuestion(0.8) },
+          ],
+        },
+      },
+    })
+    try {
+      const crumbs = await collect(bread.runPipeline('classify', TICKET))
+      const end = crumbs.find((c) => c.type === 'pipeline:step:end') as PipelineStepEndCrumb
+      expect((end.output as { label: string }).label).toBe('billing')
+    } finally {
+      await stop()
+    }
+  })
+
+  test('writes otherwise when the choice is outside options', async () => {
+    const { bread, stop } = await makeBread({
+      agents: { reply: defineTestAgent({ model: 'reply' }) },
+      models: { reply: mockTextModel('noted') },
+      config: {
+        decisions: { typesafe: fakeClient({ type: 'choice', choice: 'legal', confidence: 0.99 }, {}) },
+        pipelines: {
+          classify: [
+            { type: 'decision', provider: 'typesafe', model: 'jev-latest', question: choiceQuestion() },
+          ],
+        },
+      },
+    })
+    try {
+      const crumbs = await collect(bread.runPipeline('classify', TICKET))
+      const end = crumbs.find((c) => c.type === 'pipeline:step:end') as PipelineStepEndCrumb
+      expect((end.output as { label: string }).label).toBe('needs_review')
+    } finally {
+      await stop()
+    }
+  })
+
+  test('keeps a choice when confidence is absent and minConfidence is unset', async () => {
+    const { bread, stop } = await makeBread({
+      agents: { reply: defineTestAgent({ model: 'reply' }) },
+      models: { reply: mockTextModel('noted') },
+      config: {
+        decisions: { typesafe: fakeClient({ type: 'choice', choice: 'shipping' }, {}) },
+        pipelines: {
+          classify: [
+            { type: 'decision', provider: 'typesafe', model: 'jev-latest', question: choiceQuestion() },
+          ],
+        },
+      },
+    })
+    try {
+      const crumbs = await collect(bread.runPipeline('classify', TICKET))
+      const end = crumbs.find((c) => c.type === 'pipeline:step:end') as PipelineStepEndCrumb
+      expect((end.output as { label: string }).label).toBe('shipping')
+    } finally {
+      await stop()
+    }
+  })
+
+  test('writes otherwise when confidence is missing and minConfidence is set', async () => {
+    const { bread, stop } = await makeBread({
+      agents: { reply: defineTestAgent({ model: 'reply' }) },
+      models: { reply: mockTextModel('noted') },
+      config: {
+        decisions: { typesafe: fakeClient({ type: 'choice', choice: 'billing' }, {}) },
+        pipelines: {
+          classify: [
+            { type: 'decision', provider: 'typesafe', model: 'jev-latest', question: choiceQuestion(0.5) },
+          ],
+        },
+      },
+    })
+    try {
+      const crumbs = await collect(bread.runPipeline('classify', TICKET))
+      const end = crumbs.find((c) => c.type === 'pipeline:step:end') as PipelineStepEndCrumb
+      expect((end.output as { label: string }).label).toBe('needs_review')
+    } finally {
+      await stop()
+    }
+  })
+
+  test('labels a score from the one inclusive bucket and does not send ranges', async () => {
+    const seen: { questions?: DecisionHostQuestion[] } = {}
+    const { bread, stop } = await makeBread({
+      agents: { reply: defineTestAgent({ model: 'reply' }) },
+      models: { reply: mockTextModel('noted') },
+      config: {
+        decisions: { typesafe: fakeClient({ type: 'score', score: 4 }, seen) },
+        pipelines: {
+          classify: [
+            {
+              type: 'decision',
+              provider: 'typesafe',
+              model: 'jev-latest',
+              question: {
+                type: 'score',
+                text: 'How urgent is this?',
+                buckets: [
+                  { label: 'low', min: 0, max: 3 },
+                  { label: 'high', min: 4, max: 9 },
+                ],
+              },
+            },
+          ],
+        },
+      },
+    })
+    try {
+      const crumbs = await collect(bread.runPipeline('classify', TICKET))
+      const end = crumbs.find((c) => c.type === 'pipeline:step:end') as PipelineStepEndCrumb
+      expect(end.output).toEqual({
+        label: 'high',
+        answer: { type: 'score', score: 4 },
+      })
+      expect(seen.questions).toEqual([{ type: 'score', text: 'How urgent is this?' }])
+    } finally {
+      await stop()
+    }
+  })
+
+  test('labels a noul probability from the one inclusive bucket', async () => {
+    const { bread, stop } = await makeBread({
+      agents: { reply: defineTestAgent({ model: 'reply' }) },
+      models: { reply: mockTextModel('noted') },
+      config: {
+        decisions: { typesafe: fakeClient({ type: 'noul', probability: 0 }, {}) },
+        pipelines: {
+          classify: [
+            {
+              type: 'decision',
+              provider: 'typesafe',
+              model: 'jev-latest',
+              question: {
+                type: 'noul',
+                text: 'Is this a billing issue?',
+                buckets: [
+                  { label: 'no', min: 0, max: 0.5 },
+                  { label: 'yes', min: 0.51, max: 1 },
+                ],
+              },
+            },
+          ],
+        },
+      },
+    })
+    try {
+      const crumbs = await collect(bread.runPipeline('classify', TICKET))
+      const end = crumbs.find((c) => c.type === 'pipeline:step:end') as PipelineStepEndCrumb
+      expect((end.output as { label: string }).label).toBe('no')
+    } finally {
+      await stop()
+    }
+  })
+
+  test('throws DECISION_BUCKET when zero buckets match', async () => {
+    const reply = mockTextModel('noted') as MockLanguageModelV4
+    const { bread, stop } = await makeBread({
+      agents: { reply: defineTestAgent({ model: 'reply' }) },
+      models: { reply },
+      config: {
+        decisions: { typesafe: fakeClient({ type: 'score', score: 5 }, {}) },
+        pipelines: {
+          classify: [
+            {
+              type: 'decision',
+              provider: 'typesafe',
+              model: 'jev-latest',
+              question: {
+                type: 'score',
+                text: 'How urgent is this?',
+                buckets: [{ label: 'low', min: 0, max: 3 }],
+              },
+            },
+            { type: 'agent', agentId: 'reply' },
+          ],
+        },
+      },
+    })
+    try {
+      const { crumbs, error } = await drain(bread.runPipeline('classify', TICKET))
+      expect(error).toBeInstanceOf(BreadError)
+      expect((error as BreadError).code).toBe('DECISION_BUCKET')
+      expect(crumbs.some((c) => c.type === 'pipeline:step:end')).toBe(false)
+      expect(reply.doStreamCalls).toHaveLength(0)
+    } finally {
+      await stop()
+    }
+  })
+
+  test('throws DECISION_BUCKET when two inclusive buckets match', async () => {
+    const { bread, stop } = await makeBread({
+      agents: { reply: defineTestAgent({ model: 'reply' }) },
+      models: { reply: mockTextModel('noted') },
+      config: {
+        decisions: { typesafe: fakeClient({ type: 'noul', probability: 0.5 }, {}) },
+        pipelines: {
+          classify: [
+            {
+              type: 'decision',
+              provider: 'typesafe',
+              model: 'jev-latest',
+              question: {
+                type: 'noul',
+                text: 'Is this a billing issue?',
+                buckets: [
+                  { label: 'no', min: 0, max: 0.5 },
+                  { label: 'yes', min: 0.5, max: 1 },
+                ],
+              },
+            },
+          ],
+        },
+      },
+    })
+    try {
+      const { error } = await drain(bread.runPipeline('classify', TICKET))
+      expect((error as BreadError).code).toBe('DECISION_BUCKET')
+      expect((error as BreadError).context).toMatchObject({ value: 0.5, matches: ['no', 'yes'] })
+    } finally {
+      await stop()
+    }
+  })
+
+  test('throws DECISION_ANSWER when the number is missing', async () => {
+    const { bread, stop } = await makeBread({
+      agents: { reply: defineTestAgent({ model: 'reply' }) },
+      models: { reply: mockTextModel('noted') },
+      config: {
+        decisions: { typesafe: fakeClient({ type: 'score' }, {}) },
+        pipelines: {
+          classify: [
+            {
+              type: 'decision',
+              provider: 'typesafe',
+              model: 'jev-latest',
+              question: {
+                type: 'score',
+                text: 'How urgent is this?',
+                buckets: [{ label: 'low', min: 0, max: 9 }],
+              },
+            },
+          ],
+        },
+      },
+    })
+    try {
+      const { error } = await drain(bread.runPipeline('classify', TICKET))
+      expect((error as BreadError).code).toBe('DECISION_ANSWER')
+    } finally {
+      await stop()
+    }
+  })
+
+  test('throws DECISION_ANSWER when the host answer is missing or the wrong type', async () => {
+    const missing = await makeBread({
+      agents: { reply: defineTestAgent({ model: 'reply' }) },
+      models: { reply: mockTextModel('noted') },
+      config: {
+        decisions: { typesafe: fakeClient(undefined, {}) },
+        pipelines: {
+          classify: [
+            { type: 'decision', provider: 'typesafe', model: 'jev-latest', question: choiceQuestion() },
+          ],
+        },
+      },
+    })
+    const mismatch = await makeBread({
+      agents: { reply: defineTestAgent({ model: 'reply' }) },
+      models: { reply: mockTextModel('noted') },
+      config: {
+        decisions: { typesafe: fakeClient({ type: 'score', score: 1 }, {}) },
+        pipelines: {
+          classify: [
+            { type: 'decision', provider: 'typesafe', model: 'jev-latest', question: choiceQuestion() },
+          ],
+        },
+      },
+    })
+    try {
+      const missingResult = await drain(missing.bread.runPipeline('classify', TICKET))
+      expect((missingResult.error as BreadError).code).toBe('DECISION_ANSWER')
+      const mismatchResult = await drain(mismatch.bread.runPipeline('classify', TICKET))
+      expect((mismatchResult.error as BreadError).code).toBe('DECISION_ANSWER')
+    } finally {
+      await missing.stop()
+      await mismatch.stop()
+    }
+  })
+
+  test('throws UNKNOWN_DECISION_PROVIDER before the next step runs', async () => {
+    const reply = mockTextModel('noted') as MockLanguageModelV4
+    const { bread, stop } = await makeBread({
+      agents: { reply: defineTestAgent({ model: 'reply' }) },
+      models: { reply },
+      config: {
+        decisions: { typesafe: fakeClient({ type: 'choice', choice: 'billing' }, {}) },
+        pipelines: {
+          classify: [
+            { type: 'decision', provider: 'missing', model: 'jev-latest', question: choiceQuestion() },
+            { type: 'agent', agentId: 'reply' },
+          ],
+        },
+      },
+    })
+    try {
+      const { crumbs, error } = await drain(bread.runPipeline('classify', TICKET))
+      expect(error).toBeInstanceOf(BreadError)
+      const breadError = error as BreadError
+      expect(breadError.code).toBe('UNKNOWN_DECISION_PROVIDER')
+      expect(breadError.message).toContain('typesafe')
+      const starts = crumbs.filter((c) => c.type === 'pipeline:step:start') as PipelineStepStartCrumb[]
+      expect(starts.map((c) => c.agentId)).toEqual(['decision'])
+      expect(reply.doStreamCalls).toHaveLength(0)
+    } finally {
+      await stop()
+    }
+  })
+
+  test('throws UNKNOWN_DECISION_PROVIDER for an empty registry', async () => {
+    const { bread, stop } = await makeBread({
+      agents: { reply: defineTestAgent({ model: 'reply' }) },
+      models: { reply: mockTextModel('noted') },
+      config: {
+        decisions: {},
+        pipelines: {
+          classify: [
+            { type: 'decision', provider: 'typesafe', model: 'jev-latest', question: choiceQuestion() },
+          ],
+        },
+      },
+    })
+    try {
+      const { error } = await drain(bread.runPipeline('classify', TICKET))
+      expect((error as BreadError).code).toBe('UNKNOWN_DECISION_PROVIDER')
+    } finally {
+      await stop()
+    }
+  })
+
+  test('throws DECISION_NOT_CONFIGURED when the registry is missing', async () => {
+    const reply = mockTextModel('noted') as MockLanguageModelV4
+    const { bread, stop } = await makeBread({
+      agents: { reply: defineTestAgent({ model: 'reply' }) },
+      models: { reply },
+      config: {
+        pipelines: {
+          classify: [
+            { type: 'decision', provider: 'typesafe', model: 'jev-latest', question: choiceQuestion() },
+            { type: 'agent', agentId: 'reply' },
+          ],
+        },
+      },
+    })
+    try {
+      const { crumbs, error } = await drain(bread.runPipeline('classify', TICKET))
+      expect((error as BreadError).code).toBe('DECISION_NOT_CONFIGURED')
+      expect(crumbs.filter((c) => c.type === 'pipeline:step:start')).toHaveLength(1)
+      expect(reply.doStreamCalls).toHaveLength(0)
     } finally {
       await stop()
     }

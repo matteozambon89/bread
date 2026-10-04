@@ -3,6 +3,7 @@ import type { SupervisorRuntime } from './supervisor.js'
 import type { BlobStore } from './storage/blob-store.js'
 import type { BreadStore } from './storage/store.js'
 import type { TaskRegistry } from './task.js'
+import type { DecisionRegistry } from './decision.js'
 import type { ProviderRegistry } from './model-provider.js'
 import type { ToolOrigin } from './permissions.js'
 import type {
@@ -28,6 +29,7 @@ export interface RunnerContext {
   onHumanRequired?: HumanRequiredHandler | undefined
   systemPrompt?: string | undefined
   providers?: ProviderRegistry | undefined
+  decisions?: DecisionRegistry | undefined
   pluginTools?: { plugin: string; def: ToolDefinition }[] | undefined
   pluginToolResolvers?:
     | { plugin: string; resolve: NonNullable<BreadPlugin['resolveAgentTools']> }[]
