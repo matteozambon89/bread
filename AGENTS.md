@@ -1,7 +1,12 @@
-# CLAUDE.md
+# AGENTS.md
 
 Internal notes for working on the **bread** monorepo. User-facing docs live in
 [`README.md`](./README.md) and [`docs/`](./docs/) — read those first for the public API.
+
+Coding-agent skills live in [`.agents/skills/`](./.agents/skills). Coding-agent
+subagents live in [`.agents/agents/`](./.agents/agents). Grok loads those subagents
+through the local symlink `.grok/agents` → `../.agents/agents` (`.grok/` stays
+gitignored). A bread app's runtime agents stay in `agents/<id>/` inside that app.
 
 ## Doc links
 
@@ -260,12 +265,7 @@ the envelope, the full package map, and that gap.
 
 ## Scope discipline
 
-There is no `VISION.md`/milestone-carving process for this project. It existed, generated real
-process weight (a 91-item readiness audit, a 1,000+ line roadmap doc) without stopping the feature
-surface from growing, and was dropped in favor of something cheaper and harder to fake:
-
 A capability lands only when (a) the specific wall it solves is stated up front, and (b) it appears
 **in combination** with at least one existing capability in the flagship example
-(`examples/support-triage`, or its eventual successor) — not standalone. Proof by composition,
-not a carved slice in a planning doc. If a proposed feature can't point to a wall it solves or a
-combination it strengthens, it waits.
+(`examples/support-triage`, or its eventual successor). Proof by composition.
+If a proposed feature can't point to a wall it solves or a combination it strengthens, it waits.

@@ -21,7 +21,7 @@ interface TestAgentOpts {
 /**
  * Builds a valid `AgentDefinition` wired to the `mock` provider, terse enough for
  * runner-level tests. Mirrors what the CLI loader produces by attaching the
- * private `_tools` / `_systemPrompt` fields the runner reads (see CLAUDE.md).
+ * private `_tools` / `_systemPrompt` fields the runner reads (see AGENTS.md).
  */
 export function defineTestAgent(opts: TestAgentOpts = {}): AgentDefinition<unknown, unknown> {
   const config = {

@@ -1,4 +1,4 @@
-// Mirrors bread's public docs (README, CLAUDE.md, docs/*.md) into the user's
+// Mirrors bread's public docs (README, AGENTS.md, docs/*.md) into the user's
 // Obsidian vault under Projects/bread/, adding frontmatter and rewriting
 // cross-doc relative links into [[wikilinks]]. One-directional: always
 // overwrites the vault copy, so hand-edits made there don't survive a re-run.
@@ -23,7 +23,7 @@ async function resolveVaultPath(override?: string): Promise<string> {
 
 const sourcePaths = [
   'README.md',
-  'CLAUDE.md',
+  'AGENTS.md',
   ...readdirSync(join(repoRoot, 'docs'))
     .filter((f) => f.endsWith('.md'))
     .map((f) => `docs/${f}`),
