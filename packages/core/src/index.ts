@@ -129,6 +129,7 @@ export type {
   OnErrorResult,
   OutputFormat,
   OutputMode,
+  PipelineBranchTakenCrumb,
   PipelineCheckpointParent,
   PipelineStep,
   SupervisorCheckpointParent,

@@ -49,3 +49,16 @@ the suspend chain-suspends the supervisor above it).
 
 From a terminal, [`bread chat triage-supervisor`](../../docs/cli.md#chat) drives the whole
 prompt/resume loop for you instead of raw curl.
+
+## Refund pipeline
+
+`pipelines.refund` keeps the same agents. It runs `ticket-lookup`, asks a decision host to label
+the ticket `needs_review`, `auto_refund`, or `deny` (`otherwise` is `needs_review`), then takes one
+branch arm: `needs_review` and the required default arm run `investigator`; `auto_refund` and
+`deny` run `policy-check`. The decision step does not replace the pipeline value, so the arm still
+receives the lookup string.
+
+```bash
+curl -N -X POST localhost:3000/pipelines/refund/run \
+  -d '{"input":"ord-1002, charged twice"}'
+```

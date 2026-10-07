@@ -192,6 +192,20 @@ export interface PipelineStepEndCrumb {
   seq?: number | undefined
 }
 
+// Once per branch step, after step start and before the arm. `eq` is null and
+// `caseIndex` is -1 for the default arm. Not crumb-logged: no session anchor.
+export interface PipelineBranchTakenCrumb {
+  type: 'pipeline:branch:taken'
+  pipelineId: string
+  stepIndex: number
+  agentId: string
+  runId: string
+  eq: string | null
+  caseIndex: number
+  timestamp: number
+  seq?: number | undefined
+}
+
 export interface AgentErrorCrumb {
   type: 'agent:error'
   agentId: string
@@ -284,6 +298,7 @@ export type BreadCrumb =
   | SubagentRunEndCrumb
   | PipelineStepStartCrumb
   | PipelineStepEndCrumb
+  | PipelineBranchTakenCrumb
   | LoopStartCrumb
   | LoopIterationStartCrumb
   | LoopIterationEndCrumb
@@ -743,6 +758,13 @@ export type PipelineStep =
   | { type: 'parallel'; steps: PipelineStep[] }
   | { type: 'map'; agentId: string }
   | { type: 'decision'; provider: string; model: string; question: DecisionQuestion }
+  | {
+      type: 'branch'
+      // Dot path into the current value. Omit to use the latest decision label.
+      on?: string
+      cases: { eq: string; steps: PipelineStep[] }[]
+      default: PipelineStep[]
+    }
 
 // Continuation linkage persisted on a checkpoint created inside a composition.
 // When a sub-run suspends for HITL mid-pipeline, resume must run the rest of
@@ -750,6 +772,13 @@ export type PipelineStep =
 // (remaining steps are persisted, never re-resolved from config) because
 // pipelines can be dynamically composed: loops run pipelines whose id is the
 // loopId, which exists in no config.
+//
+// A pause inside an arm or a parallel branch is a stack of these frames, not a
+// second continuation type. This frame's `remainingSteps` are the suffix still
+// to run here (the rest of the arm, when the pause is inside one). `outer` is
+// the next frame: the branch step, then each parallel slot, then whatever
+// follows. Resume finishes this frame and pops `outer`. It does not re-read
+// `on` or match the arm again.
 export interface PipelineCheckpointParent {
   kind: 'pipeline'
   pipelineId: string
@@ -759,6 +788,10 @@ export interface PipelineCheckpointParent {
   // getStepAgentId of the suspended step, for the step:end crumb on resume.
   stepAgentId: string
   remainingSteps: PipelineStep[]
+  // Latest decision label at suspend time. A later branch with no `on` reads it
+  // instead of throwing PIPELINE_BRANCH_NO_LABEL or reusing a stale outer label.
+  // On a parallel frame this is the joined label, not a per-slot list.
+  decisionLabel?: string
   // Set when the suspended step is `map`: fan-out progress so resume finishes
   // the remaining items before moving on.
   map?: {
@@ -773,7 +806,13 @@ export interface PipelineCheckpointParent {
     branchIndex: number
     settledOutputs: (unknown | null)[]
     pendingCheckpointIds: string[]
+    // Label this parallel step was entered with. A slot that returns it did
+    // not decide. `decisionLabel` is the join: one new label replaces this,
+    // and a second different label throws.
+    incomingLabel?: string
   }
+  // Next frame to run after this one finishes. Absent on the outermost frame.
+  outer?: PipelineCheckpointParent
 }
 
 // Chain-suspension linkage for delegation: set on a delegated sub-run's

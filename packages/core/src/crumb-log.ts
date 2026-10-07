@@ -38,8 +38,9 @@ function isDeltaCrumb(crumb: BreadCrumb): crumb is DeltaCrumb {
 //
 // Persistence is best-effort: writes go through an ordered per-run chain, and
 // the first failure disables logging for that run with a single warning — a
-// store write must never fail a run. `pipeline:step:*` crumbs are sequenced
-// but never persisted (no session anchor to cascade deletion from).
+// store write must never fail a run. `pipeline:step:*` and
+// `pipeline:branch:taken` crumbs are sequenced but never persisted (no session
+// anchor to cascade deletion from).
 
 export interface CrumbLogWriterOptions {
   store: BreadStore | null
@@ -79,7 +80,11 @@ interface RunState {
 }
 
 function isLogged(type: string): boolean {
-  return type !== 'pipeline:step:start' && type !== 'pipeline:step:end'
+  return (
+    type !== 'pipeline:step:start' &&
+    type !== 'pipeline:step:end' &&
+    type !== 'pipeline:branch:taken'
+  )
 }
 
 export function createCrumbLogWriter(opts: CrumbLogWriterOptions): CrumbLogWriter {

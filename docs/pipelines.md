@@ -40,10 +40,49 @@ Step types:
 | `parallel` | Run nested steps concurrently, merge crumb streams. The step's output is the **ordered array of branch outputs**. |
 | `map` | Fan the input array out across `agentId` — each element runs through the agent; output is the array of per-element outputs. |
 | `decision` | Ask one System One question. The step-end output is `{ label, answer }`. The next step still receives the pre-decision value. See [decisions.md](./decisions.md). |
+| `branch` | Run exactly one arm. `cases` match `eq` with strict string equality, first hit. See [Branch](#branch). |
 
 ```bash
 curl -N -X POST localhost:3000/pipelines/article/run -d '{"input":{"topic":"bread"}}'
 ```
+
+### Branch
+
+```ts
+{
+  type: 'branch',
+  on: 'status', // omit to use the latest decision label in this run
+  cases: [
+    { eq: 'needs_review', steps: [{ type: 'agent', agentId: 'investigator' }] },
+    { eq: 'auto_refund', steps: [{ type: 'agent', agentId: 'policy-check' }] },
+    { eq: 'deny', steps: [{ type: 'agent', agentId: 'policy-check' }] },
+  ],
+  default: [{ type: 'agent', agentId: 'investigator' }],
+}
+```
+
+`on` reads that dot path from the current value. With `on` omitted, the label is the latest
+decision step in this run (the decision step does not replace the value the arm receives).
+Parallel slots join into that same label when each slot finishes or resumes. A slot that does
+not decide leaves it, and one new label replaces it. Two different new labels throw
+`PIPELINE_DECISION_CONFLICT` before any later step; the previous label is not reused and the
+branch does not run as if no decision happened. No `on`
+and no decision label throws `PIPELINE_BRANCH_NO_LABEL` before any arm. `default` is required; a
+missing default throws `PIPELINE_BRANCH_DEFAULT` before any arm, including when a case would have
+matched. A missing path or a non-string value is no match, so `default` runs. An empty arm passes
+the current value through and calls no agent. The arm's output — or the current value, when the
+arm is empty — is the branch step's output.
+
+`pipeline:branch:taken` is yielded once, after the branch step starts and before the arm, with
+`agentId: 'branch'`, the matched `eq` (`null` for the default arm), and `caseIndex` (`-1` for
+default). Untaken arms emit no
+crumbs. `pipeline:step:start` and `pipeline:step:end` still fire for the branch step
+(`agentId: 'branch'`) and for steps inside the taken arm. The crumb log skips
+`pipeline:branch:taken` the same way it skips `pipeline:step:*`: those crumbs have no session.
+
+A human pause inside the arm stores the rest of that arm, then the steps after the
+branch, as checkpoint frames. Resume finishes the arm and then those steps. It does
+not evaluate the predicate again.
 
 ### HITL inside a pipeline
 
@@ -51,7 +90,8 @@ A step's agent suspending for a human tool **stops the pipeline durably**: the s
 `human:required` (for a `parallel` step, after every sibling branch settles), and the checkpoint
 records the pipeline continuation — remaining steps included, self-contained. Resuming the
 suspended agent runs the rest of the pipeline in the same continuation stream, across restarts and
-processes. See [hitl.md](./hitl.md#hitl-inside-a-composition).
+processes. A pause inside a `branch` arm resumes that stored arm, not a newly matched one. See
+[hitl.md](./hitl.md#hitl-inside-a-composition).
 
 ## Supervisors
 
