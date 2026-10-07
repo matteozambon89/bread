@@ -3,9 +3,8 @@
 Internal notes for working on the **bread** monorepo. User-facing docs live in
 [`README.md`](./README.md) and [`docs/`](./docs/) — read those first for the public API.
 
-Coding-agent skills live in [`.agents/skills/`](./.agents/skills). Coding-agent
-subagents live in [`.agents/agents/`](./.agents/agents). Grok loads those subagents
-through the local symlink `.grok/agents` → `../.agents/agents` (`.grok/` stays
+Coding-agent subagents live in [`.agents/agents/`](./.agents/agents). Grok loads
+them through the local symlink `.grok/agents` → `../.agents/agents` (`.grok/` stays
 gitignored). A bread app's runtime agents stay in `agents/<id>/` inside that app.
 
 ## Doc links

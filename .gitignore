@@ -7,15 +7,6 @@ dist/
 # VitePress local dev cache (docs site build output is covered by dist/ above)
 docs/.vitepress/cache/
 
-# Temp workspace (project convention — all scratch files live here)
-.tmp/
-
-# Agent/editor session state
-.claude/
-
-# Impeccable design-plugin cache and detector config
-.impeccable/
-
 # Local runtime artifacts
 *.db*
 *.log

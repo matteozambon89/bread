@@ -29,7 +29,6 @@
     "knip": "knip",
     "bump": "bun scripts/bump.ts",
     "publish:changed": "bun scripts/publish-changed.ts",
-    "sync:obsidian": "bun scripts/sync-obsidian.ts",
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
     "docs:preview": "vitepress preview docs"
