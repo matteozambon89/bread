@@ -32,8 +32,8 @@ Credentials default to the AWS SDK's standard credential chain (env vars, IAM ro
 (default 3600).
 
 Part of **[bread](https://github.com/matteozambon89/bread)** — an explicit-by-design framework for AI agents.
-Docs: [store](https://github.com/matteozambon89/bread/blob/HEAD/docs/store.md) ·
-[all docs](https://github.com/matteozambon89/bread#documentation).
+Docs: [store](https://matteozambon89.github.io/bread/store.html) ·
+[all docs](https://matteozambon89.github.io/bread/).
 
 ## License
 

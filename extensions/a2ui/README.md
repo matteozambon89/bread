@@ -13,8 +13,8 @@ bun add @breadai/a2ui   # or: npm i @breadai/a2ui
 ```
 
 Part of **[bread](https://github.com/matteozambon89/bread)** — an explicit-by-design framework for AI agents.
-Docs: [plugins](https://github.com/matteozambon89/bread/blob/HEAD/docs/plugins.md) ·
-[all docs](https://github.com/matteozambon89/bread#documentation).
+Docs: [plugins](https://matteozambon89.github.io/bread/plugins.html) ·
+[all docs](https://matteozambon89.github.io/bread/).
 
 ## License
 

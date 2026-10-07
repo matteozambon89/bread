@@ -158,5 +158,5 @@ calc.tools           // ToolDefinition[] ready to hand to an agent
 await calc.close()
 ```
 
-See [`examples/mcp`](../examples/mcp) for a runnable version, paired with
+See [`examples/mcp`](https://github.com/matteozambon89/bread/tree/HEAD/examples/mcp) for a runnable version, paired with
 [`@breadai/protocol-mcp-server`](./mcp-server.md) exposing the tools it consumes.

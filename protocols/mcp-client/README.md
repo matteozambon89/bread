@@ -38,8 +38,8 @@ plugins: { mcp_client: { servers: ['filesystem'] } }
 ```
 
 Part of **[bread](https://github.com/matteozambon89/bread)** — an explicit-by-design framework for AI agents.
-Docs: [MCP client](https://github.com/matteozambon89/bread/blob/HEAD/docs/mcp-client.md) ·
-[all docs](https://github.com/matteozambon89/bread#documentation).
+Docs: [MCP client](https://matteozambon89.github.io/bread/mcp-client.html) ·
+[all docs](https://matteozambon89.github.io/bread/).
 
 ## License
 

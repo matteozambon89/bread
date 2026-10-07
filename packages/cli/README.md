@@ -15,7 +15,7 @@ bun add -g @breadai/cli   # or: npm i -g @breadai/cli
 | Command | What it does |
 |---------|--------------|
 | `bread dev` | Hot-reload dev server |
-| `bread start` | Production server (add auth yourself via `authPlugin()` — see [auth.md](https://github.com/matteozambon89/bread/blob/HEAD/docs/auth.md)) |
+| `bread start` | Production server (add auth yourself via `authPlugin()` — see [auth.md](https://matteozambon89.github.io/bread/auth.html)) |
 | `bread build` | Compile-check the app's agents and config |
 | `bread chat [agent]` | Interactive REPL with human-in-the-loop support |
 | `bread invoke <agent> [input]` | One-shot run (`--json` for structured output) |
@@ -51,8 +51,8 @@ Default listen is Bun (`@breadai/runtime-bun`, a dependency of `@breadai/cli`, i
 zero flags. If Bun isn't installed, `bread` fails immediately.
 
 Part of **[bread](https://github.com/matteozambon89/bread)** — an explicit-by-design framework for AI agents.
-Docs: [CLI](https://github.com/matteozambon89/bread/blob/HEAD/docs/cli.md) ·
-[all docs](https://github.com/matteozambon89/bread#documentation).
+Docs: [CLI](https://matteozambon89.github.io/bread/cli.html) ·
+[all docs](https://matteozambon89.github.io/bread/).
 
 ## License
 

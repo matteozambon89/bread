@@ -32,7 +32,7 @@ export default defineConfig({
 
 The plugin depends only on `@opentelemetry/api` — spans go wherever your app's registered tracer
 provider sends them. For local visibility, register a console exporter (this is what
-[`examples/otel`](../examples/otel) does):
+[`examples/otel`](https://github.com/matteozambon89/bread/tree/HEAD/examples/otel) does):
 
 ```ts
 import { ConsoleSpanExporter, NodeTracerProvider, SimpleSpanProcessor } from '@opentelemetry/sdk-trace-node'

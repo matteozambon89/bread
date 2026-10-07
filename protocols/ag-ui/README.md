@@ -32,8 +32,8 @@ export default defineConfig({
 one instance per stream).
 
 Part of **[bread](https://github.com/matteozambon89/bread)** — an explicit-by-design framework for AI agents.
-Docs: [ag-ui](https://github.com/matteozambon89/bread/blob/HEAD/docs/ag-ui.md) ·
-[all docs](https://github.com/matteozambon89/bread#documentation).
+Docs: [ag-ui](https://matteozambon89.github.io/bread/ag-ui.html) ·
+[all docs](https://matteozambon89.github.io/bread/).
 
 ## License
 

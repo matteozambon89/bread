@@ -29,8 +29,8 @@ For anything that should survive a restart, use
 SQLite stores.
 
 Part of **[bread](https://github.com/matteozambon89/bread)** — an explicit-by-design framework for AI agents.
-Docs: [store](https://github.com/matteozambon89/bread/blob/HEAD/docs/store.md) ·
-[all docs](https://github.com/matteozambon89/bread#documentation).
+Docs: [store](https://matteozambon89.github.io/bread/store.html) ·
+[all docs](https://matteozambon89.github.io/bread/).
 
 ## License
 

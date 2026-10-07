@@ -28,8 +28,8 @@ The plugin only talks to `@opentelemetry/api` — register any tracer provider/e
 (see the repo's `examples/otel` for a console-exporter setup), or pass your own `tracer`.
 
 Part of **[bread](https://github.com/matteozambon89/bread)** — an explicit-by-design framework for AI agents.
-Docs: [otel](https://github.com/matteozambon89/bread/blob/HEAD/docs/otel.md) ·
-[all docs](https://github.com/matteozambon89/bread#documentation).
+Docs: [otel](https://matteozambon89.github.io/bread/otel.html) ·
+[all docs](https://matteozambon89.github.io/bread/).
 
 ## License
 

@@ -38,8 +38,8 @@ Exposed agents run via `bread.run(..., { mode: 'sync' })` with real input/output
 keep their full hook chain and crumbs.
 
 Part of **[bread](https://github.com/matteozambon89/bread)** — an explicit-by-design framework for AI agents.
-Docs: [MCP server](https://github.com/matteozambon89/bread/blob/HEAD/docs/mcp-server.md) ·
-[all docs](https://github.com/matteozambon89/bread#documentation).
+Docs: [MCP server](https://matteozambon89.github.io/bread/mcp-server.html) ·
+[all docs](https://matteozambon89.github.io/bread/).
 
 ## License
 

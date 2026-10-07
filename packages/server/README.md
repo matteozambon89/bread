@@ -30,13 +30,13 @@ await bread.start()
 This package owns `createServer` (and `app.fetch`) only — listen adapters live in
 `@breadai/runtime-bun` / `@breadai/runtime-node`. Bread applies no default auth
 posture — add one yourself via `authPlugin(...)` in `config.plugins` (see
-[auth](https://github.com/matteozambon89/bread/blob/HEAD/docs/auth.md)) if you want
+[auth](https://matteozambon89.github.io/bread/auth.html)) if you want
 it. Errors reach clients as `{ code, message }` only.
 
 Part of **[bread](https://github.com/matteozambon89/bread)** — an explicit-by-design framework for AI agents.
-Docs: [HTTP API](https://github.com/matteozambon89/bread/blob/HEAD/docs/http-api.md) ·
-[auth](https://github.com/matteozambon89/bread/blob/HEAD/docs/auth.md) ·
-[all docs](https://github.com/matteozambon89/bread#documentation).
+Docs: [HTTP API](https://matteozambon89.github.io/bread/http-api.html) ·
+[auth](https://matteozambon89.github.io/bread/auth.html) ·
+[all docs](https://matteozambon89.github.io/bread/).
 
 ## License
 

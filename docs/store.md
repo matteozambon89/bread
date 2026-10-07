@@ -61,7 +61,7 @@ them).
 | `@breadai/store-memory` | In-memory | Unit tests, ephemeral runs |
 
 All three implement the same flat `BreadStore`, so swapping is a one-line change to `store`. See the
-[`store-showcase`](../examples/store-showcase) example for all three side by side.
+[`store-showcase`](https://github.com/matteozambon89/bread/tree/HEAD/examples/store-showcase) example for all three side by side.
 
 ## Bring your own store
 

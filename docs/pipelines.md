@@ -99,7 +99,7 @@ A supervisor is a normal agent whose model can **delegate**: configuring `superv
 `core_delegate` tool and a system-prompt section describing the roster. The model decides at
 runtime whether, when, and with what input to hand work to each sub-agent, reads every output back
 as the tool result, and composes its own final answer. Steer the strategy through the agent's
-`prompt.md` (see [`examples/researcher-writer`](../examples/researcher-writer)).
+`prompt.md` (see [`examples/researcher-writer`](https://github.com/matteozambon89/bread/tree/HEAD/examples/researcher-writer)).
 
 ```ts
 defineAgent({

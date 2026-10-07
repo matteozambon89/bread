@@ -110,5 +110,5 @@ curl localhost:3000/tasks            # list; ?task= ?session= ?agent= ?status= ?
 curl localhost:3000/tasks/<id>       # a single task run
 ```
 
-See [`examples/knowledge-graph`](../examples/knowledge-graph) for a working `doc_extract_entities`
+See [`examples/knowledge-graph`](https://github.com/matteozambon89/bread/tree/HEAD/examples/knowledge-graph) for a working `doc_extract_entities`
 task wired into an agent.

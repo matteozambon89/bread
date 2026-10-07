@@ -6,7 +6,7 @@
 
 # @breadai/transport-stdout
 
-Terminal-rendering [`BreadTransport`](../../docs/transports.md) for [bread](https://github.com/matteozambon89/bread) —
+Terminal-rendering [`BreadTransport`](https://matteozambon89.github.io/bread/transports.html) for [bread](https://github.com/matteozambon89/bread) —
 the default renderer for `bread chat`/`bread invoke`. It's a `sink`: publish-only, no
 subscribe/replay, since nothing "tails" a terminal.
 

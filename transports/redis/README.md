@@ -6,7 +6,7 @@
 
 # @breadai/transport-redis
 
-Redis Streams [`BreadTransport`](../../docs/transports.md) for [bread](https://github.com/matteozambon89/bread) —
+Redis Streams [`BreadTransport`](https://matteozambon89.github.io/bread/transports.html) for [bread](https://github.com/matteozambon89/bread) —
 the crumb fabric between replicas of one app. With it, `GET /runs/:runId/stream` and
 cross-container HITL work from **any** container behind the load balancer: the replica executing
 a run publishes every client-visible crumb as a `{ runId, seq, crumb }` frame; every other

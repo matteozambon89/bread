@@ -13,8 +13,8 @@ bun add @breadai/protocol-a2a-server   # or: npm i @breadai/protocol-a2a-server
 ```
 
 Part of **[bread](https://github.com/matteozambon89/bread)** — an explicit-by-design framework for AI agents.
-Docs: [A2A server](https://github.com/matteozambon89/bread/blob/HEAD/docs/a2a.md) ·
-[all docs](https://github.com/matteozambon89/bread#documentation).
+Docs: [A2A server](https://matteozambon89.github.io/bread/a2a.html) ·
+[all docs](https://matteozambon89.github.io/bread/).
 
 ## Usage
 
