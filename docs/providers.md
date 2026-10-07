@@ -49,7 +49,7 @@ const providers: ProviderRegistry = {
 
 ## Running the examples against a local model
 
-Every agent and task under [`examples/`](../examples) takes the same two env overrides, so an
+Every agent and task under [`examples/`](https://github.com/matteozambon89/bread/tree/HEAD/examples) takes the same two env overrides, so an
 example can be driven end to end without a cloud API key:
 
 ```ts

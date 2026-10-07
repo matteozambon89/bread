@@ -27,8 +27,8 @@ const strategy = authStrategy({
 Pass `strategy` to `@breadai/server`'s `authPlugin()` to guard a running server.
 
 Part of **[bread](https://github.com/matteozambon89/bread)** — an explicit-by-design framework for AI agents.
-Docs: [auth](https://github.com/matteozambon89/bread/blob/HEAD/docs/auth.md) ·
-[all docs](https://github.com/matteozambon89/bread#documentation).
+Docs: [auth](https://matteozambon89.github.io/bread/auth.html) ·
+[all docs](https://matteozambon89.github.io/bread/).
 
 ## License
 

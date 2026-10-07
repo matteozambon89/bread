@@ -43,8 +43,8 @@ Set `state="thinking"`/`.setAttribute('state', 'thinking')` to trigger the trans
 CSS on the element itself.
 
 Part of **[bread](https://github.com/matteozambon89/bread)** — an explicit-by-design framework for AI agents.
-Docs: [orb](https://github.com/matteozambon89/bread/blob/HEAD/docs/orb.md) ·
-[all docs](https://github.com/matteozambon89/bread#documentation).
+Docs: [orb](https://matteozambon89.github.io/bread/orb.html) ·
+[all docs](https://matteozambon89.github.io/bread/).
 
 ## Credits
 

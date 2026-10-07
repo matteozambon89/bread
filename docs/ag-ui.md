@@ -136,5 +136,5 @@ for await (const crumb of bread.run('assistant', input, { mode: 'stream' })) {
 }
 ```
 
-See [`examples/ag-ui-plugin`](../examples/ag-ui-plugin) for a runnable version that logs the
+See [`examples/ag-ui-plugin`](https://github.com/matteozambon89/bread/tree/HEAD/examples/ag-ui-plugin) for a runnable version that logs the
 event stream.

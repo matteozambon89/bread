@@ -7,10 +7,7 @@ export default withMermaid({
   // Project site: https://matteozambon89.github.io/bread/
   base: '/bread/',
 
-  // docs/*.md link into ../examples/* — real repo dirs (runnable code, not
-  // doc pages), so they resolve fine on GitHub but aren't part of this site.
-  ignoreDeadLinks: [/\.\.\/examples/],
-
+  // Out-of-docs targets use absolute GitHub URLs, so no ../examples dead links.
   head: [
     ['link', { rel: 'icon', type: 'image/x-icon', href: '/bread/favicon.ico' }],
     ['link', { rel: 'icon', type: 'image/png', sizes: '32x32', href: '/bread/favicon-32.png' }],
@@ -100,6 +97,23 @@ export default withMermaid({
     footer: {
       message: 'Released under the MIT License.',
       copyright: 'Copyright © Matteo Zambon',
+    },
+  },
+
+  markdown: {
+    config(md) {
+      const renderLinkOpen = md.renderer.rules.link_open
+      md.renderer.rules.link_open = (tokens, idx, options, env, self) => {
+        if (!renderLinkOpen) return self.renderToken(tokens, idx, options)
+        const html = renderLinkOpen(tokens, idx, options, env, self)
+        if (env.relativePath !== 'index.md') return html
+        // Match `base` above. VitePress prefixes it only onto hrefs that
+        // start with `/`, so home-page `./page.md` would ship as `./page.html`.
+        return html.replace(
+          /href="\.\/([a-z0-9-]+\.html(?:#[^"]*)?)"/g,
+          'href="/bread/$1"',
+        )
+      }
     },
   },
 

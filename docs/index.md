@@ -64,7 +64,7 @@ agents/<br>
 ## One CLI, every stage
 
 Dev server, build validation, production start, and an interactive REPL — the same commands
-from prototype to deploy. See the full list in [CLI](/cli).
+from prototype to deploy. See the full list in [CLI](./cli.md).
 
 | Command | What it does |
 |---|---|
@@ -82,7 +82,7 @@ from prototype to deploy. See the full list in [CLI](/cli).
 
 One choke point assigns a per-run `seq`, persists to the crumb log, and fans out to the client,
 your plugins, and other replicas — the same well-defined stream everywhere. See
-[architecture](/architecture#one-crumb-stream-the-choke-point).
+[architecture](./architecture.md#one-crumb-stream-the-choke-point).
 
 ```bash
 curl -N -X POST localhost:3000/agents/researcher/run \
@@ -120,52 +120,66 @@ Compose agents without reaching for a second framework:
 </div>
 
 <div class="bread-index">
-  <div>
-    <h6>Introduction</h6>
-    <ul><li><a href="/architecture">Architecture</a></li><li><a href="/cli">CLI</a></li></ul>
-  </div>
-  <div>
-    <h6>Building agents</h6>
-    <ul>
-      <li><a href="/agents">Agents</a></li>
-      <li><a href="/providers">Providers</a></li>
-      <li><a href="/decisions">Decisions</a></li>
-      <li><a href="/tools">Tools</a></li>
-      <li><a href="/skills">Skills</a></li>
-      <li><a href="/sessions">Sessions</a></li>
-      <li><a href="/hitl">HITL</a></li>
-    </ul>
-  </div>
-  <div>
-    <h6>Composition</h6>
-    <ul>
-      <li><a href="/pipelines">Pipelines</a></li>
-      <li><a href="/loops">Loops</a></li>
-      <li><a href="/tasks">Tasks</a></li>
-      <li><a href="/evals">Evals</a></li>
-      <li><a href="/plugins">Plugins</a></li>
-    </ul>
-  </div>
-  <div>
-    <h6>Distribution</h6>
-    <ul>
-      <li><a href="/remote-agents">Remote agents</a></li>
-      <li><a href="/transports">Transports</a></li>
-      <li><a href="/mcp-client">MCP client</a></li>
-      <li><a href="/mcp-server">MCP server</a></li>
-      <li><a href="/a2a">A2A server</a></li>
-      <li><a href="/a2ui">A2UI</a></li>
-      <li><a href="/auth">Auth</a></li>
-      <li><a href="/otel">OTel</a></li>
-      <li><a href="/ag-ui">AG-UI</a></li>
-    </ul>
-  </div>
-  <div>
-    <h6>Reference</h6>
-    <ul>
-      <li><a href="/http-api">HTTP API</a></li>
-      <li><a href="/store">Store</a></li>
-      <li><a href="/glossary">Glossary</a></li>
-    </ul>
-  </div>
+
+<div>
+
+<h6>Introduction</h6>
+
+- [Architecture](./architecture.md)
+- [CLI](./cli.md)
+
+</div>
+
+<div>
+
+<h6>Building agents</h6>
+
+- [Agents](./agents.md)
+- [Providers](./providers.md)
+- [Decisions](./decisions.md)
+- [Tools](./tools.md)
+- [Skills](./skills.md)
+- [Sessions](./sessions.md)
+- [HITL](./hitl.md)
+
+</div>
+
+<div>
+
+<h6>Composition</h6>
+
+- [Pipelines](./pipelines.md)
+- [Loops](./loops.md)
+- [Tasks](./tasks.md)
+- [Evals](./evals.md)
+- [Plugins](./plugins.md)
+
+</div>
+
+<div>
+
+<h6>Distribution</h6>
+
+- [Remote agents](./remote-agents.md)
+- [Transports](./transports.md)
+- [MCP client](./mcp-client.md)
+- [MCP server](./mcp-server.md)
+- [A2A server](./a2a.md)
+- [A2UI](./a2ui.md)
+- [Auth](./auth.md)
+- [OTel](./otel.md)
+- [AG-UI](./ag-ui.md)
+
+</div>
+
+<div>
+
+<h6>Reference</h6>
+
+- [HTTP API](./http-api.md)
+- [Store](./store.md)
+- [Glossary](./glossary.md)
+
+</div>
+
 </div>

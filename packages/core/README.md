@@ -44,9 +44,9 @@ Key exports: `defineAgent` · `defineTool` · `defineHumanTool` · `defineTask` 
 `BreadError` · the `BreadStore`/`BreadPlugin`/`BreadCrumb` types.
 
 Part of **[bread](https://github.com/matteozambon89/bread)** — an explicit-by-design framework for AI agents.
-Docs: [architecture](https://github.com/matteozambon89/bread/blob/HEAD/docs/architecture.md) ·
-[agents](https://github.com/matteozambon89/bread/blob/HEAD/docs/agents.md) ·
-[all docs](https://github.com/matteozambon89/bread#documentation).
+Docs: [architecture](https://matteozambon89.github.io/bread/architecture.html) ·
+[agents](https://matteozambon89.github.io/bread/agents.html) ·
+[all docs](https://matteozambon89.github.io/bread/).
 
 ## License
 

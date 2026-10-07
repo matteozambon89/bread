@@ -6,7 +6,7 @@
 
 # @breadai/transport-http-chunked
 
-HTTP (chunked NDJSON) [`BreadTransport`](../../docs/transports.md) for [bread](https://github.com/matteozambon89/bread) —
+HTTP (chunked NDJSON) [`BreadTransport`](https://matteozambon89.github.io/bread/transports.html) for [bread](https://github.com/matteozambon89/bread) —
 a `mount()`-able server ingress plus a `remoteAgent()` client, speaking the Bread protocol
 (`packages/core/src/protocol.ts`) over one HTTP connection. This is the recommended default
 transport for `bread dev`/`bread start`.

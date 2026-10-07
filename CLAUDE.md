@@ -3,6 +3,12 @@
 Internal notes for working on the **bread** monorepo. User-facing docs live in
 [`README.md`](./README.md) and [`docs/`](./docs/) — read those first for the public API.
 
+## Doc links
+
+1. Files under `docs/` (not `docs/.vitepress`) use a relative link when the target stays inside `docs/` (`./architecture.md`, keep a `#anchor`). A target outside `docs/` (`examples/`, `packages/`, `providers/`, `transports/`) uses `https://github.com/matteozambon89/bread/tree/HEAD/<dir>` or `blob/HEAD/<file>`. Root-absolute paths are not allowed in markdown links or raw HTML hrefs — a raw HTML href keeps that path and drops the `/bread/` base. The home hero's YAML `link: /architecture` may stay.
+2. A published package README (`package.json` name starts with `@breadai/` and is not private) is what npm shows. A docs page link is `https://matteozambon89.github.io/bread/<page>.html` (keep a `#anchor`). Anything else in the repo is an absolute `github.com/matteozambon89/bread` path. No relative links. An "all docs" link is the site root `https://matteozambon89.github.io/bread/`. The repo README `#documentation` anchor is not a docs page.
+3. Every other markdown file (root README, this file, `CONTRIBUTING.md`, `SECURITY.md`, `examples/`) uses a relative link for an in-repo file. Leave GitHub UI URLs that are not files (issues, the security tab, releases) and leave links to other sites.
+
 ## Workspace commands
 
 ```bash

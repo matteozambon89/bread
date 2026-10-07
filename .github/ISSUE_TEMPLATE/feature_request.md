@@ -9,7 +9,7 @@ assignees: ''
 **The wall you hit**
 What were you trying to build, and what stopped you? Concrete scenario, not just "it would be
 nice to have X" — see this repo's
-[Scope discipline](https://github.com/matteozambon89/bread/blob/main/CLAUDE.md#scope-discipline)
+[Scope discipline](../../CLAUDE.md#scope-discipline)
 for why.
 
 **Proposed solution**

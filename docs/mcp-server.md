@@ -122,5 +122,5 @@ a custom mount point or transport bread's Hono integration doesn't cover. `build
 builds the dual-era handler once (call it once per process, not per request — its `.fetch(req)` is
 what actually serves each request); `serveStdio` opens one connection-pinned dual-era stdio server.
 
-See [`examples/mcp`](../examples/mcp) for a runnable version, paired with
+See [`examples/mcp`](https://github.com/matteozambon89/bread/tree/HEAD/examples/mcp) for a runnable version, paired with
 [`@breadai/protocol-mcp-client`](./mcp-client.md) consuming it.

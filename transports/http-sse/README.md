@@ -6,7 +6,7 @@
 
 # @breadai/transport-http-sse
 
-HTTP (SSE) [`BreadTransport`](../../docs/transports.md) for [bread](https://github.com/matteozambon89/bread) —
+HTTP (SSE) [`BreadTransport`](https://matteozambon89.github.io/bread/transports.html) for [bread](https://github.com/matteozambon89/bread) —
 a `mount()`-able server ingress plus a `remoteAgent()` client, using Server-Sent Events. The
 browser-`EventSource`-friendly alternative to `@breadai/transport-http-chunked`; preserves today's
 exact wire format (`data: {type,payload}\n\n`, `id: <seq>`, `Last-Event-ID`/`?after=` catch-up), so
