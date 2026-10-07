@@ -393,7 +393,7 @@ export async function* continueRun(
       // client resuming the instant it sees one finds complete linkage.
       if (suspendedDelegations.length > 0) {
         if (pending) {
-          // ponytail: a turn mixing a suspended delegation with a human/ask-
+          // A turn mixing a suspended delegation with a human/ask-
           // gated tool call would need two interleaved suspension records —
           // fail loud instead of picking one silently. Split the calls across
           // turns (or support it here) if a real model ever does this.

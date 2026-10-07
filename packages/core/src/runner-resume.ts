@@ -257,7 +257,7 @@ async function* continueSupervisorParent(
 
   const remaining = (scp.pending ?? []).filter((p) => p.toolCallId !== parent.toolCallId)
   if (remaining.length > 0) {
-    // ponytail: concurrent resumes of sibling delegations can race this
+    // Concurrent resumes of sibling delegations can race this
     // read-modify-write (same ceiling as parallel pipeline branches);
     // sequential resumes are correct.
     await ctx.store.saveCheckpoint({ ...scp, pending: remaining })

@@ -7,7 +7,7 @@ import type { BreadCrumb } from './types.js'
 // reasoning:delta are structurally identical — separate content channels, not
 // separate shapes — so they share the same windowing, one window each).
 //
-// ponytail: tool:input:delta is deliberately NOT included, even though it's
+// tool:input:delta is deliberately NOT included, even though it's
 // also a streamed-delta crumb — DeltaWindow below is keyed per crumb type
 // only (one window per run), which is safe for text/reasoning because a run
 // never has two messages open at once, but a model making parallel tool

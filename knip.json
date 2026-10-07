@@ -12,7 +12,6 @@
     }
   },
   "ignore": [
-    ".tmp/**",
     "**/dist/**",
     "*.tmp_pkg_backup.json",
     "**/test/fixtures/**",

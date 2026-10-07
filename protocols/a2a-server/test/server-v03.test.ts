@@ -54,7 +54,7 @@ describe('a2a_server — v0.3 Agent Card', () => {
 
   test('maps loader-injected cfg._skills onto the card, one AgentSkill per skill', async () => {
     const agent = defineTestAgent()
-    // Loader-injected private field (see CLAUDE.md's "Loader-injected config
+    // Loader-injected private field (see AGENTS.md's "Loader-injected config
     // internals" table) — manually set here the same way
     // transports/http-chunked/test/skill-traversal.test.ts injects `_agentDir`.
     ;(agent.config as unknown as Record<string, unknown>)._skills = [

@@ -63,7 +63,7 @@ export async function loadSkill(
   assertName('skill', skillId)
   const skillsRoot = resolve(agentDir, 'skills')
   const skillDir = resolve(skillsRoot, skillId)
-  // ponytail: second traversal guard is currently unreachable given assertName's
+  // Second traversal guard is currently unreachable given assertName's
   // strictness (NAME_RE bars '/', '.', and any char that could resolve outside
   // skillsRoot) — defense in depth, not dead code.
   if (skillDir !== skillsRoot && !skillDir.startsWith(skillsRoot + sep)) {
@@ -91,8 +91,6 @@ export async function loadSkill(
     } catch {}
     try {
       const files = await readdir(refsDir)
-      // ponytail: no size cap on inlined reference content; add one if a
-      // reference file ever blows out context.
       references = await Promise.all(
         files.map(async (f) => ({ name: f, content: await readFile(join(refsDir, f), 'utf8') })),
       )

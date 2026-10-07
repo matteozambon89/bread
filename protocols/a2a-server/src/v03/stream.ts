@@ -52,7 +52,7 @@ export function crumbToEventV03(
       contextId: ctxId(),
       artifact: { artifactId: state.artifactId, parts: [{ kind: 'text', text: crumb.delta }] },
       append: state.artifactOpened,
-      // ponytail: never true — marking the true last chunk needs a
+      // Never true — marking the true last chunk needs a
       // one-crumb lookahead we don't need, since the terminal
       // status-update's final:true already tells clients the stream
       // is done. Add lookahead if a client strictly requires

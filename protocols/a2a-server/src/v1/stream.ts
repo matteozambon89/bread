@@ -50,7 +50,7 @@ export function crumbToEventV1(
         contextId: ctxId(),
         artifact: { artifactId: state.artifactId, parts: [{ text: crumb.delta }] },
         append: state.artifactOpened,
-        // ponytail: see v03/stream.ts's identical note — the terminal
+        // See v03/stream.ts's identical note — the terminal
         // statusUpdate's final:true is the real end-of-stream signal.
         lastChunk: false,
       },
