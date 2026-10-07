@@ -1,6 +1,6 @@
 import { defineConfig } from '@breadai/core'
 import { mcpClient } from '@breadai/protocol-mcp-client'
-import { providerCatalog } from '@breadai/provider-catalog'
+import { providerLlm } from '@breadai/provider-llm'
 import { store } from '@breadai/store-sqlite'
 import { transport } from '@breadai/transport-http-chunked'
 
@@ -12,7 +12,7 @@ export default defineConfig({
   entrypoints: ['assistant'],
   store: store({ path: './.client.db' }),
   transport: transport(),
-  providers: providerCatalog,
+  providers: providerLlm,
   plugins: [
     mcpClient({
       servers: [{ name: 'bridge', url: process.env.MCP_URL ?? 'http://localhost:4101/mcp' }],

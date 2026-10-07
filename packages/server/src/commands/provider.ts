@@ -1,5 +1,5 @@
 import { BreadError } from '@breadai/core'
-import { providerEntries } from '@breadai/provider-catalog'
+import { providerEntries } from '@breadai/provider-llm'
 import { spawnCommand } from './spawn.js'
 
 export interface ProviderListOptions {

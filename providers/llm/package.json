@@ -1,0 +1,138 @@
+{
+  "name": "@breadai/provider-llm",
+  "version": "0.1.0",
+  "description": "Language-model providers for bread — 21 lazily-imported AI SDK providers as a ready-made ProviderRegistry for config.providers.",
+  "license": "MIT",
+  "author": "Matteo Zambon <matteo@yeeti.co>",
+  "keywords": [
+    "ai",
+    "agents",
+    "bread",
+    "provider",
+    "ai-sdk"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/matteozambon89/bread.git",
+    "directory": "providers/llm"
+  },
+  "homepage": "https://github.com/matteozambon89/bread",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "bread-source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "bun build ./src/index.ts --outdir dist --target node --format esm --packages external && tsc --emitDeclarationOnly --outDir dist"
+  },
+  "dependencies": {
+    "@breadai/core": "workspace:>=0.1.1 <1.0.0"
+  },
+  "peerDependencies": {
+    "@ai-sdk/amazon-bedrock": ">=5.0",
+    "@ai-sdk/anthropic": ">=4.0",
+    "@ai-sdk/azure": ">=4.0",
+    "@ai-sdk/baseten": ">=2.1",
+    "@ai-sdk/cerebras": ">=3.0",
+    "@ai-sdk/cohere": ">=4.0",
+    "@ai-sdk/deepinfra": ">=3.0",
+    "@ai-sdk/deepseek": ">=3.0",
+    "@ai-sdk/fireworks": ">=3.0",
+    "@ai-sdk/google": ">=4.0",
+    "@ai-sdk/google-vertex": ">=5.0",
+    "@ai-sdk/groq": ">=4.0",
+    "@ai-sdk/mistral": ">=4.0",
+    "@ai-sdk/openai": ">=4.0",
+    "@ai-sdk/openai-compatible": ">=3.0",
+    "@ai-sdk/perplexity": ">=4.0",
+    "@ai-sdk/togetherai": ">=3.0",
+    "@ai-sdk/xai": ">=4.0",
+    "@openrouter/ai-sdk-provider": ">=3.0",
+    "ollama-ai-provider-v2": ">=4.0",
+    "workers-ai-provider": ">=4.0"
+  },
+  "peerDependenciesMeta": {
+    "@ai-sdk/openai": {
+      "optional": true
+    },
+    "@ai-sdk/anthropic": {
+      "optional": true
+    },
+    "@ai-sdk/google": {
+      "optional": true
+    },
+    "@ai-sdk/google-vertex": {
+      "optional": true
+    },
+    "@ai-sdk/azure": {
+      "optional": true
+    },
+    "@ai-sdk/amazon-bedrock": {
+      "optional": true
+    },
+    "@ai-sdk/mistral": {
+      "optional": true
+    },
+    "@ai-sdk/groq": {
+      "optional": true
+    },
+    "@ai-sdk/cohere": {
+      "optional": true
+    },
+    "@ai-sdk/xai": {
+      "optional": true
+    },
+    "@ai-sdk/deepseek": {
+      "optional": true
+    },
+    "@ai-sdk/togetherai": {
+      "optional": true
+    },
+    "@ai-sdk/fireworks": {
+      "optional": true
+    },
+    "@ai-sdk/deepinfra": {
+      "optional": true
+    },
+    "@ai-sdk/cerebras": {
+      "optional": true
+    },
+    "@ai-sdk/perplexity": {
+      "optional": true
+    },
+    "@ai-sdk/baseten": {
+      "optional": true
+    },
+    "@ai-sdk/openai-compatible": {
+      "optional": true
+    },
+    "@openrouter/ai-sdk-provider": {
+      "optional": true
+    },
+    "ollama-ai-provider-v2": {
+      "optional": true
+    },
+    "workers-ai-provider": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "ai": "^7.0.93",
+    "typescript": "^5.8.3"
+  }
+}

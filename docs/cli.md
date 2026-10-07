@@ -144,7 +144,7 @@ defaults the store to memory. Bun projects do not depend on `@breadai/runtime-bu
 `@breadai/transport-http-sse`.
 
 `agents/<id>/agent.ts` sets `model.provider` and `model.model` to JSON string literals
-for the chosen provider and model. `bread.config.ts` keeps `providers: providerCatalog`.
+for the chosen provider and model. `bread.config.ts` keeps `providers: providerLlm`.
 An unknown provider throws `UNKNOWN_PROVIDER` before any file is written. Only the
 catalog's own keys count, so an inherited name such as `constructor` throws before any
 write and before `bun install` or `bun add`. When install

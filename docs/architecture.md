@@ -12,7 +12,7 @@ the moving parts.
 | `@breadai/cli` | The `bread` binary |
 | `@breadai/runtime-bun`, `@breadai/runtime-node` | Listen adapters (`Bun.serve` / `@hono/node-server`); CLI selects via `--runtime` / `config.server.runtime` |
 | `@breadai/store-postgres`, `@breadai/store-sqlite`, `@breadai/store-memory` | `BreadStore` backends — see [store.md](./store.md) |
-| `@breadai/provider-catalog` | The 21 catalog providers as a `ProviderRegistry` — see [agents.md#providers](./agents.md#providers) |
+| `@breadai/provider-llm` | The 21 language-model providers as a `ProviderRegistry`. `@breadai/provider-catalog` re-exports it — see [providers.md](./providers.md) |
 | `@breadai/otel`, `@breadai/protocol-ag-ui`, `@breadai/protocol-a2a-server`, `@breadai/a2ui`, `@breadai/protocol-mcp-client`, `@breadai/protocol-mcp-server` | Plugins |
 | `@breadai/auth-api-key`, `@breadai/auth-jwt`, `@breadai/auth-oauth2` | Standalone `BreadAuthStrategy`/`BreadSigner` factories — not plugins themselves; wrap with `@breadai/server`'s `authPlugin()` to attach — see [auth.md](./auth.md) |
 | `@breadai/transport-http-chunked`, `@breadai/transport-http-sse` | HTTP ingress `BreadTransport`s — `mount()` the four streaming routes + `remoteAgent()` for `config.remoteAgents` (`transports/http-chunked`, `transports/http-sse`) — see [transports.md](./transports.md) |
@@ -27,7 +27,7 @@ folders, each with its own `@breadai/*` npm prefix:
 | Folder | npm packages | Covers |
 |--------|--------------|--------|
 | `stores/` | `@breadai/store-postgres`, `@breadai/store-sqlite`, `@breadai/store-memory` | `BreadStore` backends — see [store.md](./store.md) |
-| `providers/` | `@breadai/provider-catalog` | Model-provider registries — see [providers.md](./providers.md) |
+| `providers/` | `@breadai/provider-llm`, `@breadai/provider-catalog` | Language-model registries. `provider-catalog` re-exports `provider-llm` — see [providers.md](./providers.md) |
 | `protocols/` | `@breadai/protocol-ag-ui`, `@breadai/protocol-a2a-server`, `@breadai/protocol-mcp-client`, `@breadai/protocol-mcp-server` | Wire-protocol adapters (`BreadPlugin`s) |
 | `extensions/` | `@breadai/otel`, `@breadai/a2ui` (attach as `BreadPlugin`s); `@breadai/auth-api-key`, `@breadai/auth-jwt`, `@breadai/auth-oauth2` (standalone auth factories, see [auth.md](./auth.md)) | Observability, UI generation, auth strategies/signers |
 | `transports/` | `@breadai/transport-http-chunked`, `@breadai/transport-http-sse`, `@breadai/transport-redis`, `@breadai/transport-stdout` | `BreadTransport` implementations — see [transports.md](./transports.md) |

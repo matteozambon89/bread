@@ -1,6 +1,6 @@
 import { defineConfig } from '@breadai/core'
 import { agUi } from '@breadai/protocol-ag-ui'
-import { providerCatalog } from '@breadai/provider-catalog'
+import { providerLlm } from '@breadai/provider-llm'
 import { store } from '@breadai/store-sqlite'
 import { transport } from '@breadai/transport-http-chunked'
 
@@ -11,7 +11,7 @@ export default defineConfig({
   entrypoints: ['triage-supervisor', 'investigator', 'ticket-lookup', 'policy-check'],
   store: store({ path: './bread.db' }),
   transport: transport(),
-  providers: providerCatalog,
+  providers: providerLlm,
   plugins: [
     // Same logging bridge as examples/ag-ui-plugin — in a real frontend this forwards
     // to the AG-UI client transport instead.

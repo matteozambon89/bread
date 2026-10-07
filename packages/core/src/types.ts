@@ -833,7 +833,7 @@ export interface BreadConfig {
   blobStore?: BlobStore
   // Named model-provider instances, keyed by the name `model.provider` refers
   // to (e.g. `{ anthropic, 'anthropic-eu': createAnthropic({ baseURL }) }`).
-  // Core has no built-ins of its own — install @breadai/provider-catalog for the
+  // Core has no built-ins of its own — install @breadai/provider-llm for the
   // common @ai-sdk/* set, or hand-write factories. An agent's own `providers`
   // (AgentConfig.providers) is checked first and wins on a name collision.
   providers?: ProviderRegistry

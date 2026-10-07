@@ -1,6 +1,6 @@
 import { defineConfig } from '@breadai/core'
 import { authStrategy } from '@breadai/auth-api-key'
-import { providerCatalog } from '@breadai/provider-catalog'
+import { providerLlm } from '@breadai/provider-llm'
 import { authPlugin } from '@breadai/server'
 import { store } from '@breadai/store-sqlite'
 import { transport } from '@breadai/transport-http-chunked'
@@ -11,7 +11,7 @@ export default defineConfig({
   entrypoints: ['researcher'],
   store: store({ path: './.provider.db' }),
   transport: transport(),
-  providers: providerCatalog,
+  providers: providerLlm,
   plugins: [
     authPlugin([
       authStrategy({

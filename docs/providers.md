@@ -6,23 +6,24 @@ instances registered in `providers` (`BreadConfig.providers`, global) or an agen
 
 ## The built-in catalog
 
-Install [`@breadai/provider-catalog`](https://www.npmjs.com/package/@breadai/provider-catalog) for the
+Install [`@breadai/provider-llm`](https://www.npmjs.com/package/@breadai/provider-llm) for the
 21 common built-ins (`openai`, `anthropic`, `google`, `google-vertex`, `azure`,
 `amazon-bedrock`, `mistral`, `groq`, `cohere`, `xai`, `deepseek`, `togetherai`, `fireworks`,
 `deepinfra`, `cerebras`, `perplexity`, `baseten`, `ollama`, `openrouter`, `workers-ai`,
 `openai-compatible`), each imported lazily so only the provider you actually use pulls in its
-optional peer dependency. `openai` reads `OPENAI_API_KEY` and optionally `OPENAI_BASE_URL`.
+optional peer dependency. `@breadai/provider-catalog` re-exports `providerLlm` and
+`providerEntries` from that package. `openai` reads `OPENAI_API_KEY` and optionally `OPENAI_BASE_URL`.
 `openrouter` reads `OPENROUTER_API_KEY` (e.g. `openai/gpt-4o-mini`). `workers-ai` reads
 `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN` (e.g. `@cf/meta/llama-3.1-8b-instruct`).
 `openai-compatible` reads `OPENAI_COMPATIBLE_BASE_URL` and optionally `OPENAI_COMPATIBLE_API_KEY`.
 
 ```ts
 import { defineConfig } from '@breadai/core'
-import { providerCatalog } from '@breadai/provider-catalog'
+import { providerLlm } from '@breadai/provider-llm'
 
 export default defineConfig({
   entrypoints: ['writer'],
-  providers: providerCatalog,
+  providers: providerLlm,
 })
 ```
 
@@ -68,7 +69,7 @@ BREAD_PROVIDER=ollama BREAD_MODEL=gemma4:e2b bread dev --idle-timeout 240
 `gemma4:e2b` is the recommended local default — it's the smallest model verified on both axes the
 examples need: schema-compliant structured output (`generateObject`, e.g.
 `examples/knowledge-graph`'s task) *and* reliable tool calling on blunt instructions (HITL
-approval, loop tools, `core_delegate`). Every example already spreads `providerCatalog`, whose
+approval, loop tools, `core_delegate`). Every example already spreads `providerLlm`, whose
 `ollama` entry is lazy, so its optional peer (`ollama-ai-provider-v2`) is the only extra install —
 already a dependency of each example.
 
