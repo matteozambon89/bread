@@ -110,10 +110,6 @@ interface MinimalApp {
   ): unknown
 }
 
-// ponytail: the non-Error fallback is untested — every synchronous throw
-// bread.run() can produce is a BreadError (extends Error), so there's no live
-// path that reaches it. Kept for defensive completeness against a plugin or
-// future core change throwing a bare value.
 function errorMessage(err: unknown): string {
   return err instanceof Error ? err.message : 'Internal server error'
 }

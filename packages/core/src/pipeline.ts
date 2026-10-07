@@ -522,7 +522,7 @@ export async function* continuePipelineParent(
       if (await ctx.store.getCheckpoint(id)) stillPending.push(id)
     }
     if (stillPending.length > 0) {
-      // ponytail: concurrent resumes of sibling branches can race these
+      // Concurrent resumes of sibling branches can race these
       // read-modify-writes; sequential resumes are correct. Move the merge
       // into a store-side atomic update if concurrent resumes ever matter.
       for (const id of stillPending) {
