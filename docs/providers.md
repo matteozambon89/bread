@@ -92,3 +92,4 @@ unresolvable `model.provider` throws `UNKNOWN_PROVIDER` naming whatever *is* reg
 missing catalog import fails loudly at run time rather than silently picking the wrong model.
 
 See [agents.md](./agents.md#providers) for where `model`/`providers` sit in `AgentConfig`.
+Decision hosts are a separate registry, `config.decisions` — see [decisions.md](./decisions.md).

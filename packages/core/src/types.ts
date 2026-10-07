@@ -1,4 +1,5 @@
 import type { z } from 'zod'
+import type { DecisionQuestion, DecisionRegistry } from './decision.js'
 import type { ModelRef, ProviderRegistry } from './model-provider.js'
 import type { BlobStore, FileOutput } from './storage/blob-store.js'
 import type { BreadStore } from './storage/store.js'
@@ -741,6 +742,7 @@ export type PipelineStep =
   | { type: 'agent'; agentId: string; skill?: string }
   | { type: 'parallel'; steps: PipelineStep[] }
   | { type: 'map'; agentId: string }
+  | { type: 'decision'; provider: string; model: string; question: DecisionQuestion }
 
 // Continuation linkage persisted on a checkpoint created inside a composition.
 // When a sub-run suspends for HITL mid-pipeline, resume must run the rest of
@@ -837,6 +839,10 @@ export interface BreadConfig {
   // common @ai-sdk/* set, or hand-write factories. An agent's own `providers`
   // (AgentConfig.providers) is checked first and wins on a name collision.
   providers?: ProviderRegistry
+  // System One hosts keyed by the decision step's `provider`. Core has no
+  // built-ins — install @breadai/provider-decisions. Unset throws
+  // DECISION_NOT_CONFIGURED; an unknown name throws UNKNOWN_DECISION_PROVIDER.
+  decisions?: DecisionRegistry
   // The crumb fabric between replicas of this app. Defaults to the embedded
   // Stream transport (single container); set a distributed implementation
   // (e.g. @breadai/transport-redis) so passive subscribers on other replicas

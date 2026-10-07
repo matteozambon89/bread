@@ -53,6 +53,7 @@ Server runners do not read stdin for init or add.
 | `@breadai/store-s3` | `stores/s3` | S3-backed `BlobStore` — binary/file storage via presigned URLs |
 | `@breadai/provider-llm` | `providers/llm` | The 21 language-model providers as a `ProviderRegistry` (`providerLlm`) |
 | `@breadai/provider-catalog` | `providers/catalog` | Re-exports `providerLlm` and `providerEntries` from `@breadai/provider-llm` |
+| `@breadai/provider-decisions` | `providers/decisions` | System One hosts as a `DecisionRegistry` (`providerDecisions`) for `config.decisions` |
 | `@breadai/protocol-ag-ui` | `protocols/ag-ui` | AG-UI protocol |
 | `@breadai/protocol-a2a-server` | `protocols/a2a-server` | Agent-to-agent (A2A) protocol |
 | `@breadai/protocol-mcp-client` | `protocols/mcp-client` | Consume MCP servers (config-level + per-agent `cfg.plugins.mcp_client`) |
@@ -139,6 +140,10 @@ The CLI loader (`packages/server/src/loader.ts`) attaches private fields to each
   ordered array of `ProviderRegistry` objects and returns the first match — agent → global →
   `UNKNOWN_PROVIDER`. Core has no built-ins of its own; `@breadai/provider-llm` supplies the 21
   lazy provider factories as a `ProviderRegistry` to spread into `config.providers`.
+- **Decisions** — `BreadConfig.decisions` is a `DecisionRegistry` defined in core
+  (`packages/core/src/decision.ts`). A `decision` pipeline step calls `systemOne` and records
+  `{ label, answer }` on the step-end crumb without replacing the value passed onward.
+  `@breadai/provider-decisions` fills the registry. Core does not import that package.
 - **Lifecycle unification** — `BreadPlugin.close` (renamed from `destroy`) runs on `bread.stop()`;
   stores keep `migrate?`/`close?`; transports use `init?`/`close?`. `RemoteAgent` (the remote-agent
   seam) was aligned the same way in Chunk 5 (`destroy` → `close`), so every lifecycle-holding seam now
