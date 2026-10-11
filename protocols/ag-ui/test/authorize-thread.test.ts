@@ -1,8 +1,9 @@
 import { describe, expect, test } from 'bun:test'
 import type { AuthIdentity, BreadAuthStrategy } from '@breadai/core'
+import { matchHttpRoute } from '@breadai/core'
 import { authPlugin } from '@breadai/server'
 import { defineTestAgent, makeServer, mockTextModel } from '@breadai/test-utils'
-import { agUi } from '@breadai/protocol-ag-ui'
+import { AG_UI_ACTIONS, agUi } from '@breadai/protocol-ag-ui'
 
 // A client-supplied threadId is used directly as bread's sessionId with no
 // ownership check unless authorizeThread is wired — this proves the opt-in
@@ -33,6 +34,7 @@ function runAgentInput(threadId: string, content: string, identity?: string) {
 
 describe('agUi plugin — authorizeThread', () => {
   test('a threadId the hook denies gets 403 before any run starts', async () => {
+    const actions: string[] = []
     const { app, stop } = await makeServer({
       agents: { greeter: defineTestAgent() },
       model: mockTextModel('hi'),
@@ -40,11 +42,20 @@ describe('agUi plugin — authorizeThread', () => {
         authPlugin([headerStrategy]),
         agUi({ agentId: 'greeter', authorizeThread: (identity, threadId) => `${identity?.subject}-thread` === threadId }),
       ],
+      config: {
+        server: {
+          authorize(_identity, action) {
+            actions.push(action)
+            return true
+          },
+        },
+      },
     })
     try {
       const res = await app.request('/ag-ui/run', runAgentInput('someone-elses-thread', 'hi', 'alice'))
       expect(res.status).toBe(403)
       expect(await res.json()).toEqual({ error: 'Forbidden' })
+      expect(actions).toEqual([AG_UI_ACTIONS.run])
     } finally {
       await stop()
     }
@@ -58,6 +69,7 @@ describe('agUi plugin — authorizeThread', () => {
         authPlugin([headerStrategy]),
         agUi({ agentId: 'greeter', authorizeThread: (identity, threadId) => `${identity?.subject}-thread` === threadId }),
       ],
+      config: { server: { authorize: () => true } },
     })
     try {
       const res = await app.request('/ag-ui/run', runAgentInput('alice-thread', 'hi', 'alice'))
@@ -75,6 +87,8 @@ describe('agUi plugin — authorizeThread', () => {
       plugins: [agUi({ agentId: 'greeter' })],
     })
     try {
+      expect(matchHttpRoute(app, 'POST', '/ag-ui/run')?.action).toBe(AG_UI_ACTIONS.run)
+      expect(matchHttpRoute(app, 'GET', '/ag-ui/run')).toBeUndefined()
       const res = await app.request('/ag-ui/run', runAgentInput('anyone-can-pick-this', 'hi'))
       expect(res.status).toBe(200)
     } finally {

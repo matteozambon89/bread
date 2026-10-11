@@ -1,9 +1,10 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 import type { BreadAuthStrategy } from '@breadai/core'
+import { matchHttpRoute } from '@breadai/core'
 import { authPlugin } from '@breadai/server'
 import type { Hono } from 'hono'
 import { defineTestAgent, makeServer, mockTextModel } from '@breadai/test-utils'
-import { a2aServer } from '../src/index.js'
+import { A2A_ACTIONS, a2aServer } from '../src/index.js'
 
 // Same pattern as protocols/mcp-server/test/auth.test.ts: a2a_server adds no
 // auth logic of its own — both the well-known Agent Card and the RPC route
@@ -17,11 +18,21 @@ const apiKeyStrategy: BreadAuthStrategy = {
 describe("a2a_server — inherits the server's auth gate", () => {
   let app: Hono
   let stop: () => Promise<void>
+  let actions: string[]
 
   beforeEach(async () => {
+    actions = []
     ;({ app, stop } = await makeServer({
       agents: { greeter: defineTestAgent() },
       model: mockTextModel('ok'),
+      config: {
+        server: {
+          authorize(_identity, action) {
+            actions.push(action)
+            return true
+          },
+        },
+      },
       plugins: [
         a2aServer({ agentId: 'greeter', url: 'http://localhost/a2a', cardPath: '/.well-known/agent-card.json' }),
         a2aServer({
@@ -61,6 +72,7 @@ describe("a2a_server — inherits the server's auth gate", () => {
     const card = await res.json()
     expect(card.protocolVersion).toBe('0.3.0')
     expect(card.url).toBe('http://localhost/a2a')
+    expect(actions).toContain(A2A_ACTIONS.card)
   })
 
   test('serves the v1.0 mount\'s own Card, with the v1.0 shape, at its distinct cardPath', async () => {
@@ -98,6 +110,15 @@ describe("a2a_server — inherits the server's auth gate", () => {
       }),
     })
     expect(res.status).not.toBe(401)
+    expect(actions).toContain(A2A_ACTIONS.rpc)
+  })
+
+  test('registers a2a.card and a2a.rpc on each mount', () => {
+    expect(matchHttpRoute(app, 'GET', '/.well-known/agent-card.json')?.action).toBe(A2A_ACTIONS.card)
+    expect(matchHttpRoute(app, 'GET', '/.well-known/agent-card-v1.json')?.action).toBe(A2A_ACTIONS.card)
+    expect(matchHttpRoute(app, 'POST', '/a2a')?.action).toBe(A2A_ACTIONS.rpc)
+    expect(matchHttpRoute(app, 'POST', '/a2a-v1')?.action).toBe(A2A_ACTIONS.rpc)
+    expect(matchHttpRoute(app, 'GET', '/a2a')).toBeUndefined()
   })
 
   test('rejects an unauthenticated message/stream request with 401', async () => {

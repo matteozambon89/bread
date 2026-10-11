@@ -1,31 +1,5 @@
-import type {
-  AgentRegistry,
-  BreadConfig,
-  BreadInstance,
-  TaskRegistry,
-} from '@breadai/core'
-import { createServer, type ServerOptions } from '@breadai/server'
-
-const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '::1'])
-
-// Not a security control — the framework still won't guess an auth policy for
-// you (that stays the consumer's job, per the 2026-07-05 decision). This is
-// deliberately loud and deliberately not a gate: it can't know whether any
-// registered plugin's middleware actually *is* an auth check, only that at
-// least one plugin hooked into the middleware chain at all, so a false
-// negative (silence when auth *is* configured via some other means) is
-// possible — the warning is a floor, not a guarantee.
-function warnIfUnguardedNonLoopback(host: string, config: BreadConfig): void {
-  if (LOOPBACK_HOSTS.has(host)) return
-  const hasMiddleware = (config.plugins ?? []).some((p) => typeof p.middleware === 'function')
-  if (hasMiddleware) return
-  console.warn(
-    `[bread] WARNING: binding to "${host}" (not loopback) with no plugin middleware registered. ` +
-      'Every route — including agent runs and the passive run stream — is reachable by anyone who can ' +
-      'reach this host. Add authPlugin([...]) (or your own BreadPlugin.middleware) before exposing this ' +
-      'outside your machine. See docs/auth.md#guarding-the-server.',
-  )
-}
+import type { AgentRegistry, BreadConfig, BreadInstance, TaskRegistry } from '@breadai/core'
+import { assertHttpAuth, createServer, httpAuthLoopbackWarning, type ServerOptions } from '@breadai/server'
 
 /**
  * Bun listen adapter for `@breadai/server`.
@@ -47,7 +21,11 @@ export async function startServer(
   const host = opts.host ?? config.server?.host ?? 'localhost'
   const idleTimeout = opts.idleTimeout ?? config.server?.idleTimeout
 
-  warnIfUnguardedNonLoopback(host, config)
+  // A client can spoof Host. No auth listens only on loopback, and warns.
+  // Every other combination throws before the socket opens.
+  assertHttpAuth(config, host)
+  const loopbackWarning = httpAuthLoopbackWarning(config, host)
+  if (loopbackWarning) console.warn(loopbackWarning)
 
   const { bread, app } = createServer(config, agents, tasks)
   await bread.start()

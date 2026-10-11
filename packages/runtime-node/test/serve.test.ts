@@ -140,6 +140,14 @@ describe('startServerNode', () => {
   // Guards the bun-test monorepo: @hono/node-server must not replace
   // globalThis.Response, or later Bun.serve / MCP / transport files fail with
   // CLIENT_HTTP_UNEXPECTED_CONTENT (text/plain lightweight Response).
+  test('a public bind with no auth throws AUTH_NOT_CONFIGURED before listen', async () => {
+    const { config, agents } = fixture()
+    const port = await freePort()
+    await expect(startServerNode(config, agents, { port, host: '0.0.0.0' })).rejects.toMatchObject({
+      code: 'AUTH_NOT_CONFIGURED',
+    })
+  })
+
   test('does not replace globalThis.Response after listen', async () => {
     const Original = globalThis.Response
     const { config, agents } = fixture()

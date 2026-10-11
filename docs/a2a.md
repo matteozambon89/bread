@@ -286,8 +286,9 @@ stack/cause) in its `status.message`.
 
 The route needs **no auth code of its own**. `createServer()` runs every plugin's `middleware` hook
 before any plugin's `routes()` are mounted, so if you've wired an auth plugin (e.g. `authPlugin(...)`
-from [auth.md](./auth.md)), both the Agent Card and the RPC endpoint are gated exactly like any
-other route — no special-casing on a2a-server's part.
+from [auth.md](./auth.md)), the Agent Card and the RPC endpoint are
+[`A2A_ACTIONS`](./http-api.md#plugin-actions) — the same middleware as any other route, with no
+special-casing on a2a-server's part.
 
 **Caveat:** unlike most public A2A deployments (which typically leave the Card itself open for
 discovery), bread's auth gate is a blanket `app.use('*', ...)` with no route-type awareness — so an

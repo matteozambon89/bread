@@ -1,4 +1,4 @@
-import type { BreadInstance, BreadPlugin } from '@breadai/core'
+import { registerHttpRoute, type BreadInstance, type BreadPlugin } from '@breadai/core'
 import { hostHeaderValidation, localhostHostValidation, localhostOriginValidation, originValidation } from '@modelcontextprotocol/hono'
 import type { McpHttpHandler } from '@modelcontextprotocol/server'
 import type { Hono } from 'hono'
@@ -6,6 +6,10 @@ import { type ExposeConfig, buildMcpHttpHandler, buildMcpServer, serveStdio } fr
 
 export type { ExposeConfig, McpBread } from './server.js'
 export { buildMcpServer, buildMcpHttpHandler, serveStdio } from './server.js'
+
+export const MCP_ACTIONS = {
+  request: 'mcp.request',
+} as const
 
 /**
  * MCP server plugin. Exposes the agents/skills/tasks/tools named in `expose`
@@ -42,6 +46,7 @@ export function mcpServer(expose: ExposeConfig = {}): BreadPlugin {
     routes(app) {
       if (expose.transport !== 'http') return
       const path = expose.path ?? '/mcp'
+      registerHttpRoute(app as object, { method: '*', path, action: MCP_ACTIONS.request })
       // Built once in init() — createMcpHandler serves both the 2025-11-25
       // and 2026-07-28 wire formats from the same stateless handler.
       ;(app as Hono).all(path, async (c) => {

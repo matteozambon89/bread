@@ -4,9 +4,7 @@ import { FIXTURES, spawnCli } from './spawn-helper.js'
 
 // `bread start`'s port/host flags at the binary level — Commander parsing,
 // the flag-beats-config precedence documented in cli.ts's serveOverrides()
-// comment, and (since it's reachable from here) the Phase 2 non-loopback
-// bind warning actually firing through the real CLI, not just the in-process
-// startServer unit test in packages/runtime-bun/test/bind-warning.test.ts.
+// comment, and the HTTP auth bind gate through the real CLI.
 
 const serveProject = resolve(FIXTURES, 'serve-project')
 
@@ -42,18 +40,29 @@ describe('bread start — port/host flags', () => {
     expect(cli.stdoutSoFar()).toContain(':41999')
   }, 10000)
 
-  test('binding loopback prints no non-loopback warning', async () => {
+  test('binding loopback warns that a reverse proxy can present a loopback Host', async () => {
     const port = freePort()
     cli = spawnCli(['start', '--port', String(port), '--host', '127.0.0.1', '--cwd', serveProject])
     await cli.readUntil('Listening on')
-    expect(cli.stderrSoFar()).not.toContain('WARNING')
+    const deadline = Date.now() + 2000
+    while (!cli.stderrSoFar().includes('reverse proxy') && Date.now() < deadline) {
+      await new Promise((resolve) => setTimeout(resolve, 20))
+    }
+    expect(cli.stderrSoFar()).toContain('reverse proxy')
+    expect(cli.stderrSoFar()).toContain('[::1]')
   }, 10000)
 
-  test('binding non-loopback with no auth plugin prints the Phase-2 warning, reachable through the real binary', async () => {
+  test('binding non-loopback with no auth plugin refuses to listen', async () => {
     const port = freePort()
     cli = spawnCli(['start', '--port', String(port), '--host', '0.0.0.0', '--cwd', serveProject])
-    await cli.readUntil('Listening on')
-    expect(cli.stderrSoFar()).toContain('WARNING')
-    expect(cli.stderrSoFar()).toContain('0.0.0.0')
+    const code = await cli.proc.exited
+    expect(code).toBe(1)
+    const deadline = Date.now() + 2000
+    while (!cli.stderrSoFar().includes('spoofed Host') && Date.now() < deadline) {
+      await new Promise((resolve) => setTimeout(resolve, 20))
+    }
+    expect(cli.stderrSoFar()).toContain('authPlugin')
+    expect(cli.stderrSoFar()).toContain('spoofed Host')
+    expect(cli.stdoutSoFar()).not.toContain('Listening on')
   }, 10000)
 })

@@ -1,13 +1,12 @@
 import type { Hono } from 'hono'
 import { stream as honoStream } from 'hono/streaming'
 import type { AuthIdentity, BreadCrumb, BreadInstance, BreadTransport, BusFrame } from '@breadai/core'
-import { fromWireCrumb, streamTransport } from '@breadai/core'
+import { fromWireCrumb, HTTP_ACTIONS, registerHttpRoute, streamTransport } from '@breadai/core'
 import { type SseEvent, toClientError, toSseEvent, writeSseEvent } from './sse.js'
 
 export interface TransportOptions {
-  // Opt-in authorization for the passive GET /runs/:runId/stream route only —
-  // absent, the route behaves exactly as before (see SEC-03 audit). Identity
-  // comes from whatever authMiddleware/authPlugin stashed via c.set('identity').
+  // Extra check on the run stream and on cancel, after the HTTP grant.
+  // Identity is whatever auth stored. Absent, the grant stands.
   authorizeStream?(identity: AuthIdentity | undefined, runId: string): Promise<boolean> | boolean
 }
 
@@ -85,6 +84,12 @@ export function transport(opts: TransportOptions = {}): BreadTransport {
       // A cancel routed to a different replica than the one running it 404s;
       // see docs/transports.md's known-gap note.
       const cancelRegistry = new Map<string, AbortController>()
+
+      registerHttpRoute(honoApp, { method: 'POST', path: '/agents/:id/run', action: HTTP_ACTIONS.runStart })
+      registerHttpRoute(honoApp, { method: 'POST', path: '/pipelines/:id/run', action: HTTP_ACTIONS.pipelineStart })
+      registerHttpRoute(honoApp, { method: 'POST', path: '/resume/:checkpointId', action: HTTP_ACTIONS.runResume })
+      registerHttpRoute(honoApp, { method: 'POST', path: '/runs/:runId/cancel', action: HTTP_ACTIONS.runCancel })
+      registerHttpRoute(honoApp, { method: 'GET', path: '/runs/:runId/stream', action: HTTP_ACTIONS.runStream })
 
       honoApp.post('/agents/:id/run', async (c) => {
         const id = c.req.param('id')

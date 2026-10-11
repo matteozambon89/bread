@@ -179,3 +179,5 @@ export type {
 } from './types.js'
 
 export { BreadError } from './types.js'
+
+export { HTTP_ACTIONS, isLoopbackHostname, matchHttpRoute, registerHttpRoute } from './http-grant.js'

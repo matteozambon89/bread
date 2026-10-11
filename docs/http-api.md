@@ -19,11 +19,67 @@ transport-agnostic and behaves identically either way.
 
 ## Authentication
 
-Bread applies no default posture — a server with no auth plugin serves every request unguarded.
-Add one via `@breadai/server`'s `authPlugin()` (see [auth.md](./auth.md)) if you want every route
-below to require it. Binding a non-loopback host with no `middleware`-registering plugin at all
-prints a loud startup warning (never a gate) — see
-[auth.md#guarding-the-server](./auth.md#guarding-the-server).
+Every route has a named action. With `authPlugin()` in `config.plugins` (see
+[auth.md](./auth.md)), `createServer` calls `server.authorize(identity, action, args)`
+before the handler. `identity` is the `AuthIdentity` that plugin stored. `action` is
+one of the actions below. `args` is the path params plus the query params; a path param
+wins when the same key appears in both. Return `true` to allow. `false`, or a missing
+function, is `403` `{ "error": "Forbidden" }` and the handler does not run.
+
+Bread does not filter a list and does not apply a row predicate. Denying a route is
+`403` before the handler. `authorize` may read `args.id` and return `false` for that id.
+
+### Core actions
+
+`@breadai/core` exports `HTTP_ACTIONS`.
+
+| Constant | Route | Allow |
+|---|---|---|
+| `HTTP_ACTIONS.agentList` | `GET /agents` | Lists the agents. |
+| `HTTP_ACTIONS.agentRead` | `GET /agents/:id` | Returns that agent schema. `args.id` is the agent id. |
+| `HTTP_ACTIONS.runStart` | `POST /agents/:id/run` | Starts a run of that agent. `args.id` is the agent id. |
+| `HTTP_ACTIONS.pipelineStart` | `POST /pipelines/:id/run` | Starts that pipeline. `args.id` is the pipeline id. |
+| `HTTP_ACTIONS.runResume` | `POST /resume/:checkpointId` | Resumes that checkpoint. `args.checkpointId` is the checkpoint id. Allow does not check who started the run. |
+| `HTTP_ACTIONS.runStream` | `GET /runs/:runId/stream` | Tails that run. `args.runId` is the run id. Allow does not choose which run. `authorizeStream` still runs after the grant. |
+| `HTTP_ACTIONS.runCancel` | `POST /runs/:runId/cancel` | Cancels that run. `args.runId` is the run id. `authorizeStream` still runs after the grant. |
+| `HTTP_ACTIONS.sessionList` | `GET /sessions` | Returns every session. `args.tag` is set when the tag query is present. A tag query only narrows. |
+| `HTTP_ACTIONS.sessionRead` | `GET /sessions/:id` | Returns that session. `args.id` is the session id. |
+| `HTTP_ACTIONS.sessionDelete` | `DELETE /sessions/:id` | Deletes that session. `args.id` is the session id. |
+| `HTTP_ACTIONS.sessionCleanup` | `POST /sessions/cleanup` | Runs the bulk delete. |
+| `HTTP_ACTIONS.loopList` | `GET /loops` | Returns every loop. The `session`, `agent`, and `status` queries only narrow. |
+| `HTTP_ACTIONS.loopRead` | `GET /loops/:id` | Returns that loop. `args.id` is the loop id. |
+| `HTTP_ACTIONS.taskList` | `GET /tasks` | Returns every task run. The `task`, `session`, `agent`, `status`, and `limit` queries only narrow. |
+| `HTTP_ACTIONS.taskRead` | `GET /tasks/:id` | Returns that task run. `args.id` is the task-run id. |
+
+A static segment outranks a param, so `POST /sessions/cleanup` is not `/sessions/:id`.
+
+### Plugin actions
+
+`@breadai/protocol-a2a-server` exports `A2A_ACTIONS`. `@breadai/protocol-ag-ui` exports
+`AG_UI_ACTIONS`. `@breadai/protocol-mcp-server` exports `MCP_ACTIONS`. Core does not re-export
+them.
+
+| Constant | Route | Allow |
+|---|---|---|
+| `A2A_ACTIONS.card` | `GET` at `A2AServerConfig.cardPath` | Returns the Agent Card. |
+| `A2A_ACTIONS.rpc` | `POST` at the pathname of `A2AServerConfig.url` | Handles one JSON-RPC call. |
+| `AG_UI_ACTIONS.run` | `POST` at the `path` option, default `/ag-ui/run` | `authorizeThread` still runs after the grant. |
+| `MCP_ACTIONS.request` | Every method on the `path` option, default `/mcp` | Handles one MCP HTTP request. |
+
+A method of `*` matches every method on that path. A plugin that calls `app.get` or `app.post`
+without `registerHttpRoute` leaves an unnamed route, and an unnamed route is `403` when auth is on.
+
+With no plugin named `auth`, `server.authorize` is not called. A request is allowed only
+when the `Host` header is loopback (`localhost`, `127.0.0.1`, `::1`, an optional port,
+and bracketed `[::1]` / `[::1]:port`). `localhost.`, `127.1`, `0.0.0.0`, and `::` are not
+loopback. `X-Forwarded-Host` is ignored. Anything else is `403` `{ "error": "Forbidden" }`.
+
+`createServer` itself does not throw, so an in-process `app.request` still runs. The
+listen adapters check before the socket opens. No auth and a loopback bind warns that a
+reverse proxy on the same machine can present a loopback `Host`, and listens. Every other
+combination throws `AUTH_NOT_CONFIGURED` and does not listen: auth without
+`server.authorize`, `server.authorize` without auth on a public bind, and neither on a
+public bind. See [auth.md#guarding-the-server](./auth.md#guarding-the-server).
 
 ## Limits
 
@@ -56,13 +112,13 @@ routes return `{ "error": { code, message } }` with status `500`.
 ## Agents
 
 ### `GET /agents`
-List agents. → `[{ id, model, outputFormat }]`
+List agents (`HTTP_ACTIONS.agentList`, [Core actions](#core-actions)). → `[{ id, model, outputFormat }]`
 
 ### `GET /agents/:id`
-Agent schema. → `{ id, model, outputFormat }` · `404` if unknown.
+Agent schema (`HTTP_ACTIONS.agentRead`, [Core actions](#core-actions)). → `{ id, model, outputFormat }` · `404` if unknown.
 
 ### `POST /agents/:id/run`
-Run an agent, streaming crumbs.
+Run an agent (`HTTP_ACTIONS.runStart`, [Core actions](#core-actions)), streaming crumbs.
 
 ```jsonc
 // request body
@@ -104,29 +160,32 @@ transport. Missed history is replayed from the durable crumb log, then live fram
   frames only (no catch-up) and the server logs a notice at startup. All first-party stores
   support the log. Conversely, a `sink`-capability transport (no `subscribe`) has no live frames
   to offer — the route serves the store's replay only, then closes.
-- **Authorization**: opt-in via `transport({ authorizeStream })` (both `@breadai/transport-http-chunked`
-  and `@breadai/transport-http-sse`). `authorizeStream(identity, runId)` receives whatever
-  `authMiddleware`/`authPlugin()` stashed as the caller's `AuthIdentity` (`undefined` if no auth
-  ran) and the requested `runId`; returning/resolving `false` responds `403` before any crumb is
-  read. No `authorizeStream` configured → unchanged, unauthorized-by-default behavior — this route
-  otherwise has no ownership check, so any caller who knows a `runId` can tail it.
+- **Authorization**: [`HTTP_ACTIONS.runStream`](#core-actions).
+  `transport({ authorizeStream })` on both HTTP transports still runs after that grant.
+  `authorizeStream(identity, runId)` receives the `AuthIdentity` `authPlugin()` stashed (`undefined`
+  if no auth ran) and the `runId`; `false` is another `403` before any crumb is read.
 
 ## Pipelines
 
 ### `POST /pipelines/:id/run`
-Run a pipeline declared in `config.pipelines`. Body: `{ "input": ... }`. Streams crumbs including
+Run a pipeline (`HTTP_ACTIONS.pipelineStart`, [Core actions](#core-actions)) declared in
+`config.pipelines`. Body: `{ "input": ... }`. Streams crumbs including
 `pipeline:step:start` / `pipeline:step:end`. An unknown pipeline id is a `PIPELINE_NOT_FOUND`
 `error` event in the stream (see [Errors](#errors)), not a `404` — the response status is `200`.
 
 ## HITL
 
 ### `POST /resume/:checkpointId`
-Resume a paused run. Body: `{ "response": ... }`. The original `POST /agents/:id/run` stream ends at
+Resume a paused run (`HTTP_ACTIONS.runResume`, [Core actions](#core-actions)). Body: `{ "response": ... }`.
+The original `POST /agents/:id/run` stream ends at
 the `human:required` crumb; this endpoint **streams the continuation** as its own `text/event-stream`
 (`human:resumed` → … → `agent:run:end`). Resume replays the run from the store, so it works after a
 restart or on a different instance than the original run. See [hitl.md](./hitl.md).
 
 ## Sessions
+
+`HTTP_ACTIONS.sessionList`, `HTTP_ACTIONS.sessionRead`, `HTTP_ACTIONS.sessionDelete`, and
+`HTTP_ACTIONS.sessionCleanup`. See [Core actions](#core-actions).
 
 | Endpoint | Body / query | Response |
 |----------|--------------|----------|
@@ -140,6 +199,8 @@ restart or on a different instance than the original run. See [hitl.md](./hitl.m
 Agent-driven loops are listed and inspected for reporting; live progress arrives as `loop:*`
 crumbs on the agent run's SSE stream. See [loops.md](./loops.md).
 
+`HTTP_ACTIONS.loopList` and `HTTP_ACTIONS.loopRead`. See [Core actions](#core-actions).
+
 | Endpoint | Body / query | Response |
 |----------|--------------|----------|
 | `GET /loops` | `?session=` · `?agent=` · `?status=` | `LoopRecord[]` |
@@ -150,6 +211,8 @@ crumbs on the agent run's SSE stream. See [loops.md](./loops.md).
 Each one-shot task invocation is recorded for after-the-fact review; live progress arrives as
 `task:*` crumbs on the agent run's SSE stream. `501` if the configured store doesn't record task
 runs. See [tasks.md](./tasks.md).
+
+`HTTP_ACTIONS.taskList` and `HTTP_ACTIONS.taskRead`. See [Core actions](#core-actions).
 
 | Endpoint | Body / query | Response |
 |----------|--------------|----------|

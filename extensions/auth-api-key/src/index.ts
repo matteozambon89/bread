@@ -48,7 +48,9 @@ export function authStrategy(opts: ApiKeyOptions = {}): BreadAuthStrategy {
       const presented = extract(req.headers.get(header), opts.scheme)
       if (!presented) return null
       const allowed = await expectedKeys(opts)
-      return allowed.some((k) => safeEqual(k, presented)) ? { subject: 'api-key' } : null
+      if (!allowed.some((k) => safeEqual(k, presented))) return null
+      // One subject for every key. Bread does not invent a role from this identity.
+      return { subject: 'api-key' }
     },
   }
 }

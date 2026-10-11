@@ -1,27 +1,7 @@
 import type { Server as HttpServer } from 'node:http'
-import type {
-  AgentRegistry,
-  BreadConfig,
-  BreadInstance,
-  TaskRegistry,
-} from '@breadai/core'
-import { createServer, type ServerOptions } from '@breadai/server'
+import type { AgentRegistry, BreadConfig, BreadInstance, TaskRegistry } from '@breadai/core'
+import { assertHttpAuth, createServer, httpAuthLoopbackWarning, type ServerOptions } from '@breadai/server'
 import { serve } from '@hono/node-server'
-
-const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '::1'])
-
-// Floor warning when binding off loopback with no plugin middleware. Not a security gate.
-function warnIfUnguardedNonLoopback(host: string, config: BreadConfig): void {
-  if (LOOPBACK_HOSTS.has(host)) return
-  const hasMiddleware = (config.plugins ?? []).some((p) => typeof p.middleware === 'function')
-  if (hasMiddleware) return
-  console.warn(
-    `[bread] WARNING: binding to "${host}" (not loopback) with no plugin middleware registered. ` +
-      'Every route — including agent runs and the passive run stream — is reachable by anyone who can ' +
-      'reach this host. Add authPlugin([...]) (or your own BreadPlugin.middleware) before exposing this ' +
-      'outside your machine. See docs/auth.md#guarding-the-server.',
-  )
-}
 
 /**
  * Same opts shape (`port` / `host` / `idleTimeout` from opts or `config.server`,
@@ -44,7 +24,11 @@ export async function startServerNode(
   const host = opts.host ?? config.server?.host ?? 'localhost'
   const idleTimeout = opts.idleTimeout ?? config.server?.idleTimeout
 
-  warnIfUnguardedNonLoopback(host, config)
+  // A client can spoof Host. No auth listens only on loopback, and warns.
+  // Every other combination throws before the socket opens.
+  assertHttpAuth(config, host)
+  const loopbackWarning = httpAuthLoopbackWarning(config, host)
+  if (loopbackWarning) console.warn(loopbackWarning)
 
   const { bread, app } = createServer(config, agents, tasks)
   await bread.start()

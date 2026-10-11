@@ -2,13 +2,22 @@ import { Hono, type MiddlewareHandler } from 'hono'
 import { bodyLimit } from 'hono/body-limit'
 import type {
   AgentRegistry,
+  AuthIdentity,
   BreadAuthStrategy,
   BreadConfig,
   BreadInstance,
   BreadPlugin,
   TaskRegistry,
 } from '@breadai/core'
-import { BreadError, createBread } from '@breadai/core'
+import {
+  BreadError,
+  createBread,
+  HTTP_ACTIONS,
+  isLoopbackHostname,
+  matchHttpRoute,
+  registerHttpRoute,
+} from '@breadai/core'
+import { hasAuthPlugin } from './http-auth.js'
 
 export interface ServerOptions {
   port?: number
@@ -28,10 +37,9 @@ function toClientError(err: unknown): { code: string; message: string } {
   return { code: 'INTERNAL_ERROR', message: 'Internal server error' }
 }
 
-// Server-side auth: a caller passes if at least one strategy authenticates the
-// request; the resolved identity is stashed on the context. Not wired in
-// automatically anywhere — attach it yourself via `authPlugin()` (or apply it
-// to a Hono app directly) if you want it.
+// Stashes the authenticated identity. Only a plugin named `auth` (`authPlugin`)
+// makes the HTTP grant call `server.authorize`. Applying this middleware by
+// hand does not.
 export function authMiddleware(strategies: BreadAuthStrategy[]): MiddlewareHandler {
   return async (c, next) => {
     for (const strategy of strategies) {
@@ -53,6 +61,58 @@ export function authPlugin(strategies: BreadAuthStrategy[]): BreadPlugin {
     middleware: (app) => {
       ;(app as Hono).use('*', authMiddleware(strategies))
     },
+  }
+}
+
+
+// Raw Host header wins. app.request() omits that forbidden header, so use the
+// URL authority as written — WHATWG rewrites 127.1 to 127.0.0.1.
+// X-Forwarded-Host is not read; a client can set it.
+function requestHost(header: string | undefined, url: string): string | null {
+  if (header) return header
+  const match = /^[a-z][a-z0-9+.-]*:\/\/([^/?#]+)/i.exec(url)
+  return match?.[1] ?? null
+}
+
+function routeArgs(url: URL, params: Record<string, string>): Record<string, string> {
+  // Path params win. A null prototype keeps a query key off Object.prototype.
+  const args: Record<string, string> = Object.create(null)
+  for (const [key, value] of url.searchParams) {
+    if (!(key in args)) args[key] = value
+  }
+  for (const [key, value] of Object.entries(params)) args[key] = value
+  return args
+}
+
+function register(app: Hono, method: string, path: string, action: string): void {
+  registerHttpRoute(app, { method, path, action })
+}
+
+function httpGrant(config: BreadConfig, app: Hono): MiddlewareHandler {
+  const authOn = hasAuthPlugin(config)
+  return async (c, next) => {
+    if (!authOn) {
+      const host = requestHost(c.req.header('host'), c.req.url)
+      if (!isLoopbackHostname(host)) return c.json({ error: 'Forbidden' }, 403)
+      return next()
+    }
+    let url: URL
+    try {
+      url = new URL(c.req.url)
+    } catch {
+      return c.json({ error: 'Forbidden' }, 403)
+    }
+    const matched = matchHttpRoute(app, c.req.method, url.pathname)
+    // An unregistered route has no action. Fail closed once auth is on.
+    if (!matched) return c.json({ error: 'Forbidden' }, 403)
+    const identity = c.get('identity' as never) as AuthIdentity
+    const authorize = config.server?.authorize
+    const allowed =
+      typeof authorize === 'function'
+        ? await authorize(identity, matched.action, routeArgs(url, matched.params))
+        : undefined
+    if (allowed !== true) return c.json({ error: 'Forbidden' }, 403)
+    return next()
   }
 }
 
@@ -119,6 +179,9 @@ export function createServer(
     plugin.middleware?.(app)
   }
 
+  // After plugin middleware, before plugin routes, transport mount, and these routes.
+  app.use('*', httpGrant(config, app))
+
   // Plugin-contributed HTTP routes (e.g. @breadai/protocol-mcp-server's HTTP exposure).
   for (const plugin of config.plugins ?? []) {
     plugin.routes?.(app)
@@ -134,6 +197,7 @@ export function createServer(
   // ---------------------------------------------------------------------------
 
   // List agents
+  register(app, 'GET', '/agents', HTTP_ACTIONS.agentList)
   app.get('/agents', (c) => {
     const list = [...agents.entries()].map(([id, def]) => ({
       id,
@@ -144,6 +208,7 @@ export function createServer(
   })
 
   // Agent schema
+  register(app, 'GET', '/agents/:id', HTTP_ACTIONS.agentRead)
   app.get('/agents/:id', (c) => {
     const id = c.req.param('id')
     const def = agents.get(id)
@@ -156,6 +221,7 @@ export function createServer(
   })
 
   // Sessions
+  register(app, 'GET', '/sessions', HTTP_ACTIONS.sessionList)
   app.get('/sessions', async (c) => {
     const tag = c.req.query('tag')
     const tags = tag ? Object.fromEntries([tag.split(':')]) : undefined
@@ -163,17 +229,20 @@ export function createServer(
     return c.json(list)
   })
 
+  register(app, 'GET', '/sessions/:id', HTTP_ACTIONS.sessionRead)
   app.get('/sessions/:id', async (c) => {
     const session = await bread.store.getSession(c.req.param('id'))
     if (!session) return c.json({ error: 'Session not found' }, 404)
     return c.json(session)
   })
 
+  register(app, 'DELETE', '/sessions/:id', HTTP_ACTIONS.sessionDelete)
   app.delete('/sessions/:id', async (c) => {
     await bread.store.deleteSession(c.req.param('id'))
     return c.json({ ok: true })
   })
 
+  register(app, 'POST', '/sessions/cleanup', HTTP_ACTIONS.sessionCleanup)
   app.post('/sessions/cleanup', async (c) => {
     let body: { olderThanDays?: number; tags?: Record<string, string> } = {}
     try {
@@ -192,6 +261,7 @@ export function createServer(
 
   // Loops (agent-driven). Listed/inspected for frontend reporting; live progress
   // arrives as loop:* crumbs on the agent run's SSE stream.
+  register(app, 'GET', '/loops', HTTP_ACTIONS.loopList)
   app.get('/loops', async (c) => {
     const session = c.req.query('session')
     const agent = c.req.query('agent')
@@ -205,6 +275,7 @@ export function createServer(
     return c.json(list)
   })
 
+  register(app, 'GET', '/loops/:id', HTTP_ACTIONS.loopRead)
   app.get('/loops/:id', async (c) => {
     const loop = await bread.store.getLoop(c.req.param('id'))
     if (!loop) return c.json({ error: 'Loop not found' }, 404)
@@ -213,6 +284,7 @@ export function createServer(
 
   // Task runs (audit). Each one-shot task invocation is recorded for after-the-fact
   // review; live progress arrives as task:* crumbs on the agent run's SSE stream.
+  register(app, 'GET', '/tasks', HTTP_ACTIONS.taskList)
   app.get('/tasks', async (c) => {
     if (!bread.store.listTaskRuns) return c.json({ error: 'Store does not record task runs' }, 501)
     const task = c.req.query('task')
@@ -231,6 +303,7 @@ export function createServer(
     return c.json(list)
   })
 
+  register(app, 'GET', '/tasks/:id', HTTP_ACTIONS.taskRead)
   app.get('/tasks/:id', async (c) => {
     if (!bread.store.getTaskRun) return c.json({ error: 'Store does not record task runs' }, 501)
     const run = await bread.store.getTaskRun(c.req.param('id'))

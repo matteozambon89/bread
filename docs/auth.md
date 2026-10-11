@@ -37,6 +37,9 @@ const strategy = authStrategy({
 Server side compares the presented key **timing-safely**; `signer(opts)` (same options shape)
 attaches the first key.
 
+A matching key is `{ subject: 'api-key' }` with no claims. Every key of one strategy shares
+that subject. Bread does not invent a role from this identity.
+
 ## JWT
 
 ```ts
@@ -103,29 +106,58 @@ it before calling `signer(...)` (e.g. via a core `CredentialProvider` like `vaul
 
 ## Guarding the server
 
-Bread has no built-in opinion on auth — a server with no auth plugin serves every request, no
-gate. Configuring auth (or any other posture: a reverse proxy, a network boundary, your own
-middleware) is entirely up to you. `@breadai/server`'s `authPlugin()` turns one or more strategies
-into a `BreadPlugin` you drop into `config.plugins`, same as any other plugin: it rejects any
-request none of the strategies authenticate (`401`), and stashes the identity on the request
-context.
+`@breadai/server`'s `authPlugin()` turns one or more strategies into a `BreadPlugin` named `auth`.
+Drop it into `config.plugins`: it rejects any request none of the strategies authenticate (`401`)
+and stashes the identity on the request context. That identity is what `server.authorize` receives.
+Arbitrary middleware does not count as auth — only a plugin whose `name` is `auth`. Applying
+`authMiddleware` by hand does not.
 
-There is one warning, not a gate: `bread dev`/`bread start` print a loud `console.warn` when the
-resolved host isn't loopback (`localhost`/`127.0.0.1`/`::1`) and zero plugins in `config.plugins`
-register `middleware` at all. It cannot tell whether any registered middleware actually *is* an
-auth check — only that at least one plugin hooked in — so it's a floor, not a guarantee: possible
-to silence with any middleware-registering plugin, real or not, and it never blocks startup either
-way. Binding loopback, or registering `authPlugin(...)` (or any other `BreadPlugin.middleware`),
-silences it.
+One middleware in `createServer`, installed after plugin middleware and before plugin routes, the
+transport mount, and the server routes, decides every request.
+
+With a plugin named `auth`, that middleware calls `server.authorize(identity, action, args)`.
+`identity` is the stored `AuthIdentity`. `action` is a string. `args` is path params plus query
+params; a path param wins when a key appears in both. Return `true` to allow. Returning `true`
+allows every action. `false`, or a missing function, is `403` `{ "error": "Forbidden" }` before
+the handler. The function may look at `args.id` and return `false`. Bread does not return an id
+list, does not filter list rows, and does not apply a row predicate.
+
+The constants are in [Core actions](./http-api.md#core-actions) and
+[Plugin actions](./http-api.md#plugin-actions). Core does not list plugin names. A plugin that
+still calls `app.get` or `app.post` directly leaves an unnamed route, and an unnamed route is
+`403` when auth is on.
+
+`authorizeStream` on the run stream and on cancel still runs after this grant.
+
+With no plugin named `auth`, `server.authorize` is not called. The request is allowed only when
+the `Host` header is loopback. Loopback is exactly `localhost`, `127.0.0.1`, or `::1`,
+case-insensitive, with an optional numeric port. Bracketed `::1` counts (`[::1]`, `[::1]:3000`).
+A trailing-dot name (`localhost.`), `127.1`, `0.0.0.0`, and `::` do not. `X-Forwarded-Host` is
+ignored. Anything else is `403` `{ "error": "Forbidden" }`.
+
+`createServer` does not throw, so an in-process caller can still use `app.request`. The listen
+adapters check before the socket opens. No auth and a loopback bind warns that a reverse proxy on
+the same machine can present `Host` `localhost`, `127.0.0.1`, or `[::1]`, and listens. That
+exemption is not a network boundary. Every other combination throws `AUTH_NOT_CONFIGURED` and does
+not listen. That includes auth without `server.authorize` (any bind), `server.authorize` without
+auth on a public bind, and neither on a public bind.
 
 ```ts
 // bread.config.ts
-import { defineConfig } from '@breadai/core'
+import { defineConfig, HTTP_ACTIONS } from '@breadai/core'
+import { A2A_ACTIONS } from '@breadai/protocol-a2a-server'
 import { authStrategy } from '@breadai/auth-api-key'
 import { authPlugin } from '@breadai/server'
 
 export default defineConfig({
   entrypoints: ['researcher'],
+  server: {
+    authorize(_identity, action, args) {
+      if (action === HTTP_ACTIONS.sessionRead) return args.id === 'mine'
+      if (action === A2A_ACTIONS.card) return true
+      return false
+    },
+  },
   plugins: [authPlugin([authStrategy({ keys: [process.env.API_KEY!] })])],
 })
 ```

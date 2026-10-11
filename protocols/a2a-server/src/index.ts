@@ -1,4 +1,4 @@
-import type { BreadPlugin } from '@breadai/core'
+import { registerHttpRoute, type BreadPlugin } from '@breadai/core'
 import { type A2ABread, type AgentSkillMeta } from './agent-meta.js'
 import { type AgentCardV03, buildAgentCardV03 } from './v03/agent-card.js'
 import { handleRpcRequestV03 } from './v03/rpc.js'
@@ -18,6 +18,11 @@ export { buildAgentCardV1 } from './v1/agent-card.js'
 export { handleRpcRequestV1 } from './v1/rpc.js'
 export { handleStreamRequestV1 } from './v1/stream.js'
 export { handleTasksCancelV1, handleTasksGetV1, handleTasksResubscribeV1 } from './v1/tasks.js'
+
+export const A2A_ACTIONS = {
+  card: 'a2a.card',
+  rpc: 'a2a.rpc',
+} as const
 
 // A2A server plugin — serves an Agent Card (discovery document) and a
 // JSON-RPC endpoint that invokes one bread agent synchronously, per the A2A
@@ -70,6 +75,8 @@ export function a2aServer(config: A2AServerConfig): BreadPlugin {
     },
     routes(app) {
       const rpcPath = new URL(config.url).pathname
+      registerHttpRoute(app as object, { method: 'GET', path: config.cardPath, action: A2A_ACTIONS.card })
+      registerHttpRoute(app as object, { method: 'POST', path: rpcPath, action: A2A_ACTIONS.rpc })
       ;(app as MinimalApp).get(config.cardPath, (c) => {
         if (!breadRef) return new Response('bread not started', { status: 503 })
         const card: AgentCardV03 | AgentCardV1 =

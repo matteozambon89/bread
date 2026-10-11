@@ -33,6 +33,7 @@ function fixture(): { config: BreadConfig; agents: AgentRegistry } {
     entrypoints: ['assistant'],
     store: store(),
     plugins: [authPlugin([headerStrategy])],
+    server: { authorize: () => true },
     transport: transport({ authorizeStream: (identity) => identity?.subject === 'alice' }),
     providers: mockProvider({ default: mockTextModel('hi') }),
   }

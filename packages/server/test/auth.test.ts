@@ -19,6 +19,7 @@ describe('server — auth gating', () => {
       agents: { a: defineTestAgent() },
       model: mockTextModel('ok'),
       plugins: [authPlugin([apiKeyStrategy])],
+      config: { server: { authorize: () => true } },
     }))
   })
 

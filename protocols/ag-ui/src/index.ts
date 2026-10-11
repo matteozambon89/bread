@@ -1,4 +1,4 @@
-import { isFileOutput } from '@breadai/core'
+import { isFileOutput, registerHttpRoute } from '@breadai/core'
 import type { AuthIdentity, BreadCrumb, BreadInstance, BreadInstanceRef, BreadPlugin } from '@breadai/core'
 
 // AG-UI protocol events (https://ag-ui.com), spec field names: `messageId`/
@@ -384,6 +384,10 @@ export function createAgUiTransformer(): (crumb: BreadCrumb) => AgUiEvent[] {
   }
 }
 
+export const AG_UI_ACTIONS = {
+  run: 'ag-ui.run',
+} as const
+
 export function agUi(opts: AgUiOptions = {}): BreadPlugin {
   const transform = createAgUiTransformer()
   let breadRef: AgUiBread | null = null
@@ -404,6 +408,7 @@ export function agUi(opts: AgUiOptions = {}): BreadPlugin {
       if (!opts.agentId) return
       const agentId = opts.agentId
       const path = opts.path ?? '/ag-ui/run'
+      registerHttpRoute(app as object, { method: 'POST', path, action: AG_UI_ACTIONS.run })
 
       ;(app as MinimalApp).post(path, async (c) => {
         if (!breadRef) return new Response('bread not started', { status: 503 })

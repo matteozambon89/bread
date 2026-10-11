@@ -28,10 +28,12 @@ await bread.start()
 ```
 
 This package owns `createServer` (and `app.fetch`) only — listen adapters live in
-`@breadai/runtime-bun` / `@breadai/runtime-node`. Bread applies no default auth
-posture — add one yourself via `authPlugin(...)` in `config.plugins` (see
-[auth](https://matteozambon89.github.io/bread/auth.html)) if you want
-it. Errors reach clients as `{ code, message }` only.
+`@breadai/runtime-bun` / `@breadai/runtime-node`. With `authPlugin(...)` in `config.plugins`,
+every route needs `server.authorize(identity, action, args)` (see
+[auth](https://matteozambon89.github.io/bread/auth.html)). List routes are not filtered.
+Plugins register their own action names. With no auth plugin, the listen adapters bind
+loopback only and warn that a reverse proxy can present a loopback Host. Errors reach
+clients as `{ code, message }` only.
 
 Part of **[bread](https://github.com/matteozambon89/bread)** — an explicit-by-design framework for AI agents.
 Docs: [HTTP API](https://matteozambon89.github.io/bread/http-api.html) ·

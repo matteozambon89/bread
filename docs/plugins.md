@@ -68,7 +68,8 @@ interface BreadPlugin {
   request logging, …). See [auth.md](./auth.md).
 - **`routes`** — register extra HTTP routes on the server's Hono app (e.g.
   [`@breadai/protocol-mcp-server`](./mcp-server.md)'s HTTP exposure). Typed as `unknown` so core stays Hono-free;
-  the CLI server passes the real `Hono`.
+  the CLI server passes the real `Hono`. Call `registerHttpRoute` from `@breadai/core` for each one.
+  A route left unnamed is `403` when auth is on. See [auth.md](./auth.md#guarding-the-server).
 
 ## Writing a plugin
 

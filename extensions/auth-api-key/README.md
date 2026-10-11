@@ -26,6 +26,8 @@ const strategy = authStrategy({
 
 Pass `strategy` to `@breadai/server`'s `authPlugin()` to guard a running server.
 
+A matching key is `{ subject: 'api-key' }` with no claims. Every key of one strategy shares that subject.
+
 Part of **[bread](https://github.com/matteozambon89/bread)** — an explicit-by-design framework for AI agents.
 Docs: [auth](https://matteozambon89.github.io/bread/auth.html) ·
 [all docs](https://matteozambon89.github.io/bread/).

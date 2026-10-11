@@ -1,9 +1,10 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 import type { BreadAuthStrategy } from '@breadai/core'
+import { matchHttpRoute } from '@breadai/core'
 import { authPlugin } from '@breadai/server'
 import type { Hono } from 'hono'
 import { defineTestAgent, makeServer, mockTextModel } from '@breadai/test-utils'
-import { mcpServer } from '@breadai/protocol-mcp-server'
+import { MCP_ACTIONS, mcpServer } from '@breadai/protocol-mcp-server'
 
 // An auth strategy that accepts requests carrying the right header — the
 // same pattern packages/server/test/auth.test.ts uses for the rest of the
@@ -20,12 +21,22 @@ const apiKeyStrategy: BreadAuthStrategy = {
 describe('mcp_server — inherits the server\'s auth gate', () => {
   let app: Hono
   let stop: () => Promise<void>
+  let actions: string[]
 
   beforeEach(async () => {
+    actions = []
     ;({ app, stop } = await makeServer({
       agents: { greeter: defineTestAgent() },
       model: mockTextModel('ok'),
       plugins: [mcpServer({ transport: 'http', agents: ['greeter'] }), authPlugin([apiKeyStrategy])],
+      config: {
+        server: {
+          authorize(_identity, action) {
+            actions.push(action)
+            return true
+          },
+        },
+      },
     }))
   })
 
@@ -62,5 +73,12 @@ describe('mcp_server — inherits the server\'s auth gate', () => {
     const dataLine = text.split('\n').find((l) => l.startsWith('data: '))
     const body = JSON.parse(dataLine!.slice('data: '.length)) as { result?: { tools?: { name: string }[] } }
     expect(body.result?.tools?.map((t) => t.name)).toContain('greeter')
+    expect(actions).toEqual([MCP_ACTIONS.request])
+  })
+
+  test('mcp.request matches every method on the HTTP path', () => {
+    expect(matchHttpRoute(app, 'GET', '/mcp')?.action).toBe(MCP_ACTIONS.request)
+    expect(matchHttpRoute(app, 'POST', '/mcp')?.action).toBe(MCP_ACTIONS.request)
+    expect(matchHttpRoute(app, 'DELETE', '/mcp')?.action).toBe(MCP_ACTIONS.request)
   })
 })

@@ -97,13 +97,14 @@ What it does and doesn't do:
 - The route uses its own per-request transformer instance internally, independent of the
   crumb-bus subscription `onEvent` uses (see below) — the two never share transformer state, even
   when both are configured on the same `agUi(...)` instance.
-- **Authorization**: opt-in via `agUi({ authorizeThread })`. `authorizeThread(identity, threadId)`
-  receives whatever `authMiddleware`/`authPlugin()` stashed as the caller's `AuthIdentity`
-  (`undefined` if no auth ran) and the request's `threadId`; returning/resolving `false` responds
-  `403` before any run starts. No `authorizeThread` configured → `threadId` is used directly as
-  bread's `session.id` with no ownership check — any caller who knows or guesses a `threadId` can
-  read/write that session's history. Same opt-in shape as
-  [`authorizeStream`](./http-api.md#get-runsrunidstream) on the passive run-stream route.
+- **Authorization**: the route is [`AG_UI_ACTIONS.run`](./http-api.md#plugin-actions) once auth is on.
+  `authorizeThread` still runs after that grant.
+  `authorizeThread(identity, threadId)` receives whatever `authMiddleware`/`authPlugin()` stashed
+  as the caller's `AuthIdentity` (`undefined` if no auth ran) and the request's `threadId`;
+  returning/resolving `false` responds `403` before any run starts. No `authorizeThread`
+  configured → `threadId` is used directly as bread's `session.id` with no ownership check — any
+  caller who knows or guesses a `threadId` can read/write that session's history. Same opt-in
+  shape as [`authorizeStream`](./http-api.md#get-runsrunidstream) on the passive run-stream route.
 
 ## Output-mapper usage
 

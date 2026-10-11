@@ -912,6 +912,10 @@ export interface BreadConfig {
     idleTimeout?: number
     maxBodyBytes?: number
     runtime?: 'bun' | 'node'
+    // Called only when a plugin named `auth` is registered. `args` is path
+    // params plus query params; a path param wins on a duplicate key. Return
+    // true to allow. List routes are not filtered.
+    authorize?(identity: AuthIdentity, action: string, args: Record<string, string>): boolean | Promise<boolean>
   }
   // Run-wide default credential resolver, consulted by any tool that doesn't
   // set its own `credentialProvider`. Omit it to keep today's behavior

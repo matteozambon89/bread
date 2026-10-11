@@ -11,6 +11,8 @@ export default defineConfig({
   store: store({ path: './bread.db' }),
   transport: transport(),
   providers: providerLlm,
+  // A real app branches on action and args. This demo allows every action.
+  server: { authorize: () => true },
   plugins: [
     authPlugin([
       authStrategy({

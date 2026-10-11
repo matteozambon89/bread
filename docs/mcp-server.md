@@ -104,11 +104,14 @@ synthesize one; pass `headers: { host: 'localhost' }` explicitly in that case.
 
 The HTTP route otherwise needs **no auth code of its own**. `createServer()` runs every plugin's
 `middleware` hook before any plugin's `routes()` are mounted, so if you've wired an auth plugin (e.g.
-`authPlugin(...)` from [auth.md](./auth.md)), `/mcp` is gated exactly like every other route — with
-no special-casing on mcp-server's part. All middleware runs before any route, but the relative order
+`authPlugin(...)` from [auth.md](./auth.md)), the route is
+[`MCP_ACTIONS.request`](./http-api.md#plugin-actions) — the same middleware as every other route,
+with no special-casing on mcp-server's part.
+All middleware runs before any route, but the relative order
 *between* mcp-server's host/origin check and another plugin's auth check follows `config.plugins`
-registration order, same as any two plugins' middleware — it isn't otherwise enforced. Bread itself
-applies no default auth posture; add it only if you want it. Connect with the SDK's
+registration order, same as any two plugins' middleware — it isn't otherwise enforced. With no auth
+plugin, the listen adapters allow a loopback bind only (see
+[auth.md](./auth.md#guarding-the-server)). Connect with the SDK's
 `StreamableHTTPClientTransport`.
 
 ## Building blocks

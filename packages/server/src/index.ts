@@ -1,4 +1,5 @@
 export { authMiddleware, authPlugin, createServer } from './server.js'
+export { assertHttpAuth, httpAuthLoopbackWarning } from './http-auth.js'
 export { loadConfig, loadAgents, loadEvals, loadTasks } from './loader.js'
 export type { ServerOptions } from './server.js'
 

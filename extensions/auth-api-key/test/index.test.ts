@@ -31,6 +31,12 @@ describe('api-key auth strategy', () => {
     // A raw key without the scheme prefix must not authenticate.
     expect(await strat.authenticate(reqWith({ authorization: 'secret' }))).toBeNull()
   })
+
+  test('a matching key is one shared subject and has no claims', async () => {
+    const strat = authStrategy({ keys: ['k1', 'k2'], header: 'x-api-key' })
+    expect(await strat.authenticate(reqWith({ 'x-api-key': 'k1' }))).toEqual({ subject: 'api-key' })
+    expect(await strat.authenticate(reqWith({ 'x-api-key': 'k2' }))).toEqual({ subject: 'api-key' })
+  })
 })
 
 describe('api-key signer', () => {
