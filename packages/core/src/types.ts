@@ -619,10 +619,13 @@ export interface KnowledgeConfig {
   maxTokens?: number
 }
 
-// Setting `documents` (an empty options bag today) auto-attaches the core_doc_*
-// tools when the store implements the document methods. Options may appear here
-// later; until then `documents: {}` is the whole configuration.
-export interface DocumentConfig {}
+// `documents: {}` attaches core_doc_* when the store supports documents.
+// core_doc_load allows public https hosts, optionally limited by urlAllowlist.
+// fileRoot is the only directory a local load may read; unset disables files.
+export interface DocumentConfig {
+  urlAllowlist?: string[]
+  fileRoot?: string
+}
 
 // ---------------------------------------------------------------------------
 // Error handling

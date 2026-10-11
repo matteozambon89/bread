@@ -30,7 +30,7 @@ export default defineAgent({
 | `permissions?` | `{ allow?, ask?, deny? }` | Selector lists gating the agent's tools — see [Permissions](#permissions). |
 | `steps?` | `{ max }` | Max tool-call steps per run (default 20). |
 | `knowledge?` | `{ autoInject, maxTokens }` | Auto-inject KG context — see [skills/store]. |
-| `documents?` | `{}` | Attach the `core_doc_*` tools (requires a store with document support). |
+| `documents?` | `{ urlAllowlist?: string[], fileRoot?: string }` | Attach the `core_doc_*` tools (requires a store with document support). `core_doc_load` loads public https URLs only. `urlAllowlist` is an optional list of exact hostnames (case-insensitive, no wildcards or ports): omit it to allow any public https host, or pass `[]` to deny every URL. Local files are off unless `fileRoot` is one directory; a relative `fileRoot` resolves from the process cwd. |
 | `tasks?` | `string[]` | Ids of one-shot tasks to expose as tools, resolved from the task registry — see [tasks.md](./tasks.md). |
 | `plugins?` | `Record<string, unknown>` | Opaque, per-plugin agent config, keyed by plugin name — e.g. `{ mcp_client: { servers: [...] } }`. Core never inspects the contents; see [mcp-client.md](./mcp-client.md) for the leading example. |
 | `supervisor?` | `{ max?, agents }` | Inject the `core_delegate` tool: the model delegates to sub-agents at runtime — see [pipelines.md](./pipelines.md#supervisors). |

@@ -1,8 +1,9 @@
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 import { createDocTools, envProvider } from '@breadai/core'
-import type { BreadStore, ToolContext, ToolDefinition } from '@breadai/core'
+import type { BreadStore, DocumentConfig, ToolContext, ToolDefinition } from '@breadai/core'
 import { store } from '@breadai/store-memory'
+import type { DocLoadDeps } from '../src/doc-load.js'
 
 const ctx: ToolContext = {
   agentId: 'a',
@@ -11,19 +12,35 @@ const ctx: ToolContext = {
   credentials: envProvider(),
 }
 
-function docLoad(store: BreadStore): ToolDefinition {
-  return createDocTools('a', store).find((t) => t.name === 'core_doc_load')!
+const realFetch = globalThis.fetch
+
+function docLoad(store: BreadStore, options?: DocumentConfig, deps?: DocLoadDeps): ToolDefinition {
+  return createDocTools('a', store, options, deps).find((t) => t.name === 'core_doc_load')!
+}
+
+function publicClient(body: string, status = 200): DocLoadDeps {
+  return {
+    resolve: async () => ['1.1.1.1'],
+    request: async () => ({ status, body }),
+  }
 }
 
 describe('core_doc_load', () => {
   let testStore: BreadStore
   beforeEach(() => {
     testStore = store()
+    globalThis.fetch = (() => {
+      throw new Error('global fetch must not be used')
+    }) as typeof fetch
+  })
+  afterEach(() => {
+    globalThis.fetch = realFetch
   })
 
   test('loads and ingests a document from a local file', async () => {
-    const result = (await docLoad(testStore).execute(
-      { source: join(import.meta.dir, 'fixtures', 'doc.txt') },
+    const root = join(import.meta.dir, 'fixtures')
+    const result = (await docLoad(testStore, { fileRoot: root }).execute(
+      { source: join(root, 'doc.txt') },
       ctx,
     )) as { id: string; length: number }
     expect(result.length).toBeGreaterThan(0)
@@ -31,15 +48,15 @@ describe('core_doc_load', () => {
     expect(read?.content).toContain('hello from a local file')
   })
 
-  describe('from a URL', () => {
-    const realFetch = globalThis.fetch
-    afterEach(() => {
-      globalThis.fetch = realFetch
-    })
+  test('rejects a local file when fileRoot is not set', async () => {
+    await expect(
+      docLoad(testStore).execute({ source: join(import.meta.dir, 'fixtures', 'doc.txt') }, ctx),
+    ).rejects.toMatchObject({ code: 'DOC_FILE_DISABLED' })
+  })
 
+  describe('from a URL', () => {
     test('fetches the body and ingests it', async () => {
-      globalThis.fetch = (async () => new Response('remote body', { status: 200 })) as typeof fetch
-      const result = (await docLoad(testStore).execute(
+      const result = (await docLoad(testStore, {}, publicClient('remote body')).execute(
         { source: 'https://example.com/doc' },
         ctx,
       )) as { id: string; length: number }
@@ -48,10 +65,30 @@ describe('core_doc_load', () => {
     })
 
     test('throws when the remote responds non-ok', async () => {
-      globalThis.fetch = (async () => new Response('nope', { status: 404 })) as typeof fetch
       await expect(
-        docLoad(testStore).execute({ source: 'https://example.com/missing' }, ctx),
-      ).rejects.toThrow('Failed to fetch')
+        docLoad(testStore, {}, publicClient('nope', 404)).execute(
+          { source: 'https://example.com/missing' },
+          ctx,
+        ),
+      ).rejects.toMatchObject({ code: 'DOC_FETCH_FAILED' })
+    })
+
+    test('rejects a host that is not on urlAllowlist', async () => {
+      let requested = false
+      const deps: DocLoadDeps = {
+        resolve: async () => ['1.1.1.1'],
+        request: async () => {
+          requested = true
+          return { status: 200, body: 'nope' }
+        },
+      }
+      await expect(
+        docLoad(testStore, { urlAllowlist: ['example.com'] }, deps).execute(
+          { source: 'https://evil.example/doc' },
+          ctx,
+        ),
+      ).rejects.toMatchObject({ code: 'DOC_URL_BLOCKED' })
+      expect(requested).toBe(false)
     })
   })
 })

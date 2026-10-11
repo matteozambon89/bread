@@ -1,7 +1,7 @@
-import { readFile } from 'node:fs/promises'
 import { z } from 'zod'
 import type { BreadStore } from './storage/store.js'
-import { type ToolDefinition, BreadError } from './types.js'
+import { loadDocumentSource, type DocLoadDeps } from './doc-load.js'
+import { type DocumentConfig, type ToolDefinition, BreadError } from './types.js'
 
 // ---------------------------------------------------------------------------
 // Schemas
@@ -21,7 +21,7 @@ const docSearchSchema = z.object({
 const docReadSchema = z.object({ id: z.string() })
 
 const docLoadSchema = z.object({
-  source: z.string().describe('File path or URL'),
+  source: z.string().describe('Public https URL, or a file path under documents.fileRoot'),
   title: z.string().optional(),
 })
 
@@ -50,7 +50,12 @@ function requireDocs(store: BreadStore): Required<
   }
 }
 
-export function createDocTools(agentId: string, store: BreadStore): ToolDefinition[] {
+export function createDocTools(
+  agentId: string,
+  store: BreadStore,
+  options?: DocumentConfig,
+  deps?: DocLoadDeps,
+): ToolDefinition[] {
   const docs = requireDocs(store)
 
   const docIngest: ToolDefinition<DocIngestArgs, { id: string; title: string }> = {
@@ -92,20 +97,11 @@ export function createDocTools(agentId: string, store: BreadStore): ToolDefiniti
 
   const docLoad: ToolDefinition<DocLoadArgs, unknown> = {
     name: 'core_doc_load',
-    description: 'Load a document from a file path or URL and ingest it',
+    description: 'Load a public https URL, or a file under documents.fileRoot, and ingest it',
     schema: docLoadSchema,
     async execute(args) {
-      let content: string
+      const content = await loadDocumentSource(args.source, options, deps)
       const title = args.title ?? args.source
-
-      if (args.source.startsWith('http://') || args.source.startsWith('https://')) {
-        const res = await fetch(args.source)
-        if (!res.ok) throw new Error(`Failed to fetch ${args.source}: ${res.statusText}`)
-        content = await res.text()
-      } else {
-        content = await readFile(args.source, 'utf8')
-      }
-
       const { id } = await docs.ingestDocument({ agentId, title, content, source: args.source })
       return { id, title, length: content.length }
     },

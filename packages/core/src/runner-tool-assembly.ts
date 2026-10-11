@@ -65,7 +65,7 @@ export async function assembleTools(
   // Built-in document / knowledge-graph tools, auto-attached when the agent opts
   // into either feature and the store supports it.
   if (cfg.documents && ctx.store.readDocument) {
-    for (const def of createDocTools(agentId, ctx.store)) sources.push({ origin: coreOrigin(def.name), def })
+    for (const def of createDocTools(agentId, ctx.store, cfg.documents)) sources.push({ origin: coreOrigin(def.name), def })
   }
   if (cfg.knowledge && ctx.store.addKnowledgeNode) {
     for (const def of createKgTools(agentId, ctx.store)) sources.push({ origin: coreOrigin(def.name), def })
