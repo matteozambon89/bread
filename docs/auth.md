@@ -112,6 +112,14 @@ and stashes the identity on the request context. That identity is what `server.a
 Arbitrary middleware does not count as auth — only a plugin whose `name` is `auth`. Applying
 `authMiddleware` by hand does not.
 
+A verified strategy may set `AuthIdentity.principal` (`iss` and `sub`, both required, and an
+optional `tenant`). It carries no email, name, or roles. `POST /agents/:id/run` and
+`POST /pipelines/:id/run` copy that principal onto the run and ignore a `principal` field on the
+JSON body. A missing principal does not reject the run. In-process callers pass
+`RunOptions.principal` to `run`, `runPipeline`, and `runTask`. Resume uses the principal stored
+on the checkpoint and does not take one as an argument. The strategies in this repo do not set
+it yet. Tools read it as [`principal`](./tools.md#toolcontext) on `ToolContext`.
+
 One middleware in `createServer`, installed after plugin middleware and before plugin routes, the
 transport mount, and the server routes, decides every request.
 
