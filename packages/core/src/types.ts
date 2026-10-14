@@ -350,6 +350,9 @@ export interface TaskRunContext {
   // So a hook can do I/O (e.g. load a document, persist entities) — task hooks
   // are author-defined externally and have no other way to reach the store.
   store: BreadStore
+  // Copied from the tool context that invoked the task. Absent when that run
+  // has no principal. Not taken from the task arguments.
+  principal?: Principal
 }
 
 export interface ToolRunContext {
@@ -481,10 +484,20 @@ export interface PluginContext {
   sessionId: string
 }
 
+// iss + sub identify the caller. tenant is optional. No email, name, or roles.
+export interface Principal {
+  iss: string
+  sub: string
+  tenant?: string
+}
+
 // An authenticated caller resolved by a BreadAuthStrategy.
 export interface AuthIdentity {
   subject: string
   claims?: Record<string, unknown>
+  // Set by a strategy after verification. HTTP copies this onto the run.
+  // Absent for strategies that have not filled it yet.
+  principal?: Principal
 }
 
 // A pluggable auth strategy: validates an incoming request, server side.
@@ -550,8 +563,8 @@ export interface ToolContext {
   agentId: string
   sessionId: string
   runId: string
-  user?: unknown
-  tenantId?: string
+  // The run's principal. Never taken from tool arguments.
+  principal?: Principal
   credentials: CredentialProvider
   // Present when the host run was given a signal (RunOptions.signal) — a
   // signal-aware tool (e.g. a task tool's own model call) can observe it, but
@@ -938,6 +951,9 @@ export type OutputMode = 'sync' | 'stream'
 
 export interface RunOptions {
   skill?: string
+  // In-process callers set this. HTTP copies it from AuthIdentity and ignores
+  // a principal field on the request body. Resume does not accept one.
+  principal?: Principal
   session?: { id?: string; tags?: Record<string, string> }
   onHumanRequired?: HumanRequiredHandler
   mode?: OutputMode
@@ -1014,7 +1030,11 @@ export interface BreadInstance extends BreadInstanceRef {
   // Run a pipeline declared in `config.pipelines` and stream its crumbs
   // (step framing + inner agent runs). Throws PIPELINE_NOT_FOUND for an
   // unknown id.
-  runPipeline(pipelineId: string, input: unknown, opts?: CancellableOptions): AsyncIterable<BreadCrumb>
+  runPipeline(
+    pipelineId: string,
+    input: unknown,
+    opts?: CancellableOptions & { principal?: Principal },
+  ): AsyncIterable<BreadCrumb>
 
   // Run a registered one-shot task with full hook/audit treatment (beforeRun/
   // onError/afterRun chains, TaskRunRecord persistence). Standalone task runs
@@ -1024,7 +1044,7 @@ export interface BreadInstance extends BreadInstanceRef {
   runTask(
     taskId: string,
     args: unknown,
-    opts?: { agentId?: string; sessionId?: string; runId?: string },
+    opts?: { agentId?: string; sessionId?: string; runId?: string; principal?: Principal },
   ): Promise<unknown>
 
   on(event: 'crumb', handler: (crumb: BreadCrumb) => void): void

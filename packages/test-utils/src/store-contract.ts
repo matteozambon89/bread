@@ -307,6 +307,20 @@ export function storeContractCases(): StoreCase[] {
       },
     },
     {
+      name: 'round-trips a checkpoint principal and leaves it unset when absent',
+      fn: async (store) => {
+        await store.createSession({ id: 's' })
+        const principal = { iss: 'https://idp.example', sub: 'user-1', tenant: 'acme' }
+        await store.saveCheckpoint(checkpoint({ principal }))
+        assert.deepEqual((await store.getCheckpoint('cp-1'))?.principal, principal)
+        assert.deepEqual((await store.listCheckpoints()).find((c) => c.id === 'cp-1')?.principal, principal)
+
+        await store.saveCheckpoint(checkpoint({ id: 'cp-2' }))
+        assert.equal((await store.getCheckpoint('cp-2'))?.principal, undefined)
+        assert.equal((await store.listCheckpoints()).find((c) => c.id === 'cp-2')?.principal, undefined)
+      },
+    },
+    {
       name: 'lists checkpoints ordered by creation time',
       fn: async (store) => {
         await store.createSession({ id: 's' })

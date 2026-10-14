@@ -181,6 +181,7 @@ export function createTaskTool(
         taskName: cfg.name,
         credentials: ctx.credentials,
         store: deps.store,
+        ...(ctx.principal ? { principal: ctx.principal } : {}),
       }
 
       const before = await runBeforeRunChain<unknown, unknown, GlobalHookContext>(

@@ -35,6 +35,7 @@ CREATE TABLE IF NOT EXISTS bread_checkpoints (
   skill TEXT,
   parent JSONB,
   pending JSONB,
+  principal JSONB,
   created_at BIGINT NOT NULL
 );
 
@@ -138,6 +139,7 @@ const COLUMNS = `
 ALTER TABLE bread_checkpoints ADD COLUMN IF NOT EXISTS skill TEXT;
 ALTER TABLE bread_checkpoints ADD COLUMN IF NOT EXISTS parent JSONB;
 ALTER TABLE bread_checkpoints ADD COLUMN IF NOT EXISTS pending JSONB;
+ALTER TABLE bread_checkpoints ADD COLUMN IF NOT EXISTS principal JSONB;
 `
 
 export async function migrate(sql: Sql, withVectors: boolean): Promise<void> {

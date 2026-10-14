@@ -51,6 +51,7 @@ CREATE TABLE IF NOT EXISTS checkpoints (
   skill TEXT,
   parent TEXT,
   pending TEXT,
+  principal TEXT,
   created_at INTEGER NOT NULL
 );
 
@@ -169,6 +170,7 @@ interface CheckpointRow {
   skill: string | null
   parent: string | null
   pending: string | null
+  principal: string | null
   created_at: number
 }
 
@@ -205,6 +207,7 @@ function rowToCheckpoint(r: CheckpointRow): CheckpointRecord {
     ...(r.skill != null ? { skill: r.skill } : {}),
     ...(r.parent != null ? { parent: JSON.parse(r.parent) as CheckpointRecord['parent'] } : {}),
     ...(r.pending != null ? { pending: JSON.parse(r.pending) as CheckpointRecord['pending'] } : {}),
+    ...(r.principal != null ? { principal: JSON.parse(r.principal) as CheckpointRecord['principal'] } : {}),
     createdAt: r.created_at,
   }
 }
@@ -330,7 +333,7 @@ export function store(opts: SqliteStoreOptions = {}): BreadStore {
   db.exec(SCHEMA)
   // Additive column for tables that predate it — SQLite has no ADD COLUMN IF
   // NOT EXISTS, so guard with a duplicate-column catch instead.
-  for (const column of ['skill TEXT', 'parent TEXT', 'pending TEXT']) {
+  for (const column of ['skill TEXT', 'parent TEXT', 'pending TEXT', 'principal TEXT']) {
     try {
       db.exec(`ALTER TABLE checkpoints ADD COLUMN ${column}`)
     } catch (err) {
@@ -412,8 +415,8 @@ export function store(opts: SqliteStoreOptions = {}): BreadStore {
     async saveCheckpoint(record) {
       db.prepare(
         `INSERT OR REPLACE INTO checkpoints
-         (id, agent_id, run_id, session_id, tool_name, tool_call_id, schema, prompt, skill, parent, pending, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         (id, agent_id, run_id, session_id, tool_name, tool_call_id, schema, prompt, skill, parent, pending, principal, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       ).run(
         record.id,
         record.agentId,
@@ -426,6 +429,7 @@ export function store(opts: SqliteStoreOptions = {}): BreadStore {
         record.skill ?? null,
         record.parent != null ? JSON.stringify(record.parent) : null,
         record.pending != null ? JSON.stringify(record.pending) : null,
+        record.principal != null ? JSON.stringify(record.principal) : null,
         record.createdAt,
       )
     },
@@ -462,8 +466,8 @@ export function store(opts: SqliteStoreOptions = {}): BreadStore {
         db.prepare('UPDATE sessions SET updated_at = ? WHERE id = ?').run(last, sessionId)
         db.prepare(
           `INSERT OR REPLACE INTO checkpoints
-           (id, agent_id, run_id, session_id, tool_name, tool_call_id, schema, prompt, skill, parent, pending, created_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           (id, agent_id, run_id, session_id, tool_name, tool_call_id, schema, prompt, skill, parent, pending, principal, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         ).run(
           checkpoint.id,
           checkpoint.agentId,
@@ -476,6 +480,7 @@ export function store(opts: SqliteStoreOptions = {}): BreadStore {
           checkpoint.skill ?? null,
           checkpoint.parent != null ? JSON.stringify(checkpoint.parent) : null,
           checkpoint.pending != null ? JSON.stringify(checkpoint.pending) : null,
+          checkpoint.principal != null ? JSON.stringify(checkpoint.principal) : null,
           checkpoint.createdAt,
         )
       })

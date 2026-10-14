@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { runWithOnErrorRetry } from './hooks.js'
 import { runPipeline } from './pipeline.js'
 import type { RunnerContext } from './runner.js'
-import type { BreadCrumb, LoopConfig, LoopStatus, PipelineStep, ToolDefinition } from './types.js'
+import type { BreadCrumb, LoopConfig, LoopStatus, PipelineStep, Principal, ToolDefinition } from './types.js'
 import { BreadError } from './types.js'
 
 function toLoopError(err: unknown, loopId: string): BreadError {
@@ -24,6 +24,8 @@ export interface BuildLoopToolsArgs {
   ctx: RunnerContext
   // Sink that surfaces a crumb in the host run's stream (the runner's crumbBuffer).
   onCrumb: (crumb: BreadCrumb) => void
+  // Host run principal. Passed into each iteration's pipeline.
+  principal?: Principal
 }
 
 export interface LoopRuntime {
@@ -77,7 +79,7 @@ export function loopSummary(loopCfg: LoopConfig): string {
 }
 
 export function buildLoopTools(args: BuildLoopToolsArgs): LoopRuntime {
-  const { loopCfg, agentId, runId, sessionId, ctx, onCrumb } = args
+  const { loopCfg, agentId, runId, sessionId, ctx, onCrumb, principal } = args
 
   let active: ActiveLoop | null = null
 
@@ -99,6 +101,7 @@ export function buildLoopTools(args: BuildLoopToolsArgs): LoopRuntime {
       steps,
       input,
       ctx,
+      ...(principal ? { principal } : {}),
     })) {
       // Surface inner pipeline/agent crumbs in the host run's stream.
       onCrumb(crumb)

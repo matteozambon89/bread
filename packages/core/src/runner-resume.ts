@@ -13,6 +13,7 @@ import type {
   BreadCrumb,
   CheckpointParent,
   HumanResumedCrumb,
+  Principal,
   RunOptions,
   SupervisorCheckpointParent,
 } from './types.js'
@@ -58,6 +59,7 @@ export async function* resumeRun(
   // its new checkpoint keeps the same pipeline continuation.
   const runOpts: RunOptions = {
     ...(cp.skill ? { skill: cp.skill } : {}),
+    ...(cp.principal ? { principal: cp.principal } : {}),
     ...(cp.parent ? { _parent: cp.parent } : {}),
   }
 
@@ -134,6 +136,7 @@ export async function* resumeRun(
             ctx.hooks,
             ctx.signal,
             ctx.blobStore,
+            cp.principal,
           )
           let final: unknown
           for await (const value of gen) final = value
@@ -153,6 +156,7 @@ export async function* resumeRun(
             ctx.hooks,
             ctx.signal,
             ctx.blobStore,
+            cp.principal,
           )
         }
       } finally {
@@ -202,7 +206,7 @@ export async function* resumeRun(
   }
 
   if (ended && cp.parent) {
-    yield* continueParent(cp.parent, resumedOutput, ctx)
+    yield* continueParent(cp.parent, resumedOutput, ctx, cp.principal)
   }
 }
 
@@ -214,9 +218,10 @@ async function* continueParent(
   parent: CheckpointParent,
   output: unknown,
   ctx: RunnerContext,
+  principal?: Principal,
 ): AsyncGenerator<BreadCrumb> {
   if (parent.kind === 'pipeline') {
-    yield* continuePipelineParent(parent, output, ctx)
+    yield* continuePipelineParent(parent, output, ctx, undefined, principal)
     return
   }
   yield* continueSupervisorParent(parent, output, ctx)
@@ -278,6 +283,7 @@ async function* continueSupervisorParent(
   }
   const runOpts: RunOptions = {
     ...(scp.skill ? { skill: scp.skill } : {}),
+    ...(scp.principal ? { principal: scp.principal } : {}),
     ...(scp.parent ? { _parent: scp.parent } : {}),
   }
 
@@ -292,6 +298,6 @@ async function* continueSupervisorParent(
   }
 
   if (ended && scp.parent) {
-    yield* continueParent(scp.parent, output, ctx)
+    yield* continueParent(scp.parent, output, ctx, scp.principal)
   }
 }

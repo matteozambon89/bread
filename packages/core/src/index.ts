@@ -145,6 +145,7 @@ export type {
   SessionManager,
   SessionMessage,
   AuthIdentity,
+  Principal,
   BreadAuthStrategy,
   BreadSigner,
   BreadPlugin,

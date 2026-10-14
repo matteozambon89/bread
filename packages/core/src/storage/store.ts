@@ -2,6 +2,7 @@ import type {
   CheckpointParent,
   CleanupOptions,
   LoopStatus,
+  Principal,
   Session,
   SessionMessage,
   TaskRunStatus,
@@ -34,6 +35,9 @@ export interface CheckpointRecord {
   // Restored on resume so the tool set and system-prompt contribution match
   // what suspended, instead of silently dropping the skill.
   skill?: string | undefined
+  // Principal active on the run that suspended. Resume restores it; a caller
+  // cannot replace it.
+  principal?: Principal | undefined
   // Composition continuation: set when the suspended run was a step inside a
   // pipeline or a supervisor delegation. Resume runs the rest of the
   // composition after the sub-run completes. See CheckpointParent.

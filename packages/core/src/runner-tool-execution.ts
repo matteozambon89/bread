@@ -15,6 +15,7 @@ import type {
   CredentialProvider,
   GlobalHookContext,
   HumanToolDefinition,
+  Principal,
   ToolContext,
   ToolDefinition,
   ToolErrorCrumb,
@@ -89,6 +90,7 @@ export async function executeToolWithHooks(
   globalHooks: Partial<BreadHooks> | undefined,
   signal: AbortSignal | undefined,
   blobStore: BlobStore | undefined,
+  principal: Principal | undefined,
 ): Promise<unknown> {
   const credentials = buildToolCredentials(def, defaultCredentials)
   const hookCtx: ToolRunContext = { agentId, sessionId, runId, toolName: leaf, credentials }
@@ -137,6 +139,7 @@ export async function executeToolWithHooks(
     sessionId,
     runId,
     credentials,
+    ...(principal ? { principal } : {}),
     ...(signal ? { signal } : {}),
     ...(blobStore ? { blobStore } : {}),
   }
@@ -229,6 +232,7 @@ export async function* executeStreamingToolWithHooks(
   globalHooks: Partial<BreadHooks> | undefined,
   signal: AbortSignal | undefined,
   blobStore: BlobStore | undefined,
+  principal: Principal | undefined,
 ): AsyncGenerator<unknown, unknown, undefined> {
   const credentials = buildToolCredentials(def, defaultCredentials)
   const hookCtx: ToolRunContext = { agentId, sessionId, runId, toolName: leaf, credentials }
@@ -278,6 +282,7 @@ export async function* executeStreamingToolWithHooks(
     sessionId,
     runId,
     credentials,
+    ...(principal ? { principal } : {}),
     ...(signal ? { signal } : {}),
     ...(blobStore ? { blobStore } : {}),
   }
@@ -359,6 +364,7 @@ function buildExecuteTool(
   globalHooks: Partial<BreadHooks> | undefined,
   signal: AbortSignal | undefined,
   blobStore: BlobStore | undefined,
+  principal: Principal | undefined,
 ): Tool {
   return tool({
     description: def.description,
@@ -379,6 +385,7 @@ function buildExecuteTool(
             globalHooks,
             signal,
             blobStore,
+            principal,
           )
         : executeToolWithHooks(
             leaf,
@@ -394,6 +401,7 @@ function buildExecuteTool(
             globalHooks,
             signal,
             blobStore,
+            principal,
           ),
   }) as Tool
 }
@@ -415,6 +423,7 @@ export function buildAiSdkTools(
   globalHooks: Partial<BreadHooks> | undefined,
   signal: AbortSignal | undefined,
   blobStore: BlobStore | undefined,
+  principal: Principal | undefined,
 ): ToolSet {
   const result: ToolSet = {}
 
@@ -433,6 +442,7 @@ export function buildAiSdkTools(
           globalHooks,
           signal,
           blobStore,
+          principal,
         )
   }
 
