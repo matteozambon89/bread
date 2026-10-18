@@ -186,7 +186,7 @@ export default defineConfig({
 
 Available: `@breadai/otel`, `@breadai/protocol-ag-ui`, `@breadai/protocol-a2a-server`, `@breadai/a2ui`,
 `@breadai/protocol-mcp-client`, `@breadai/protocol-mcp-server`. Write your own by implementing
-`BreadPlugin` — see [`docs/plugins.md`](./docs/plugins.md). `@breadai/auth-api-key`/`-jwt`/`-oauth2`
+`BreadPlugin` — see [`docs/plugins.md`](./docs/plugins.md). `@breadai/auth-api-key`/`-jwt`/`-oauth2`/`-trusted`
 are standalone auth strategy/signer factories, not plugins themselves — wrap one with
 `@breadai/server`'s `authPlugin()` to attach it (see [`docs/auth.md`](./docs/auth.md)). Transports
 are config-level, not plugins: `@breadai/transport-http-chunked`/`@breadai/transport-http-sse` (HTTP

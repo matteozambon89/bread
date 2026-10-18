@@ -308,6 +308,18 @@
         "typescript": "^5.8.3",
       },
     },
+    "extensions/auth-trusted": {
+      "name": "@breadai/auth-trusted",
+      "version": "0.1.0",
+      "dependencies": {
+        "@breadai/core": "workspace:>=0.1.1 <1.0.0",
+        "jose": "^5.9.6",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "typescript": "^5.8.3",
+      },
+    },
     "extensions/otel": {
       "name": "@breadai/otel",
       "version": "0.1.2",
@@ -664,11 +676,13 @@
         "hono": "^4.8.4",
       },
       "devDependencies": {
+        "@breadai/auth-trusted": "workspace:*",
         "@breadai/runtime-bun": "workspace:*",
         "@breadai/server": "workspace:*",
         "@breadai/store-memory": "workspace:*",
         "@breadai/test-utils": "workspace:*",
         "@types/bun": "latest",
+        "jose": "^5.9.6",
         "typescript": "^5.8.3",
         "zod": "^4.4.3",
       },
@@ -850,6 +864,8 @@
     "@breadai/auth-jwt": ["@breadai/auth-jwt@workspace:extensions/auth-jwt"],
 
     "@breadai/auth-oauth2": ["@breadai/auth-oauth2@workspace:extensions/auth-oauth2"],
+
+    "@breadai/auth-trusted": ["@breadai/auth-trusted@workspace:extensions/auth-trusted"],
 
     "@breadai/cli": ["@breadai/cli@workspace:packages/cli"],
 
