@@ -1,5 +1,5 @@
 import { type JWTPayload, type JWTVerifyGetKey, createRemoteJWKSet, jwtVerify } from 'jose'
-import type { BreadAuthStrategy } from '@breadai/core'
+import type { AuthIdentity, BreadAuthStrategy } from '@breadai/core'
 
 // Default allowlist for asymmetric (JWKS) mode — the common RS/PS/ES families. Overridable via
 // `algorithms`; a caller using a narrower key set should pin it explicitly.
@@ -65,11 +65,23 @@ export function authStrategy(opts: JwtOptions = {}): BreadAuthStrategy {
         const { payload } = jwks
           ? await jwtVerify(token, jwks, options)
           : await jwtVerify(token, secret!, options)
-        const p = payload as JWTPayload
-        return { subject: String(p.sub ?? 'jwt'), claims: payload as Record<string, unknown> }
+        return identityFromPayload(payload)
       } catch {
         return null
       }
     },
   }
 }
+
+// Principal only when iss and sub are both non-empty strings. No tenant on this path.
+function identityFromPayload(payload: JWTPayload): AuthIdentity {
+  const claims = payload as Record<string, unknown>
+  const { iss, sub } = payload
+  if (typeof iss === 'string' && iss.length > 0 && typeof sub === 'string' && sub.length > 0) {
+    return { subject: sub, claims, principal: { iss, sub } }
+  }
+  return { subject: String(sub ?? 'jwt'), claims }
+}
+
+export { oidcStrategy } from './oidc'
+export type { OidcIssuer, OidcOptions, OidcPreset } from './oidc'
