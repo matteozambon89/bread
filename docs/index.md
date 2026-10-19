@@ -109,6 +109,7 @@ Compose agents without reaching for a second framework:
 <span class="bread-pill">@breadai/auth-api-key</span>
 <span class="bread-pill">@breadai/auth-jwt</span>
 <span class="bread-pill">@breadai/auth-oauth2</span>
+<span class="bread-pill">@breadai/auth-trusted</span>
 <span class="bread-pill">@breadai/transport-http-chunked</span>
 <span class="bread-pill">@breadai/transport-http-sse</span>
 <span class="bread-pill">@breadai/transport-redis</span>

@@ -1,4 +1,4 @@
-# Auth — `@breadai/auth-api-key`, `@breadai/auth-jwt`, `@breadai/auth-oauth2`
+# Auth — `@breadai/auth-api-key`, `@breadai/auth-jwt`, `@breadai/auth-oauth2`, `@breadai/auth-trusted`
 
 Auth for bread splits into two roles, each its own core type:
 
@@ -6,7 +6,7 @@ Auth for bread splits into two roles, each its own core type:
   `AuthIdentity` or `null`.
 - **client side** — a `BreadSigner`'s `sign(headers)` attaches credentials to an outgoing request.
 
-Three packages, one per mechanism, each exporting the half(s) it supports. To attach a strategy to
+Four packages, one per mechanism, each exporting the half(s) it supports. To attach a strategy to
 a running server, pass it to `@breadai/server`'s `authPlugin()` — see
 [Guarding the server](#guarding-the-server) below.
 
@@ -15,9 +15,10 @@ a running server, pass it to `@breadai/server`'s `authPlugin()` — see
 | `@breadai/auth-api-key` | yes | yes |
 | `@breadai/auth-jwt` | yes | — (verification only) |
 | `@breadai/auth-oauth2` | yes (`VerifyOptions`) | yes (`ClientCredentialsOptions`, distinct shape) |
+| `@breadai/auth-trusted` | yes | — (verification only) |
 
 ```bash
-bun add @breadai/auth-api-key   # or auth-jwt / auth-oauth2
+bun add @breadai/auth-api-key   # or auth-jwt / auth-oauth2 / auth-trusted
 ```
 
 ## API key
@@ -104,6 +105,43 @@ an env var, as above) and is sent form-encoded to `tokenUrl` over whatever trans
 uses — always make it HTTPS. To source it from a secret store instead of `process.env`, resolve
 it before calling `signer(...)` (e.g. via a core `CredentialProvider` like `vaultProvider`).
 
+## Trusted identity
+
+A gateway that already authenticated the caller can hand bread one signed JWT.
+`@breadai/auth-trusted` verifies that token against one JWKS and one issuer, then sets
+`principal`. Asymmetric algorithms only (`RS256`, `RS384`, `RS512`, `PS256`, `PS384`, `PS512`,
+`ES256`, `ES384`, `ES512`, `EdDSA`). There is no shared secret and no `allowUnverifiedIssuerAudience`.
+Verification only — no `signer`. Unsigned identity headers are ignored. mTLS is not this package.
+
+```ts
+import { authStrategy } from '@breadai/auth-trusted'
+
+const strategy = authStrategy({
+  jwksUri: 'https://gateway.example/.well-known/jwks.json',
+  issuer: 'https://gateway.example',
+  audience: 'bread',       // optional
+  header: 'authorization', // optional, default
+  tenantClaim: 'tenant',   // optional
+  algorithms: ['RS256'],   // optional — defaults to the asymmetric set above
+})
+```
+
+`authenticate` reads that one header. It does not read `x-user-id`, `x-forwarded-user`, or
+`x-forwarded-email`, and it does not delete them. A missing header, a bad signature, an `iss`
+mismatch, a failed audience check, or a missing or empty `sub` returns null. It does not invent
+a subject. Unlike `@breadai/auth-jwt`, a missing `sub` does not become the subject `jwt`.
+
+On success the identity is `{ subject: sub, claims: payload, principal: { iss, sub, tenant? } }`.
+`iss` and `sub` are the verified claims. `tenant` is set only when `tenantClaim` is configured
+and that claim is a non-empty string. A configured claim that is missing, empty, or not a string
+returns null. When `tenantClaim` is omitted, `tenant` stays unset even if the payload carries a
+tenant-like claim.
+
+Construction throws when `jwksUri` or `issuer` is missing, when `audience` or `tenantClaim` is an
+empty string, when `jwksUri` is not a valid URL, when it is not `https` or `http` on loopback
+(`localhost`, `127.0.0.1`, or `::1`), or when `algorithms` includes a symmetric algorithm or
+`none`. Omitting `audience` or `tenantClaim` does not throw and leaves that option unset.
+
 ## Guarding the server
 
 `@breadai/server`'s `authPlugin()` turns one or more strategies into a `BreadPlugin` named `auth`.
@@ -117,8 +155,9 @@ optional `tenant`). It carries no email, name, or roles. `POST /agents/:id/run` 
 `POST /pipelines/:id/run` copy that principal onto the run and ignore a `principal` field on the
 JSON body. A missing principal does not reject the run. In-process callers pass
 `RunOptions.principal` to `run`, `runPipeline`, and `runTask`. Resume uses the principal stored
-on the checkpoint and does not take one as an argument. The strategies in this repo do not set
-it yet. Tools read it as [`principal`](./tools.md#toolcontext) on `ToolContext`.
+on the checkpoint and does not take one as an argument. `@breadai/auth-trusted` sets it from
+the verified gateway token. The other strategies in this repo do not. Tools read it as
+[`principal`](./tools.md#toolcontext) on `ToolContext`.
 
 One middleware in `createServer`, installed after plugin middleware and before plugin routes, the
 transport mount, and the server routes, decides every request.

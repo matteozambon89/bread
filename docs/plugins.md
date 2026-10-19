@@ -101,7 +101,7 @@ second plugin mechanism; both implement the same `BreadPlugin` interface above:
   `@breadai/protocol-mcp-client`, `@breadai/protocol-mcp-server`) — adapters for a specific wire
   protocol (AG-UI, A2A, MCP).
 - **`extensions/`** (`@breadai/otel`, `@breadai/a2ui`) — everything else that attaches as a
-  `BreadPlugin`: observability, UI generation. (`@breadai/auth-api-key`/`-jwt`/`-oauth2` also live
+  `BreadPlugin`: observability, UI generation. (`@breadai/auth-api-key`/`-jwt`/`-oauth2`/`-trusted` also live
   under `extensions/` but are standalone `BreadAuthStrategy`/`BreadSigner` factories, not
   `BreadPlugin`s themselves — wrap one with `authPlugin()` from `@breadai/server` to attach it, see
   [auth.md](./auth.md).)

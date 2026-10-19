@@ -14,10 +14,12 @@
     "hono": "^4.8.4"
   },
   "devDependencies": {
+    "@breadai/auth-trusted": "workspace:*",
     "@breadai/server": "workspace:*",
     "@breadai/store-memory": "workspace:*",
     "@breadai/test-utils": "workspace:*",
     "@types/bun": "latest",
+    "jose": "^5.9.6",
     "typescript": "^5.8.3",
     "zod": "^4.4.3",
     "@breadai/runtime-bun": "workspace:*"

@@ -15,7 +15,7 @@ the moving parts.
 | `@breadai/provider-llm` | The 21 language-model providers as a `ProviderRegistry`. `@breadai/provider-catalog` re-exports it — see [providers.md](./providers.md) |
 | `@breadai/provider-decisions` | System One hosts as a `DecisionRegistry` for `config.decisions` — see [decisions.md](./decisions.md) |
 | `@breadai/otel`, `@breadai/protocol-ag-ui`, `@breadai/protocol-a2a-server`, `@breadai/a2ui`, `@breadai/protocol-mcp-client`, `@breadai/protocol-mcp-server` | Plugins |
-| `@breadai/auth-api-key`, `@breadai/auth-jwt`, `@breadai/auth-oauth2` | Standalone `BreadAuthStrategy`/`BreadSigner` factories — not plugins themselves; wrap with `@breadai/server`'s `authPlugin()` to attach — see [auth.md](./auth.md) |
+| `@breadai/auth-api-key`, `@breadai/auth-jwt`, `@breadai/auth-oauth2`, `@breadai/auth-trusted` | Standalone `BreadAuthStrategy`/`BreadSigner` factories — not plugins themselves; wrap with `@breadai/server`'s `authPlugin()` to attach — see [auth.md](./auth.md) |
 | `@breadai/transport-http-chunked`, `@breadai/transport-http-sse` | HTTP ingress `BreadTransport`s — `mount()` the four streaming routes + `remoteAgent()` for `config.remoteAgents` (`transports/http-chunked`, `transports/http-sse`) — see [transports.md](./transports.md) |
 | `@breadai/transport-redis` | Redis Streams `BreadTransport` — cross-replica crumb fan-out, no `mount` (`transports/redis`) |
 | `@breadai/transport-stdout` | Terminal-rendering `BreadTransport` (`sink`) for `bread chat`/`bread invoke` (`transports/stdout`) |
@@ -30,12 +30,12 @@ folders, each with its own `@breadai/*` npm prefix:
 | `stores/` | `@breadai/store-postgres`, `@breadai/store-sqlite`, `@breadai/store-memory` | `BreadStore` backends — see [store.md](./store.md) |
 | `providers/` | `@breadai/provider-llm`, `@breadai/provider-catalog`, `@breadai/provider-decisions` | Language-model registries, plus the System One `DecisionRegistry`. `provider-catalog` re-exports `provider-llm` — see [providers.md](./providers.md) and [decisions.md](./decisions.md) |
 | `protocols/` | `@breadai/protocol-ag-ui`, `@breadai/protocol-a2a-server`, `@breadai/protocol-mcp-client`, `@breadai/protocol-mcp-server` | Wire-protocol adapters (`BreadPlugin`s) |
-| `extensions/` | `@breadai/otel`, `@breadai/a2ui` (attach as `BreadPlugin`s); `@breadai/auth-api-key`, `@breadai/auth-jwt`, `@breadai/auth-oauth2` (standalone auth factories, see [auth.md](./auth.md)) | Observability, UI generation, auth strategies/signers |
+| `extensions/` | `@breadai/otel`, `@breadai/a2ui` (attach as `BreadPlugin`s); `@breadai/auth-api-key`, `@breadai/auth-jwt`, `@breadai/auth-oauth2`, `@breadai/auth-trusted` (standalone auth factories, see [auth.md](./auth.md)) | Observability, UI generation, auth strategies/signers |
 | `transports/` | `@breadai/transport-http-chunked`, `@breadai/transport-http-sse`, `@breadai/transport-redis`, `@breadai/transport-stdout` | `BreadTransport` implementations — see [transports.md](./transports.md) |
 
 Protocols and most extensions plug in through the same `BreadPlugin` mechanism (see
 [plugins.md](./plugins.md)) — the folder split is a naming/discovery convention, not a second
-plugin system. The three `@breadai/auth-*` extensions are the one exception: they're standalone
+plugin system. The four `@breadai/auth-*` extensions are the one exception: they're standalone
 `BreadAuthStrategy`/`BreadSigner` factories, not `BreadPlugin`s — see [auth.md](./auth.md).
 
 ## From folder to running service
