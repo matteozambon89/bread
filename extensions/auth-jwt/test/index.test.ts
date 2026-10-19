@@ -27,6 +27,7 @@ describe('jwt auth strategy — HS256', () => {
     const identity = await strat.authenticate(reqWith({ authorization: `Bearer ${token}` }))
     expect(identity).toMatchObject({ subject: 'user-42' })
     expect((identity!.claims as Record<string, unknown>).role).toBe('admin')
+    expect(identity?.principal).toBeUndefined()
   })
 
   test('verifies a raw token without the Bearer scheme prefix', async () => {
@@ -122,6 +123,23 @@ describe('jwt auth strategy — HS256', () => {
       .setIssuedAt()
       .sign(new TextEncoder().encode(SECRET))
     expect(await strat.authenticate(reqWith({ authorization: `Bearer ${token}` }))).toBeNull()
+  })
+
+  test('a verified token that has iss and sub sets principal to those two fields and no tenant', async () => {
+    const strat = authStrategy({ secret: SECRET, issuer: 'https://issuer.example' })
+    const token = await hs256({ sub: 'user-42', role: 'admin' }, { issuer: 'https://issuer.example' })
+    const identity = await strat.authenticate(reqWith({ authorization: `Bearer ${token}` }))
+    expect(identity?.subject).toBe('user-42')
+    expect(identity?.principal).toEqual({ iss: 'https://issuer.example', sub: 'user-42' })
+    expect(identity?.principal).not.toHaveProperty('tenant')
+  })
+
+  test('a token with no sub still resolves subject to jwt and has no principal', async () => {
+    const strat = authStrategy({ secret: SECRET, issuer: 'https://issuer.example' })
+    const token = await hs256({ role: 'anon' }, { issuer: 'https://issuer.example' })
+    const identity = await strat.authenticate(reqWith({ authorization: `Bearer ${token}` }))
+    expect(identity?.subject).toBe('jwt')
+    expect(identity?.principal).toBeUndefined()
   })
 })
 

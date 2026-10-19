@@ -56,10 +56,12 @@ const strategy = authStrategy({
 ```
 
 Verification uses [`jose`](https://github.com/panva/jose). The resolved identity carries the full
-claims: `{ subject: String(payload.sub ?? 'jwt'), claims: payload }` — `subject` falls back to the
-literal string `'jwt'` when the token has no `sub` claim. `@breadai/auth-jwt` is verification-only —
-no `signer`; a static preconfigured token to attach was its weakest capability and isn't carried
-over.
+claims: `{ subject: String(payload.sub ?? 'jwt'), claims: payload }`. `subject` falls back to the
+literal string `'jwt'` when the token has no `sub` claim, and that identity has no `principal`.
+When `iss` and `sub` are both non-empty strings, it also sets `principal` to `{ iss, sub }` with
+no `tenant`. `@breadai/auth-oauth2` verifies through this strategy, so it sets the same principal.
+`@breadai/auth-jwt` is verification-only — no `signer`; a static preconfigured token to attach
+was its weakest capability and isn't carried over.
 
 `authStrategy()` validates its config **at construction**, not on first use — a misconfigured
 strategy fails fast rather than on the first real request:
@@ -70,6 +72,97 @@ strategy fails fast rather than on the first real request:
 `algorithms` restricts the accepted `alg` values (passed straight to `jwtVerify`). Defaults to
 `['HS256']` in `secret` mode, or the common RS/PS/ES set in `jwksUri` mode — pin a narrower list if
 your key material only ever uses one algorithm.
+
+## OIDC
+
+`oidcStrategy` verifies tokens from one or more OpenID Connect issuers. Each entry is one
+provider. Discovery supplies the JWKS. Algorithms are asymmetric only (`RS256`, `RS384`,
+`RS512`, `ES256`, `ES384`, `ES512`, `EdDSA`). There is no shared secret and no `PS*` algorithm.
+`authStrategy` is unchanged, including HS256 and the RS/PS/ES JWKS default. Verification only —
+no `signer`. The strategy name is `oidc`.
+
+```ts
+import { oidcStrategy } from '@breadai/auth-jwt'
+
+const strategy = oidcStrategy({
+  issuers: [
+    {
+      issuer: 'https://login.microsoftonline.com/{tenant}/v2.0',
+      audience: 'api://bread',
+      preset: 'entra',
+    },
+    {
+      issuer: 'https://cognito-idp.{region}.amazonaws.com/{poolId}',
+      audience: 'client-id',
+      preset: 'cognito',
+    },
+    {
+      issuer: 'https://accounts.google.com',
+      audience: 'client-id',
+      preset: 'google',
+    },
+    {
+      issuer: 'https://my.auth0.com/',
+      audience: 'client-id',
+      preset: 'auth0',
+    },
+    {
+      issuer: 'https://my.okta.com/oauth2/default',
+      audience: 'api://bread',
+      preset: 'okta',
+      tenantClaim: 'tenant',
+    },
+    {
+      issuer: 'https://keycloak.example/realms/myrealm',
+      audience: 'bread',
+      preset: 'keycloak',
+    },
+  ],
+  header: 'authorization', // optional
+  algorithms: ['RS256'], // optional
+})
+```
+
+`authenticate` reads that one header. A missing or empty header returns null. It does not read
+any other header. An unverified `iss` only selects a configured entry. An unknown or non-string
+`iss` returns null and does not fetch discovery.
+
+Discovery is `{issuer}/.well-known/openid-configuration`, with one trailing slash removed first,
+so an issuer that already contains a path still resolves. The document and its JWKS are cached
+for the life of the strategy. A failed discovery is not cached. Discovery does not follow
+redirects. The document's `issuer` must equal the configured issuer. `jwks_uri` must be `https`,
+or `http` on `localhost` or `127.0.0.1`. A different host is allowed — Google publishes keys on
+`www.googleapis.com` while `issuer` is `https://accounts.google.com`. Any other `jwks_uri` returns
+null.
+
+`jose` verifies the token against that JWKS and picks the key by `kid`, pinned to the entry's
+issuer, audience, and the algorithm allowlist. The `google` preset accepts both `iss` values when
+the configured issuer is exactly `https://accounts.google.com`: that URL and `accounts.google.com`.
+`principal.iss` stays the verified token `iss`. Any other issuer must match exactly. `sub` must be
+a non-empty string. There is no `jwt` subject fallback. A failed discovery or a failed verify
+returns null. It does not throw on the request path.
+
+On success the identity is `{ subject: sub, claims: payload, principal: { iss, sub, tenant? } }`.
+`tenant` is set only when the chosen claim is a non-empty string. Roles stay on `claims`.
+`Principal` has no `roles` field.
+
+| Preset | Tenant claim | When it is copied |
+|---|---|---|
+| `entra` | `tid` | Microsoft tenant id on the ID token. |
+| `cognito` | `custom:tenant` | Only when the pool defines that attribute. |
+| `google` | `hd` | Workspace or Cloud organization domain. Personal accounts omit it. |
+| `auth0` | `org_id` | When the user signs in through an Organization. |
+| `okta` | none | No preset claim. Set `tenantClaim` to require one. |
+| `keycloak` | none | The realm is already in `iss`. Set `tenantClaim` to require one. |
+
+A preset claim that is missing, empty, or not a string leaves `tenant` unset and still
+authenticates. `tenantClaim` overrides the preset and is required: missing, empty, or not a
+string returns null.
+
+Construction throws, with no network call, when `issuers` is empty, two entries share an
+`issuer` string, an `issuer` or `audience` is empty, an `issuer` is not `https` and not
+`http://localhost` or `http://127.0.0.1`, or `algorithms` includes anything outside the set
+above.
 
 ## OAuth 2.0
 
@@ -129,7 +222,8 @@ const strategy = authStrategy({
 `authenticate` reads that one header. It does not read `x-user-id`, `x-forwarded-user`, or
 `x-forwarded-email`, and it does not delete them. A missing header, a bad signature, an `iss`
 mismatch, a failed audience check, or a missing or empty `sub` returns null. It does not invent
-a subject. Unlike `@breadai/auth-jwt`, a missing `sub` does not become the subject `jwt`.
+a subject. Unlike `@breadai/auth-jwt`'s `authStrategy`, a missing `sub` does not become the
+subject `jwt`.
 
 On success the identity is `{ subject: sub, claims: payload, principal: { iss, sub, tenant? } }`.
 `iss` and `sub` are the verified claims. `tenant` is set only when `tenantClaim` is configured
@@ -156,7 +250,10 @@ optional `tenant`). It carries no email, name, or roles. `POST /agents/:id/run` 
 JSON body. A missing principal does not reject the run. In-process callers pass
 `RunOptions.principal` to `run`, `runPipeline`, and `runTask`. Resume uses the principal stored
 on the checkpoint and does not take one as an argument. `@breadai/auth-trusted` sets it from
-the verified gateway token. The other strategies in this repo do not. Tools read it as
+the verified gateway token. `@breadai/auth-jwt` sets `iss` and `sub` with no tenant from
+`authStrategy`, and `iss`, `sub`, and an optional `tenant` from `oidcStrategy`.
+`@breadai/auth-oauth2` verifies through `authStrategy`, so it sets that principal.
+`@breadai/auth-api-key` does not. Tools read it as
 [`principal`](./tools.md#toolcontext) on `ToolContext`.
 
 One middleware in `createServer`, installed after plugin middleware and before plugin routes, the
