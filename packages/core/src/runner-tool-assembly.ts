@@ -142,7 +142,13 @@ export async function assembleTools(
   // agent run — its own output format, hooks, and HITL all apply.
   let supervisorRuntime: SupervisorRuntime | null = null
   if (cfg.supervisor) {
-    supervisorRuntime = buildSupervisorTools({ supervisorCfg: cfg.supervisor, agentId, ctx, onCrumb })
+    supervisorRuntime = buildSupervisorTools({
+      supervisorCfg: cfg.supervisor,
+      agentId,
+      ctx,
+      onCrumb,
+      ...(opts.principal ? { principal: opts.principal } : {}),
+    })
     for (const def of supervisorRuntime.tools) sources.push({ origin: coreOrigin(def.name), def })
     const summary = supervisorSummary(cfg.supervisor)
     system = system ? `${system}\n\n${summary}` : summary
@@ -152,7 +158,15 @@ export async function assembleTools(
   // core_finish_loop and tell the model about its agent pool.
   let loopRuntime: LoopRuntime | null = null
   if (cfg.loop) {
-    loopRuntime = buildLoopTools({ loopCfg: cfg.loop, agentId, runId, sessionId, ctx, onCrumb })
+    loopRuntime = buildLoopTools({
+      loopCfg: cfg.loop,
+      agentId,
+      runId,
+      sessionId,
+      ctx,
+      onCrumb,
+      ...(opts.principal ? { principal: opts.principal } : {}),
+    })
     for (const def of loopRuntime.tools) sources.push({ origin: coreOrigin(def.name), def })
     system = system ? `${system}\n\n${loopSummary(cfg.loop)}` : loopSummary(cfg.loop)
   }

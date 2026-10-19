@@ -27,6 +27,8 @@ export interface ServerOptions {
 
 const DEFAULT_MAX_BODY_BYTES = 1024 * 1024 // 1 MB
 
+type AuthEnv = { Variables: { identity: AuthIdentity } }
+
 // What an HTTP client may see of an error: code + message only. Stack, cause,
 // and context stay server-side (they can carry provider responses or paths).
 function toClientError(err: unknown): { code: string; message: string } {
@@ -40,12 +42,12 @@ function toClientError(err: unknown): { code: string; message: string } {
 // Stashes the authenticated identity. Only a plugin named `auth` (`authPlugin`)
 // makes the HTTP grant call `server.authorize`. Applying this middleware by
 // hand does not.
-export function authMiddleware(strategies: BreadAuthStrategy[]): MiddlewareHandler {
+export function authMiddleware(strategies: BreadAuthStrategy[]): MiddlewareHandler<AuthEnv> {
   return async (c, next) => {
     for (const strategy of strategies) {
       const identity = await strategy.authenticate(c.req.raw)
       if (identity) {
-        c.set('identity' as never, identity as never)
+        c.set('identity', identity)
         return next()
       }
     }
@@ -59,7 +61,7 @@ export function authPlugin(strategies: BreadAuthStrategy[]): BreadPlugin {
   return {
     name: 'auth',
     middleware: (app) => {
-      ;(app as Hono).use('*', authMiddleware(strategies))
+      ;(app as Hono<AuthEnv>).use('*', authMiddleware(strategies))
     },
   }
 }
@@ -84,11 +86,11 @@ function routeArgs(url: URL, params: Record<string, string>): Record<string, str
   return args
 }
 
-function register(app: Hono, method: string, path: string, action: string): void {
+function register(app: Hono<AuthEnv>, method: string, path: string, action: string): void {
   registerHttpRoute(app, { method, path, action })
 }
 
-function httpGrant(config: BreadConfig, app: Hono): MiddlewareHandler {
+function httpGrant(config: BreadConfig, app: Hono<AuthEnv>): MiddlewareHandler<AuthEnv> {
   const authOn = hasAuthPlugin(config)
   return async (c, next) => {
     if (!authOn) {
@@ -105,7 +107,7 @@ function httpGrant(config: BreadConfig, app: Hono): MiddlewareHandler {
     const matched = matchHttpRoute(app, c.req.method, url.pathname)
     // An unregistered route has no action. Fail closed once auth is on.
     if (!matched) return c.json({ error: 'Forbidden' }, 403)
-    const identity = c.get('identity' as never) as AuthIdentity
+    const identity = c.get('identity')
     const authorize = config.server?.authorize
     const allowed =
       typeof authorize === 'function'
@@ -120,7 +122,7 @@ export function createServer(
   config: BreadConfig,
   agents: AgentRegistry,
   tasks: TaskRegistry = new Map(),
-): { bread: BreadInstance; app: Hono } {
+): { bread: BreadInstance; app: Hono<AuthEnv> } {
   // `config.store` is the single source of truth — strict everywhere, no
   // interactive or auto-wired fallback.
   if (!config.store) {
@@ -143,7 +145,7 @@ export function createServer(
     )
   }
   const bread = createBread(config, agents, tasks)
-  const app = new Hono()
+  const app = new Hono<AuthEnv>()
 
   // Body-size cap: applied globally, before any plugin middleware/routes and
   // before the transport mounts its streaming routes, so it covers every

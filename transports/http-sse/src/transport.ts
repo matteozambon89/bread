@@ -78,7 +78,7 @@ export function transport(opts: TransportOptions = {}): BreadTransport {
     ...base,
 
     mount(app: unknown, bread: BreadInstance): void {
-      const honoApp = app as Hono
+      const honoApp = app as Hono<{ Variables: { identity: AuthIdentity } }>
       // Scoped to this mount()/replica — same in-process-only precedent as
       // @breadai/protocol-a2a-server's tasks/cancel registry (docs/a2a.md).
       // A cancel routed to a different replica than the one running it 404s;
@@ -104,6 +104,7 @@ export function transport(opts: TransportOptions = {}): BreadTransport {
           session?: { id?: string; tags?: Record<string, string> }
           skill?: string
         }
+        const principal = c.get('identity')?.principal
 
         c.header('Content-Type', 'text/event-stream')
         c.header('Cache-Control', 'no-cache')
@@ -115,6 +116,7 @@ export function transport(opts: TransportOptions = {}): BreadTransport {
             bread.run(id, input ?? {}, {
               ...(session ? { session } : {}),
               ...(skill ? { skill } : {}),
+              ...(principal ? { principal } : {}),
               signal,
             }) as AsyncIterable<BreadCrumb>,
           cancelRegistry,
@@ -129,6 +131,7 @@ export function transport(opts: TransportOptions = {}): BreadTransport {
         } catch {
           // no body — run with no input
         }
+        const principal = c.get('identity')?.principal
 
         c.header('Content-Type', 'text/event-stream')
         c.header('Cache-Control', 'no-cache')
@@ -136,7 +139,11 @@ export function transport(opts: TransportOptions = {}): BreadTransport {
 
         return streamRun(
           c,
-          (signal) => bread.runPipeline(pipelineId, (body as { input?: unknown }).input ?? {}, { signal }),
+          (signal) =>
+            bread.runPipeline(pipelineId, (body as { input?: unknown }).input ?? {}, {
+              signal,
+              ...(principal ? { principal } : {}),
+            }),
           cancelRegistry,
         )
       })
@@ -168,7 +175,7 @@ export function transport(opts: TransportOptions = {}): BreadTransport {
         const runId = c.req.param('runId')
 
         if (opts.authorizeStream) {
-          const identity = c.get('identity' as never) as AuthIdentity | undefined
+          const identity = c.get('identity')
           if (!(await opts.authorizeStream(identity, runId))) {
             return c.json({ error: 'Forbidden' }, 403)
           }
@@ -194,7 +201,7 @@ export function transport(opts: TransportOptions = {}): BreadTransport {
         }
 
         if (opts.authorizeStream) {
-          const identity = c.get('identity' as never) as AuthIdentity | undefined
+          const identity = c.get('identity')
           if (!(await opts.authorizeStream(identity, runId))) {
             return c.json({ error: 'Forbidden' }, 403)
           }

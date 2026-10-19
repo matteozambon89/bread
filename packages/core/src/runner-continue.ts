@@ -168,6 +168,7 @@ export async function* continueRun(
     ctx.hooks,
     ctx.signal,
     ctx.blobStore,
+    opts.principal,
   )
 
   const hasTools = Object.keys(aiTools).length > 0
@@ -426,6 +427,7 @@ export async function* continueRun(
           toolCallId: first.toolCallId,
           schema: first.args,
           ...(opts.skill ? { skill: opts.skill } : {}),
+          ...(opts.principal ? { principal: opts.principal } : {}),
           ...(opts._parent ? { parent: opts._parent } : {}),
           pending: suspendedDelegations.map((d) => ({
             toolCallId: d.toolCallId,
@@ -474,6 +476,7 @@ export async function* continueRun(
           toolCallId: pending.toolCallId,
           schema: pending.args,
           ...(opts.skill ? { skill: opts.skill } : {}),
+          ...(opts.principal ? { principal: opts.principal } : {}),
           // Composition linkage (runPipeline sets _parent): persisted atomically
           // with the checkpoint so resume continues the surrounding pipeline.
           ...(opts._parent ? { parent: opts._parent } : {}),

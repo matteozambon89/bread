@@ -17,6 +17,7 @@ import {
   BreadError,
   type CancellableOptions,
   type CredentialProvider,
+  type Principal,
   type HumanRequiredEvent,
   type RunOptions,
   type ToolContext,
@@ -287,7 +288,11 @@ export function createBread(
       })()
     },
 
-    runPipeline(pipelineId: string, input: unknown, opts?: CancellableOptions): AsyncIterable<BreadCrumb> {
+    runPipeline(
+      pipelineId: string,
+      input: unknown,
+      opts?: CancellableOptions & { principal?: Principal },
+    ): AsyncIterable<BreadCrumb> {
       requireStarted()
       const s = requireStore()
       const steps = config.pipelines?.[pipelineId]
@@ -324,7 +329,15 @@ export function createBread(
         }
         inFlight++
         try {
-          yield* instrument(runPipelineCore({ pipelineId, steps, input, ctx: runCtx }))
+          yield* instrument(
+            runPipelineCore({
+              pipelineId,
+              steps,
+              input,
+              ctx: runCtx,
+              ...(opts?.principal ? { principal: opts.principal } : {}),
+            }),
+          )
         } finally {
           inFlight--
         }
@@ -334,7 +347,7 @@ export function createBread(
     async runTask(
       taskId: string,
       args: unknown,
-      opts?: { agentId?: string; sessionId?: string; runId?: string },
+      opts?: { agentId?: string; sessionId?: string; runId?: string; principal?: Principal },
     ): Promise<unknown> {
       requireStarted()
       const s = requireStore()
@@ -368,6 +381,7 @@ export function createBread(
           sessionId: opts?.sessionId ?? id,
           runId: opts?.runId ?? id,
           credentials: buildToolCredentials(tool, config.credentials),
+          ...(opts?.principal ? { principal: opts.principal } : {}),
         }
         return await tool.execute(args, toolCtx)
       } finally {

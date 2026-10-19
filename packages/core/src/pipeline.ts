@@ -1,5 +1,5 @@
 import { decisionLabel, resolveDecisionClient, toHostQuestion } from './decision.js'
-import type { BreadCrumb, PipelineCheckpointParent, PipelineStep, RunOptions } from './types.js'
+import type { BreadCrumb, PipelineCheckpointParent, PipelineStep, Principal, RunOptions } from './types.js'
 import { BreadError } from './types.js'
 import { runAgent } from './runner.js'
 import type { RunnerContext } from './runner.js'
@@ -20,6 +20,8 @@ export interface PipelineRunOpts {
   // Latest decision label from an earlier step or a resumed checkpoint. A branch
   // with no `on` reads it. An arm returns its own label so the outer run updates.
   decisionLabel?: string
+  // Copied onto every nested agent run. Never read from step input or tool args.
+  principal?: Principal
 }
 
 interface PipelineResult {
@@ -69,6 +71,7 @@ export async function* runPipeline(opts: PipelineRunOpts): AsyncGenerator<BreadC
     if (step.type === 'agent') {
       const runOpts: RunOptions = {
         ...(step.skill ? { skill: step.skill } : {}),
+        ...(opts.principal ? { principal: opts.principal } : {}),
         _parent: stepParent(),
       }
       for await (const crumb of runAgent(step.agentId, current, runOpts, ctx)) {
@@ -81,6 +84,7 @@ export async function* runPipeline(opts: PipelineRunOpts): AsyncGenerator<BreadC
         remainingSteps: steps.slice(i + 1),
         ...(lastDecision !== undefined ? { decisionLabel: lastDecision } : {}),
         ...(opts.outer ? { outer: opts.outer } : {}),
+        ...(opts.principal ? { principal: opts.principal } : {}),
       })
       output = res.output
       suspended = res.suspended
@@ -98,7 +102,12 @@ export async function* runPipeline(opts: PipelineRunOpts): AsyncGenerator<BreadC
             remainingItems: items.slice(j + 1),
           },
         }
-        for await (const crumb of runAgent(step.agentId, items[j], { _parent: parent }, ctx)) {
+        for await (const crumb of runAgent(
+          step.agentId,
+          items[j],
+          { _parent: parent, ...(opts.principal ? { principal: opts.principal } : {}) },
+          ctx,
+        )) {
           yield crumb
           if (crumb.type === 'agent:run:end') results.push(crumb.output)
           if (crumb.type === 'human:required') suspended = true
@@ -154,6 +163,7 @@ export async function* runPipeline(opts: PipelineRunOpts): AsyncGenerator<BreadC
           input: current,
           ctx,
           ...(lastDecision !== undefined ? { decisionLabel: lastDecision } : {}),
+          ...(opts.principal ? { principal: opts.principal } : {}),
           outer: armOuter,
         })
         if (driven.decisionLabel !== undefined) lastDecision = driven.decisionLabel
@@ -316,6 +326,7 @@ async function* runParallelSteps(
     remainingSteps: PipelineStep[]
     decisionLabel?: string
     outer?: PipelineCheckpointParent
+    principal?: Principal
   },
 ): AsyncGenerator<BreadCrumb, ParallelResult> {
   type QueueItem = BreadCrumb | null
@@ -373,6 +384,7 @@ async function* runParallelSteps(
         input,
         ctx,
         ...(outer.decisionLabel !== undefined ? { decisionLabel: outer.decisionLabel } : {}),
+        ...(outer.principal ? { principal: outer.principal } : {}),
         outer: parallelFrame,
       })
       let next = await gen.next()
@@ -465,6 +477,7 @@ export async function* continuePipelineParent(
   resumedOutput: unknown,
   ctx: RunnerContext,
   slotLabel?: string,
+  principal?: Principal,
 ): AsyncGenerator<BreadCrumb> {
   if (slotLabel !== undefined) adoptSlotLabel(parent, slotLabel)
   let stepOutput: unknown = resumedOutput
@@ -485,7 +498,12 @@ export async function* continuePipelineParent(
         },
       }
       let suspended = false
-      for await (const crumb of runAgent(agentId, remainingItems[j], { _parent: itemParent }, ctx)) {
+      for await (const crumb of runAgent(
+        agentId,
+        remainingItems[j],
+        { _parent: itemParent, ...(principal ? { principal } : {}) },
+        ctx,
+      )) {
         yield crumb
         if (crumb.type === 'agent:run:end') results.push(crumb.output)
         if (crumb.type === 'human:required') suspended = true
@@ -565,7 +583,8 @@ export async function* continuePipelineParent(
     baseIndex: parent.stepIndex + 1,
     ...(carriedLabel !== undefined ? { decisionLabel: carriedLabel } : {}),
     ...(parent.outer ? { outer: parent.outer } : {}),
+    ...(principal ? { principal } : {}),
   })
   if (driven.suspended || !parent.outer) return
-  yield* continuePipelineParent(parent.outer, driven.output, ctx, driven.decisionLabel)
+  yield* continuePipelineParent(parent.outer, driven.output, ctx, driven.decisionLabel, principal)
 }

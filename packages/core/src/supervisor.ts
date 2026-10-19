@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import type { BreadCrumb, SubAgentVisibility, SupervisorConfig, ToolDefinition } from './types.js'
+import type { BreadCrumb, Principal, SubAgentVisibility, SupervisorConfig, ToolDefinition } from './types.js'
 import { BreadError } from './types.js'
 import { runAgent } from './runner.js'
 import type { RunnerContext } from './runner.js'
@@ -17,6 +17,8 @@ export interface BuildSupervisorToolsArgs {
   // Sink that surfaces a sub-agent crumb in the host run's stream (the
   // runner's crumbBuffer).
   onCrumb: (crumb: BreadCrumb) => void
+  // Host run principal. Passed into the sub-agent; delegate arguments cannot set it.
+  principal?: Principal
 }
 
 export interface SupervisorRuntime {
@@ -55,7 +57,7 @@ export function supervisorSummary(cfg: SupervisorConfig): string {
 }
 
 export function buildSupervisorTools(args: BuildSupervisorToolsArgs): SupervisorRuntime {
-  const { supervisorCfg, agentId, ctx, onCrumb } = args
+  const { supervisorCfg, agentId, ctx, onCrumb, principal } = args
 
   // Concurrency bookkeeping across parallel tool calls within one model turn
   // (the AI SDK executes them concurrently).
@@ -110,7 +112,7 @@ export function buildSupervisorTools(args: BuildSupervisorToolsArgs): Supervisor
         let suspendedCheckpointId: string | undefined
         // Output and suspension are read off the RAW stream — visibility only
         // governs what surfaces to the client, never what the supervisor sees.
-        for await (const crumb of runAgent(subAgentId, input, {}, ctx)) {
+        for await (const crumb of runAgent(subAgentId, input, principal ? { principal } : {}, ctx)) {
           if (crumb.type === 'agent:run:end') output = crumb.output
           if (crumb.type === 'human:required') {
             // Held for the runner's chain-suspension path — see takeHeldCrumbs.
