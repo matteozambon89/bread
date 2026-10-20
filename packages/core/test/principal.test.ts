@@ -64,6 +64,26 @@ describe('principal', () => {
     }
   })
 
+  test('agent:run:start carries iss and sub and drops tenant', async () => {
+    const { bread, stop } = await makeBread({
+      agents: { agent: defineTestAgent() },
+      model: mockTextModel('hi'),
+    })
+    try {
+      const stamped = await runCollect(bread, 'agent', 'go', { principal: host })
+      const start = stamped.find((crumb) => crumb.type === 'agent:run:start')
+      expect(start?.type === 'agent:run:start' ? start.principal : undefined).toEqual({
+        iss: host.iss,
+        sub: host.sub,
+      })
+      const plain = await runCollect(bread, 'agent', 'again')
+      const plainStart = plain.find((crumb) => crumb.type === 'agent:run:start')
+      expect(plainStart?.type === 'agent:run:start' ? plainStart.principal : undefined).toBeUndefined()
+    } finally {
+      await stop()
+    }
+  })
+
   test('a run started without a principal leaves principal undefined', async () => {
     const seen: Array<Principal | undefined> = []
     const { bread, stop } = await makeBread({

@@ -104,6 +104,8 @@ export async function* runAgent(
     ...crumbBase(agentId, runId, sessionId),
     input,
     ...(opts.skill ? { skill: opts.skill } : {}),
+    // Traces hash iss and sub. Tenant stays off the crumb.
+    ...(opts.principal ? { principal: { iss: opts.principal.iss, sub: opts.principal.sub } } : {}),
   }
   yield startCrumb
 
