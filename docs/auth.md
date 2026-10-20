@@ -15,7 +15,7 @@ a running server, pass it to `@breadai/server`'s `authPlugin()` — see
 | `@breadai/auth-api-key` | yes | yes |
 | `@breadai/auth-jwt` | yes | — (verification only) |
 | `@breadai/auth-oauth2` | yes (`VerifyOptions`) | yes (`ClientCredentialsOptions`, distinct shape) |
-| `@breadai/auth-trusted` | yes | — (verification only) |
+| `@breadai/auth-trusted` | yes (`authStrategy`, `mtlsStrategy`) | — (verification only) |
 
 ```bash
 bun add @breadai/auth-api-key   # or auth-jwt / auth-oauth2 / auth-trusted
@@ -204,7 +204,8 @@ A gateway that already authenticated the caller can hand bread one signed JWT.
 `@breadai/auth-trusted` verifies that token against one JWKS and one issuer, then sets
 `principal`. Asymmetric algorithms only (`RS256`, `RS384`, `RS512`, `PS256`, `PS384`, `PS512`,
 `ES256`, `ES384`, `ES512`, `EdDSA`). There is no shared secret and no `allowUnverifiedIssuerAudience`.
-Verification only — no `signer`. Unsigned identity headers are ignored. mTLS is not this package.
+Verification only — no `signer`. Unsigned identity headers are ignored. `mtlsStrategy` reads the
+principal from a verified mTLS client certificate instead of a JWT.
 
 ```ts
 import { authStrategy } from '@breadai/auth-trusted'
@@ -236,6 +237,54 @@ empty string, when `jwksUri` is not a valid URL, when it is not `https` or `http
 (`localhost`, `127.0.0.1`, or `::1`), or when `algorithms` includes a symmetric algorithm or
 `none`. Omitting `audience` or `tenantClaim` does not throw and leaves that option unset.
 
+### mTLS
+
+`mtlsStrategy` reads the principal from the client certificate the listen adapter verified.
+The strategy name is `trusted-mtls`. It does not register `authPlugin` — pass it to
+`authPlugin()` yourself. It does not read or delete `x-user-id`, `x-forwarded-user`,
+`x-forwarded-email`, `ssl-client-cert`, or `x-forwarded-client-cert`.
+
+```ts
+import { mtlsStrategy } from '@breadai/auth-trusted'
+import { authPlugin } from '@breadai/server'
+
+const strategy = mtlsStrategy({
+  issuer: 'gateway-ca', // leaf issuer CN, not a URI
+  tenantField: 'ou',    // optional
+})
+```
+
+```ts
+server: {
+  tls: {
+    key: process.env.TLS_KEY!,   // PEM contents, not a path
+    cert: process.env.TLS_CERT!,
+    ca: process.env.TLS_CA!,
+  },
+  authorize: () => true,
+},
+plugins: [authPlugin([strategy])],
+```
+
+`config.server.tls` is optional. When it is set, both listen adapters require a client
+certificate and do not fall back to plain HTTP. `requestCert` and `rejectUnauthorized` are
+always on. There is no switch to skip verification. A partial or empty `key`, `cert`, or
+`ca` throws `TLS_NOT_CONFIGURED` before the socket opens. When `tls` is omitted, the
+adapters stay on plain HTTP and attach no peer. `server.idleTimeout` is still seconds;
+the mTLS socket uses that value in milliseconds.
+
+Only the listener attaches the leaf, and only when the handshake authorized it and the
+certificate has one non-empty subject CN and one non-empty issuer CN. Client headers
+cannot. `principal.iss` is that issuer CN. `principal.sub` and `subject` are the subject
+CN. `claims` includes `fingerprint256`. `Principal` gains no fields.
+
+`tenantField: 'ou'` copies a single OU onto `principal.tenant`. A missing, empty, or
+multi-value OU returns null. Omitting `tenantField` leaves `tenant` unset. No attached
+peer, an issuer mismatch, or an empty CN returns null.
+
+Construction throws when `issuer` is missing or empty, or when `tenantField` is set to
+anything other than `ou`, including an empty string.
+
 ## Guarding the server
 
 `@breadai/server`'s `authPlugin()` turns one or more strategies into a `BreadPlugin` named `auth`.
@@ -250,7 +299,7 @@ optional `tenant`). It carries no email, name, or roles. `POST /agents/:id/run` 
 JSON body. A missing principal does not reject the run. In-process callers pass
 `RunOptions.principal` to `run`, `runPipeline`, and `runTask`. Resume uses the principal stored
 on the checkpoint and does not take one as an argument. `@breadai/auth-trusted` sets it from
-the verified gateway token. `@breadai/auth-jwt` sets `iss` and `sub` with no tenant from
+the verified gateway token (`authStrategy`) or the verified client certificate (`mtlsStrategy`). `@breadai/auth-jwt` sets `iss` and `sub` with no tenant from
 `authStrategy`, and `iss`, `sub`, and an optional `tenant` from `oidcStrategy`.
 `@breadai/auth-oauth2` verifies through `authStrategy`, so it sets that principal.
 `@breadai/auth-api-key` does not. Tools read it as
