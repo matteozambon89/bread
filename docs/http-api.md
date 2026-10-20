@@ -37,9 +37,9 @@ Bread does not filter a list and does not apply a row predicate. Denying a route
 |---|---|---|
 | `HTTP_ACTIONS.agentList` | `GET /agents` | Lists the agents. |
 | `HTTP_ACTIONS.agentRead` | `GET /agents/:id` | Returns that agent schema. `args.id` is the agent id. |
-| `HTTP_ACTIONS.runStart` | `POST /agents/:id/run` | Starts a run of that agent. `args.id` is the agent id. |
-| `HTTP_ACTIONS.pipelineStart` | `POST /pipelines/:id/run` | Starts that pipeline. `args.id` is the pipeline id. |
-| `HTTP_ACTIONS.runResume` | `POST /resume/:checkpointId` | Resumes that checkpoint. `args.checkpointId` is the checkpoint id. Allow does not check who started the run. When `identity.principal` is set, the handler returns `403` unless the stored principal is visible (`iss` and `sub`). A missing checkpoint is not visible. |
+| `HTTP_ACTIONS.runStart` | `POST /agents/:id/run` | Starts a run of that agent. `args.id` is the agent id. When auth is configured, a missing `identity.principal` is `403`. |
+| `HTTP_ACTIONS.pipelineStart` | `POST /pipelines/:id/run` | Starts that pipeline. `args.id` is the pipeline id. When auth is configured, a missing `identity.principal` is `403`. |
+| `HTTP_ACTIONS.runResume` | `POST /resume/:checkpointId` | Resumes that checkpoint. `args.checkpointId` is the checkpoint id. Allow does not check who started the run. When auth is configured, a missing `identity.principal` is `403`. When `identity.principal` is set, the handler returns `403` unless the stored principal is visible (`iss` and `sub`). A missing checkpoint is not visible. |
 | `HTTP_ACTIONS.runStream` | `GET /runs/:runId/stream` | Tails that run. `args.runId` is the run id. Allow does not choose which run. `authorizeStream` still runs after the grant. |
 | `HTTP_ACTIONS.runCancel` | `POST /runs/:runId/cancel` | Cancels that run. `args.runId` is the run id. `authorizeStream` still runs after the grant. |
 | `HTTP_ACTIONS.sessionList` | `GET /sessions` | Returns visible sessions when `identity.principal` is set, and every session when it is not. `args.tag` is set when the tag query is present. A tag query only narrows. |
