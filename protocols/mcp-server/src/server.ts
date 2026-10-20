@@ -3,6 +3,7 @@ import { serveStdio as sdkServeStdio } from '@modelcontextprotocol/server/stdio'
 import type { McpHttpHandler } from '@modelcontextprotocol/server'
 import {
   type BreadInstance,
+  type Principal,
   type ToolContext,
   type ToolDefinition,
   buildToolCredentials,
@@ -41,9 +42,19 @@ export interface ExposeConfig {
    * a real hostname.
    */
   allowedHosts?: string[]
+  /**
+   * Stdio only. `serveStdio` stamps this, or `{ iss: 'https://bread.local/mcp', sub: 'stdio' }`.
+   * HTTP does not read it.
+   */
+  principal?: Principal
 }
 
-function synthesizeToolContext(agentId: string, bread: McpBread, def: ToolDefinition): ToolContext {
+function synthesizeToolContext(
+  agentId: string,
+  bread: McpBread,
+  def: ToolDefinition,
+  principal: Principal | undefined,
+): ToolContext {
   const id = uuidv7()
   return {
     agentId,
@@ -51,6 +62,7 @@ function synthesizeToolContext(agentId: string, bread: McpBread, def: ToolDefini
     runId: id,
     credentials: buildToolCredentials(def, bread.credentials ?? envProvider()),
     ...(bread.blobStore ? { blobStore: bread.blobStore } : {}),
+    ...(principal ? { principal } : {}),
   }
 }
 
@@ -86,7 +98,7 @@ function toolRegistration(
 // entirely — there is no run to attach `ToolDefinition.hooks`/`tool:call`/
 // `tool:result` crumbs to, so those are skipped. This is a deliberate,
 // documented limitation, not an oversight.
-export function buildMcpServer(bread: McpBread, expose: ExposeConfig): McpServer {
+export function buildMcpServer(bread: McpBread, expose: ExposeConfig, principal?: Principal): McpServer {
   const server = new McpServer({ name: 'bread', version: '0.1.0' })
 
   for (const agentId of expose.agents ?? []) {
@@ -104,7 +116,10 @@ export function buildMcpServer(bread: McpBread, expose: ExposeConfig): McpServer
       ),
       async (args: unknown) => {
         const input = unwrapInput(args, inputWrapped)
-        const { output } = await bread.run(agentId, input, { mode: 'sync' })
+        const { output } = await bread.run(agentId, input, {
+          mode: 'sync',
+          ...(principal ? { principal } : {}),
+        })
         return toStructured(output, outputWrapped)
       },
     )
@@ -125,7 +140,11 @@ export function buildMcpServer(bread: McpBread, expose: ExposeConfig): McpServer
       ),
       async (args: unknown) => {
         const input = unwrapInput(args, inputWrapped)
-        const { output } = await bread.run(agent, input, { mode: 'sync', skill })
+        const { output } = await bread.run(agent, input, {
+          mode: 'sync',
+          skill,
+          ...(principal ? { principal } : {}),
+        })
         return toStructured(output, outputWrapped)
       },
     )
@@ -142,7 +161,10 @@ export function buildMcpServer(bread: McpBread, expose: ExposeConfig): McpServer
       toolRegistration(taskDef.config.description, toMcpInputSchema(schema), toMcpOutputSchema(outputSchema)),
       async (args: unknown) => {
         const input = unwrapInput(args, inputWrapped)
-        const out = await bread.runTask(taskId, input, { agentId: 'mcp' })
+        const out = await bread.runTask(taskId, input, {
+          agentId: 'mcp',
+          ...(principal ? { principal } : {}),
+        })
         return toStructured(out, outputWrapped)
       },
     )
@@ -162,7 +184,7 @@ export function buildMcpServer(bread: McpBread, expose: ExposeConfig): McpServer
       toolRegistration(def.description, toMcpInputSchema(def.schema), toMcpOutputSchema(def.outputSchema)),
       async (args: unknown) => {
         const input = unwrapInput(args, inputWrapped)
-        const toolCtx = synthesizeToolContext(agentId, bread, def)
+        const toolCtx = synthesizeToolContext(agentId, bread, def, principal)
         const executed = def.execute(input, toolCtx)
         // A streaming tool's execute (an AsyncIterable<R>) is drained to its
         // last yielded value here — this direct-invocation path has no
@@ -188,7 +210,8 @@ export function buildMcpServer(bread: McpBread, expose: ExposeConfig): McpServer
 // `server.connect(transport)`, the factory must be able to build a fresh
 // `McpServer` per connection.
 export async function serveStdio(bread: McpBread, expose: ExposeConfig): Promise<void> {
-  await sdkServeStdio(() => buildMcpServer(bread, expose))
+  const principal = expose.principal ?? { iss: 'https://bread.local/mcp', sub: 'stdio' }
+  await sdkServeStdio(() => buildMcpServer(bread, expose, principal))
 }
 
 // Build the HTTP handler once (not per request): `createMcpHandler`'s
@@ -196,5 +219,6 @@ export async function serveStdio(bread: McpBread, expose: ExposeConfig): Promise
 // the same per-request-fresh-transport idiom bread already used for
 // 2025-11-25 — one handler, one endpoint, both eras, still no session state.
 export function buildMcpHttpHandler(bread: McpBread, expose: ExposeConfig): McpHttpHandler {
+  // HTTP ignores expose.principal. The handler does not take a caller principal.
   return createMcpHandler(() => buildMcpServer(bread, expose), { legacy: 'stateless' })
 }
