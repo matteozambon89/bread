@@ -1,7 +1,7 @@
 import type { Hono } from 'hono'
 import { stream as honoStream } from 'hono/streaming'
 import type { AgentErrorCrumb, AuthIdentity, BreadCrumb, BreadInstance, BreadTransport, BusFrame } from '@breadai/core'
-import { BreadError, fromWireCrumb, HTTP_ACTIONS, registerHttpRoute, streamTransport } from '@breadai/core'
+import { BreadError, fromWireCrumb, HTTP_ACTIONS, principalOrLocalCli, principalVisible, registerHttpRoute, streamTransport } from '@breadai/core'
 import { crumbFrameLine } from './protocol-io.js'
 
 export interface TransportOptions {
@@ -117,7 +117,7 @@ export function transport(opts: TransportOptions = {}): BreadTransport {
           session?: { id?: string; tags?: Record<string, string> }
           skill?: string
         }
-        const principal = c.get('identity')?.principal
+        const principal = principalOrLocalCli(c.get('identity')?.principal)
 
         c.header('Content-Type', 'application/x-ndjson')
         return honoStream(c, (s) =>
@@ -127,7 +127,7 @@ export function transport(opts: TransportOptions = {}): BreadTransport {
               bread.run(id, input ?? {}, {
                 ...(session ? { session } : {}),
                 ...(skill ? { skill } : {}),
-                ...(principal ? { principal } : {}),
+                principal,
                 signal,
               }) as AsyncIterable<BreadCrumb>,
             id,
@@ -144,7 +144,7 @@ export function transport(opts: TransportOptions = {}): BreadTransport {
         } catch {
           // no body — run with no input
         }
-        const principal = c.get('identity')?.principal
+        const principal = principalOrLocalCli(c.get('identity')?.principal)
 
         c.header('Content-Type', 'application/x-ndjson')
         return honoStream(c, (s) =>
@@ -153,7 +153,7 @@ export function transport(opts: TransportOptions = {}): BreadTransport {
             (signal) =>
               bread.runPipeline(pipelineId, (body as { input?: unknown }).input ?? {}, {
                 signal,
-                ...(principal ? { principal } : {}),
+                principal,
               }),
             pipelineId,
             cancelRegistry,
@@ -163,6 +163,13 @@ export function transport(opts: TransportOptions = {}): BreadTransport {
 
       honoApp.post('/resume/:checkpointId', async (c) => {
         const checkpointId = c.req.param('checkpointId')
+        const caller = c.get('identity')?.principal
+        if (caller) {
+          const checkpoint = await bread.store.getCheckpoint(checkpointId)
+          if (!principalVisible(checkpoint?.principal, caller)) {
+            return c.json({ error: 'Forbidden' }, 403)
+          }
+        }
         let body: Record<string, unknown> = {}
         try {
           body = await c.req.json()

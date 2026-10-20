@@ -247,7 +247,13 @@ Arbitrary middleware does not count as auth — only a plugin whose `name` is `a
 A verified strategy may set `AuthIdentity.principal` (`iss` and `sub`, both required, and an
 optional `tenant`). It carries no email, name, or roles. `POST /agents/:id/run` and
 `POST /pipelines/:id/run` copy that principal onto the run and ignore a `principal` field on the
-JSON body. A missing principal does not reject the run. In-process callers pass
+JSON body. With no auth, those two routes still stamp `{ iss: "https://bread.local/cli", sub: "local" }`,
+because the request reached them only on loopback. `ag-ui.run` does the same when the request has
+no identity. When auth is configured, `run.start`, `pipeline.start`, `run.resume`, and `ag-ui.run`
+are `403` if `identity.principal` is missing, including an API key. Stream, cancel, session, loop,
+task, and MCP HTTP are not rejected for a missing principal. When `identity.principal` is set,
+`POST /resume/:checkpointId` is `403` unless the checkpoint's stored principal is visible
+(`iss` and `sub`). In-process callers pass
 `RunOptions.principal` to `run`, `runPipeline`, and `runTask`. Resume uses the principal stored
 on the checkpoint and does not take one as an argument. `@breadai/auth-trusted` sets it from
 the verified gateway token. `@breadai/auth-jwt` sets `iss` and `sub` with no tenant from
@@ -262,9 +268,13 @@ transport mount, and the server routes, decides every request.
 With a plugin named `auth`, that middleware calls `server.authorize(identity, action, args)`.
 `identity` is the stored `AuthIdentity`. `action` is a string. `args` is path params plus query
 params; a path param wins when a key appears in both. Return `true` to allow. Returning `true`
-allows every action. `false`, or a missing function, is `403` `{ "error": "Forbidden" }` before
-the handler. The function may look at `args.id` and return `false`. Bread does not return an id
-list, does not filter list rows, and does not apply a row predicate.
+allows every action except `run.start`, `pipeline.start`, and `run.resume`, which still require
+`identity.principal`. `ag-ui.run` is not in that middleware check. Its handler returns `403`
+before the run when the principal is missing, and copies `identity.principal` onto the run.
+`false`, or a missing function, is `403` `{ "error": "Forbidden" }` before
+the handler. The function may look at `args.id` and return `false`. `authorize` does not return an id
+list, does not filter list rows, and does not apply a row predicate. Session routes still hide
+rows from another principal; see [sessions](./sessions.md#ownership).
 
 The constants are in [Core actions](./http-api.md#core-actions) and
 [Plugin actions](./http-api.md#plugin-actions). Core does not list plugin names. A plugin that

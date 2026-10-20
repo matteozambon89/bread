@@ -1,5 +1,6 @@
 import { Database } from 'bun:sqlite'
 import { v7 as uuidv7 } from 'uuid'
+import { principalVisible } from '@breadai/core'
 import type {
   BreadStore,
   CheckpointRecord,
@@ -27,7 +28,8 @@ CREATE TABLE IF NOT EXISTS sessions (
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL,
   agent_id TEXT,
-  tags TEXT NOT NULL DEFAULT '{}'
+  tags TEXT NOT NULL DEFAULT '{}',
+  principal TEXT
 );
 CREATE TABLE IF NOT EXISTS session_messages (
   id TEXT PRIMARY KEY,
@@ -148,6 +150,7 @@ interface SessionRow {
   updated_at: number
   agent_id: string | null
   tags: string
+  principal: string | null
 }
 
 interface MessageRow {
@@ -181,6 +184,7 @@ function rowToSession(row: SessionRow): Session {
     updatedAt: row.updated_at,
     tags: JSON.parse(row.tags) as Record<string, string>,
     ...(row.agent_id ? { agentId: row.agent_id } : {}),
+    ...(row.principal != null ? { principal: JSON.parse(row.principal) as Session['principal'] } : {}),
   }
 }
 
@@ -340,6 +344,11 @@ export function store(opts: SqliteStoreOptions = {}): BreadStore {
       if (!(err instanceof Error) || !err.message.includes('duplicate column name')) throw err
     }
   }
+  try {
+    db.exec('ALTER TABLE sessions ADD COLUMN principal TEXT')
+  } catch (err) {
+    if (!(err instanceof Error) || !err.message.includes('duplicate column name')) throw err
+  }
 
   function matchTags(tags: Record<string, string>, filter?: Record<string, string>): boolean {
     if (!filter) return true
@@ -351,13 +360,29 @@ export function store(opts: SqliteStoreOptions = {}): BreadStore {
     async createSession(opts) {
       const id = opts?.id ?? uuidv7()
       const now = Date.now()
-      db.prepare('INSERT INTO sessions (id, created_at, updated_at, tags) VALUES (?, ?, ?, ?)').run(
+      db.prepare(
+        'INSERT INTO sessions (id, created_at, updated_at, tags, principal) VALUES (?, ?, ?, ?, ?)',
+      ).run(
         id,
         now,
         now,
         JSON.stringify(opts?.tags ?? {}),
+        opts?.principal != null ? JSON.stringify(opts.principal) : null,
       )
-      return { id, createdAt: now, updatedAt: now, tags: opts?.tags ?? {} }
+      return {
+        id,
+        createdAt: now,
+        updatedAt: now,
+        tags: opts?.tags ?? {},
+        ...(opts?.principal ? { principal: opts.principal } : {}),
+      }
+    },
+
+    async claimSessionPrincipal(id, principal) {
+      const result = db
+        .prepare('UPDATE sessions SET principal = ? WHERE id = ? AND principal IS NULL')
+        .run(JSON.stringify(principal), id)
+      return result.changes === 1
     },
 
     async getSession(id) {
@@ -375,19 +400,36 @@ export function store(opts: SqliteStoreOptions = {}): BreadStore {
       db.prepare('DELETE FROM sessions WHERE id = ?').run(id)
     },
 
+    async deleteSessionForPrincipal(id, principal) {
+      // changes() does not count ON DELETE CASCADE rows, so > 0 is this session.
+      const result = db
+        .prepare(
+          `DELETE FROM sessions
+           WHERE id = ?
+             AND principal IS NOT NULL
+             AND json_extract(principal, '$.iss') = ?
+             AND json_extract(principal, '$.sub') = ?`,
+        )
+        .run(id, principal.iss, principal.sub)
+      return result.changes > 0
+    },
+
     async cleanupSessions(opts?: CleanupOptions) {
       const now = Date.now()
-      const all = db.prepare('SELECT * FROM sessions').all() as SessionRow[]
-      const del = db.prepare('DELETE FROM sessions WHERE id = ?')
+      const cutoff = opts?.olderThanMs ? now - opts.olderThanMs : undefined
+      const select = db.prepare('SELECT * FROM sessions')
+      // Age is in the DELETE too, so a row touched after the read is kept.
+      const del = db.prepare('DELETE FROM sessions WHERE id = ? AND updated_at < ?')
       let count = 0
       const tx = db.transaction(() => {
-        for (const row of all) {
+        if (cutoff === undefined) return
+        for (const row of select.all() as SessionRow[]) {
           const session = rowToSession(row)
-          const tooOld = opts?.olderThanMs ? now - session.updatedAt > opts.olderThanMs : false
-          if (tooOld && matchTags(session.tags, opts?.tags)) {
-            del.run(row.id)
-            count++
-          }
+          if (session.updatedAt >= cutoff) continue
+          if (!matchTags(session.tags, opts?.tags)) continue
+          if (!principalVisible(session.principal, opts?.principal)) continue
+          // changes includes ON DELETE CASCADE rows. Count the session only.
+          if (del.run(row.id, cutoff).changes > 0) count++
         }
       })
       tx()

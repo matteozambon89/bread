@@ -7,13 +7,15 @@ import type {
   CleanupOptions,
   LoopFilter,
   LoopRecord,
+  BreadAuthStrategy,
+  Principal,
   RemoteAgent,
   Session,
   TaskRunFilter,
   TaskRunRecord,
 } from '@breadai/core'
 import { BreadError } from '@breadai/core'
-import { createServer } from '@breadai/server'
+import { authPlugin, createServer } from '@breadai/server'
 import { store } from '@breadai/store-memory'
 import { transport } from '@breadai/transport-http-sse'
 import { defineTestAgent, makeServer, mockProvider, mockTextModel, readSse } from '@breadai/test-utils'
@@ -398,6 +400,148 @@ describe('createServer — config guards', () => {
     } catch (err) {
       expect(err).toBeInstanceOf(BreadError)
       expect((err as BreadError).code).toBe('TRANSPORT_NOT_CONFIGURED')
+    }
+  })
+})
+
+describe('server — session ownership', () => {
+  const host: Principal = { iss: 'https://idp.example', sub: 'user-1', tenant: 'acme' }
+  const other: Principal = { iss: 'https://idp.example', sub: 'user-2', tenant: 'acme' }
+  const strategy: BreadAuthStrategy = {
+    name: 'header',
+    authenticate(req) {
+      const raw = req.headers.get('x-principal')
+      if (raw == null) return null
+      if (raw === 'none') return { subject: 'anon' }
+      return { subject: 'user', principal: JSON.parse(raw) as Principal }
+    },
+  }
+
+  function headers(principal: Principal | 'none') {
+    return { 'x-principal': principal === 'none' ? 'none' : JSON.stringify(principal) }
+  }
+
+  test('list, get, delete, and cleanup follow principalVisible when a principal is set', async () => {
+    const { app, bread, stop } = await makeServer({
+      agents: { greeter: defineTestAgent() },
+      model: mockTextModel('hi'),
+      plugins: [authPlugin([strategy])],
+      config: { server: { authorize: () => true } },
+    })
+    try {
+      const mine = await bread.store.createSession({ id: 'mine', principal: host, tags: { env: 'old' } })
+      const stale = await bread.store.createSession({ id: 'stale', principal: host, tags: { env: 'old' } })
+      const theirs = await bread.store.createSession({ id: 'theirs', principal: other, tags: { env: 'old' } })
+      const plain = await bread.store.createSession({ id: 'plain', tags: { env: 'old' } })
+      const fresh = await bread.store.createSession({ id: 'fresh', principal: host, tags: { env: 'old' } })
+      const aged = Date.now() - 10 * 24 * 60 * 60 * 1000
+      mine.updatedAt = aged
+      stale.updatedAt = aged
+      theirs.updatedAt = aged
+      plain.updatedAt = aged
+
+      const listed = await app.request('/sessions', { headers: headers(host) })
+      expect(listed.status).toBe(200)
+      expect((await listed.json() as Session[]).map((session) => session.id).sort()).toEqual(['fresh', 'mine', 'stale'])
+
+      const sameIssSub = await app.request('/sessions/mine', {
+        headers: headers({ iss: host.iss, sub: host.sub }),
+      })
+      expect(sameIssSub.status).toBe(200)
+      expect((await sameIssSub.json() as Session).principal).toEqual(host)
+
+      const hidden = await app.request('/sessions/theirs', { headers: headers(host) })
+      expect(hidden.status).toBe(404)
+      const unstamped = await app.request('/sessions/plain', { headers: headers(host) })
+      expect(unstamped.status).toBe(404)
+
+      const unscopedDeletes: string[] = []
+      const scopedDeletes: string[] = []
+      const originalDelete = bread.store.deleteSession.bind(bread.store)
+      const originalScoped = bread.store.deleteSessionForPrincipal.bind(bread.store)
+      bread.store.deleteSession = async (id) => {
+        unscopedDeletes.push(id)
+        await originalDelete(id)
+      }
+      bread.store.deleteSessionForPrincipal = async (id, principal) => {
+        scopedDeletes.push(id)
+        return originalScoped(id, principal)
+      }
+      const deniedDelete = await app.request('/sessions/theirs', { method: 'DELETE', headers: headers(host) })
+      expect(deniedDelete.status).toBe(200)
+      expect(await deniedDelete.json()).toEqual({ ok: true })
+      expect(unscopedDeletes).toEqual([])
+      expect(scopedDeletes).toEqual(['theirs'])
+      expect(await bread.store.getSession('theirs')).toBeDefined()
+
+      const hiddenPlain = await app.request('/sessions/plain', { method: 'DELETE', headers: headers(host) })
+      expect(hiddenPlain.status).toBe(200)
+      expect(await hiddenPlain.json()).toEqual({ ok: true })
+      expect(scopedDeletes).toEqual(['theirs', 'plain'])
+      expect(await bread.store.getSession('plain')).toBeDefined()
+
+      const allowedDelete = await app.request('/sessions/mine', { method: 'DELETE', headers: headers(host) })
+      expect(allowedDelete.status).toBe(200)
+      expect(unscopedDeletes).toEqual([])
+      expect(scopedDeletes).toEqual(['theirs', 'plain', 'mine'])
+      expect(await bread.store.getSession('mine')).toBeUndefined()
+
+      let received: CleanupOptions | undefined
+      const originalCleanup = bread.store.cleanupSessions.bind(bread.store)
+      bread.store.cleanupSessions = async (opts) => {
+        received = opts
+        return originalCleanup(opts)
+      }
+      const cleanup = await app.request('/sessions/cleanup', {
+        method: 'POST',
+        headers: { ...headers(host), 'content-type': 'application/json' },
+        body: JSON.stringify({ olderThanDays: 1, tags: { env: 'old' } }),
+      })
+      expect(cleanup.status).toBe(200)
+      expect(await cleanup.json()).toEqual({ deleted: 1 })
+      expect(received).toEqual({
+        olderThanMs: 24 * 60 * 60 * 1000,
+        tags: { env: 'old' },
+        principal: host,
+      })
+      expect(unscopedDeletes).toEqual([])
+      expect(scopedDeletes).toEqual(['theirs', 'plain', 'mine'])
+      expect(await bread.store.getSession('plain')).toBeDefined()
+      expect(await bread.store.getSession('theirs')).toBeDefined()
+      expect(await bread.store.getSession('fresh')).toBeDefined()
+      expect(await bread.store.getSession('stale')).toBeUndefined()
+      expect((await bread.store.listSessions()).map((session) => session.id).sort()).toEqual([
+        'fresh',
+        'plain',
+        'theirs',
+      ])
+    } finally {
+      await stop()
+    }
+  })
+
+  test('session routes stay unscoped when the identity has no principal', async () => {
+    const { app, bread, stop } = await makeServer({
+      agents: { greeter: defineTestAgent() },
+      model: mockTextModel('hi'),
+      plugins: [authPlugin([strategy])],
+      config: { server: { authorize: () => true } },
+    })
+    try {
+      await bread.store.createSession({ id: 'theirs', principal: other })
+      await bread.store.createSession({ id: 'plain' })
+      const listed = await app.request('/sessions', { headers: headers('none') })
+      expect(listed.status).toBe(200)
+      expect((await listed.json() as Session[]).map((session) => session.id).sort()).toEqual(['plain', 'theirs'])
+      const read = await app.request('/sessions/theirs', { headers: headers('none') })
+      expect(read.status).toBe(200)
+      const removed = await app.request('/sessions/theirs', { method: 'DELETE', headers: headers('none') })
+      expect(removed.status).toBe(200)
+      expect(await removed.json()).toEqual({ ok: true })
+      expect(await bread.store.getSession('theirs')).toBeUndefined()
+      expect(await bread.store.getSession('plain')).toBeDefined()
+    } finally {
+      await stop()
     }
   })
 })

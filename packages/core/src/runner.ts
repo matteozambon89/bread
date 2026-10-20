@@ -13,6 +13,7 @@ import type {
   RunContext,
   RunOptions,
 } from './types.js'
+import { isLocalCliPrincipal, principalVisible } from './principal.js'
 import { BreadError } from './types.js'
 
 // This file is the runner's public entry point + barrel. The implementation is
@@ -58,13 +59,26 @@ export async function* runAgent(
   const cfg = def.config as AgentConfig<unknown, unknown>
   const runId = uuidv7()
 
-  // Session
-  const existingSession = opts.session?.id ? await ctx.store.getSession(opts.session.id) : undefined
+  // Session. Ownership is iss + sub. Tags and the request body are not a principal.
+  // Only the local CLI principal may adopt a row that has no principal yet.
+  let existingSession = opts.session?.id ? await ctx.store.getSession(opts.session.id) : undefined
+  if (existingSession && existingSession.principal === undefined && isLocalCliPrincipal(opts.principal)) {
+    const claimed = await ctx.store.claimSessionPrincipal(existingSession.id, opts.principal)
+    existingSession = claimed
+      ? { ...existingSession, principal: opts.principal }
+      : await ctx.store.getSession(existingSession.id)
+  }
+  if (existingSession && !principalVisible(existingSession.principal, opts.principal)) {
+    throw new BreadError(`Session not found: "${existingSession.id}"`, 'SESSION_NOT_FOUND', {
+      sessionId: existingSession.id,
+    })
+  }
   const session =
     existingSession ??
     (await ctx.store.createSession({
       ...(opts.session?.id ? { id: opts.session.id } : {}),
       ...(opts.session?.tags ? { tags: opts.session.tags } : {}),
+      ...(opts.principal ? { principal: opts.principal } : {}),
     }))
   const sessionId = session.id
 
