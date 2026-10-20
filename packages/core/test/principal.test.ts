@@ -13,7 +13,7 @@ import {
 } from '@breadai/test-utils'
 import { z } from 'zod'
 
-const host: Principal = { iss: 'https://idp.example', sub: 'user-1', tenant: 'acme' }
+const host: Principal = { iss: 'https://idp.example', sub: 'user-1', tenant: 'acme', roles: [' b ', 'a', 'a'] }
 const spoof: Principal = { iss: 'https://evil.example', sub: 'spoof' }
 
 function probe(seen: Array<Principal | undefined>) {

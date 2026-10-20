@@ -45,7 +45,7 @@ At run time the runner merges tools from several sources into one set:
 |-------|-------------|
 | `agentId`, `runId`, `sessionId` | Identifiers for the current run. |
 | `credentials` | A `CredentialProvider` — `await ctx.credentials.get(name)`. |
-| `principal?` | The run's principal (`iss`, `sub`, and an optional `tenant`) when the run has one. |
+| `principal?` | The run's principal (`iss`, `sub`, an optional `tenant`, and an optional `roles` string array) when the run has one. |
 | `blobStore?` | A `BlobStore`, present when `config.blobStore` is set — `undefined` otherwise. Store a generated/derived file and echo the resulting `uri` as (part of) this tool's output; see [store.md](./store.md#blob-storage). |
 
 Every call emits `tool:call` and `tool:result` crumbs, so tool usage is fully observable. If
