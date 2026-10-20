@@ -1,5 +1,5 @@
 import * as readline from 'node:readline/promises'
-import { BreadError, createBread } from '@breadai/core'
+import { BreadError, createBread, LOCAL_CLI_PRINCIPAL } from '@breadai/core'
 import { v7 as uuidv7 } from 'uuid'
 import type { BreadCrumb } from '@breadai/core'
 import { loadAgents, loadConfig, loadTasks } from '../loader.js'
@@ -95,6 +95,7 @@ export async function runChat(opts: ChatOptions): Promise<void> {
       const stream = bread.run(agentId, text, {
         mode: 'stream',
         session: { id: sessionId },
+        principal: LOCAL_CLI_PRINCIPAL,
         ...(opts.skill ? { skill: opts.skill } : {}),
       }) as AsyncIterable<BreadCrumb>
 
