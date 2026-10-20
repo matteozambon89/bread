@@ -1,6 +1,16 @@
+import { createHash } from 'node:crypto'
 import { context, trace, type Span, type Tracer } from '@opentelemetry/api'
 import { isFileOutput } from '@breadai/core'
 import type { BreadCrumb, BreadInstanceRef, BreadPlugin } from '@breadai/core'
+
+// user.id is sha256(utf8(iss) || 0x00 || utf8(sub)). No other user.* attribute.
+function userId(principal: { iss: string; sub: string }): string {
+  return createHash('sha256')
+    .update(principal.iss, 'utf8')
+    .update(new Uint8Array([0]))
+    .update(principal.sub, 'utf8')
+    .digest('hex')
+}
 
 export interface OtelOptions {
   serviceName?: string
@@ -37,6 +47,7 @@ export function otel(opts: OtelOptions = {}): BreadPlugin {
               'bread.agent_id': crumb.agentId,
               'bread.run_id': crumb.runId,
               'bread.session_id': crumb.sessionId,
+              ...(crumb.principal ? { 'user.id': userId(crumb.principal) } : {}),
             },
           })
           runSpans.set(crumb.runId, span)

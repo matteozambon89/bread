@@ -40,6 +40,8 @@ export interface AgentRunStartCrumb extends BaseCrumb {
   type: 'agent:run:start'
   input: unknown
   skill?: string | undefined
+  // iss and sub only. Tenant is not a trace field.
+  principal?: { iss: string; sub: string }
 }
 
 export interface AgentRunEndCrumb extends BaseCrumb {
