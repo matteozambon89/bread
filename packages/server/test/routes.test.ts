@@ -544,4 +544,35 @@ describe('server — session ownership', () => {
       await stop()
     }
   })
+
+  test('run.start, pipeline.start, and run.resume are 403 when auth has no principal', async () => {
+    const { app, bread, stop } = await makeServer({
+      agents: { greeter: defineTestAgent() },
+      model: mockTextModel('hi'),
+      plugins: [authPlugin([strategy])],
+      config: { server: { authorize: () => true } },
+    })
+    let resumed = 0
+    const resume = bread.resume.bind(bread)
+    bread.resume = ((...args: Parameters<BreadInstance['resume']>) => {
+      resumed += 1
+      return resume(...args)
+    }) as BreadInstance['resume']
+    try {
+      for (const path of ['/agents/greeter/run', '/pipelines/missing/run', '/resume/missing']) {
+        const res = await app.request(path, {
+          method: 'POST',
+          headers: headers('none'),
+          body: '{}',
+        })
+        expect(res.status).toBe(403)
+        expect(await res.json()).toEqual({ error: 'Forbidden' })
+      }
+      expect(resumed).toBe(0)
+      const listed = await app.request('/agents', { headers: headers('none') })
+      expect(listed.status).toBe(200)
+    } finally {
+      await stop()
+    }
+  })
 })

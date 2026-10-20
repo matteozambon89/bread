@@ -115,6 +115,15 @@ function httpGrant(config: BreadConfig, app: Hono<AuthEnv>): MiddlewareHandler<A
         ? await authorize(identity, matched.action, routeArgs(url, matched.params))
         : undefined
     if (allowed !== true) return c.json({ error: 'Forbidden' }, 403)
+    // API keys authenticate without a principal. These three actions stay closed.
+    if (
+      !identity?.principal &&
+      (matched.action === HTTP_ACTIONS.runStart ||
+        matched.action === HTTP_ACTIONS.pipelineStart ||
+        matched.action === HTTP_ACTIONS.runResume)
+    ) {
+      return c.json({ error: 'Forbidden' }, 403)
+    }
     return next()
   }
 }

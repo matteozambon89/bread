@@ -8,7 +8,8 @@ const headerStrategy: BreadAuthStrategy = {
   name: 'header',
   authenticate(req: Request): AuthIdentity | null {
     const subject = req.headers.get('x-identity')
-    return subject ? { subject } : null
+    // run.start requires a principal. Stream checks still use subject.
+    return subject ? { subject, principal: { iss: 'https://bread.local/test', sub: subject } } : null
   },
 }
 
@@ -135,9 +136,9 @@ describe('@breadai/transport-http-sse — store route gate', () => {
         headers: { 'x-identity': 'admin' },
         body: '{}',
       })
-      expect(adminResume.status).not.toBe(403)
-      await adminResume.text()
-      expect(resumed).toBe(1)
+      expect(adminResume.status).toBe(403)
+      expect(await adminResume.json()).toEqual({ error: 'Forbidden' })
+      expect(resumed).toBe(0)
     } finally {
       await stop()
     }

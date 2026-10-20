@@ -63,7 +63,7 @@ describe('http sse principal', () => {
     }
   })
 
-  test('a body principal with no verified principal does not reach the tool', async () => {
+  test('an authenticated run with no principal is 403 and does not reach the tool', async () => {
     const seen: Array<Principal | undefined> = []
     const { app, stop } = await makeServer({
       agents: { agent: defineTestAgent({ tools: [probe(seen)] }) },
@@ -77,9 +77,9 @@ describe('http sse principal', () => {
         headers: headers('none'),
         body: JSON.stringify({ input: 'go', principal: spoof }),
       })
-      expect(res.status).toBe(200)
-      await res.text()
-      expect(seen).toEqual([undefined])
+      expect(res.status).toBe(403)
+      expect(await res.json()).toEqual({ error: 'Forbidden' })
+      expect(seen).toEqual([])
     } finally {
       await stop()
     }
