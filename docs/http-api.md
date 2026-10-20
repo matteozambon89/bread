@@ -39,13 +39,13 @@ Bread does not filter a list and does not apply a row predicate. Denying a route
 | `HTTP_ACTIONS.agentRead` | `GET /agents/:id` | Returns that agent schema. `args.id` is the agent id. |
 | `HTTP_ACTIONS.runStart` | `POST /agents/:id/run` | Starts a run of that agent. `args.id` is the agent id. |
 | `HTTP_ACTIONS.pipelineStart` | `POST /pipelines/:id/run` | Starts that pipeline. `args.id` is the pipeline id. |
-| `HTTP_ACTIONS.runResume` | `POST /resume/:checkpointId` | Resumes that checkpoint. `args.checkpointId` is the checkpoint id. Allow does not check who started the run. |
+| `HTTP_ACTIONS.runResume` | `POST /resume/:checkpointId` | Resumes that checkpoint. `args.checkpointId` is the checkpoint id. Allow does not check who started the run. When `identity.principal` is set, the handler returns `403` unless the stored principal is visible (`iss` and `sub`). A missing checkpoint is not visible. |
 | `HTTP_ACTIONS.runStream` | `GET /runs/:runId/stream` | Tails that run. `args.runId` is the run id. Allow does not choose which run. `authorizeStream` still runs after the grant. |
 | `HTTP_ACTIONS.runCancel` | `POST /runs/:runId/cancel` | Cancels that run. `args.runId` is the run id. `authorizeStream` still runs after the grant. |
-| `HTTP_ACTIONS.sessionList` | `GET /sessions` | Returns every session. `args.tag` is set when the tag query is present. A tag query only narrows. |
-| `HTTP_ACTIONS.sessionRead` | `GET /sessions/:id` | Returns that session. `args.id` is the session id. |
-| `HTTP_ACTIONS.sessionDelete` | `DELETE /sessions/:id` | Deletes that session. `args.id` is the session id. |
-| `HTTP_ACTIONS.sessionCleanup` | `POST /sessions/cleanup` | Runs the bulk delete. |
+| `HTTP_ACTIONS.sessionList` | `GET /sessions` | Returns visible sessions when `identity.principal` is set, and every session when it is not. `args.tag` is set when the tag query is present. A tag query only narrows. |
+| `HTTP_ACTIONS.sessionRead` | `GET /sessions/:id` | Returns that session. `args.id` is the session id. A missing or hidden session is `404`. |
+| `HTTP_ACTIONS.sessionDelete` | `DELETE /sessions/:id` | Deletes that session. `args.id` is the session id. A hidden session returns `{ "ok": true }` and is not deleted. With a principal, the delete matches the id, a non-null principal, and `iss` and `sub` in one store write. |
+| `HTTP_ACTIONS.sessionCleanup` | `POST /sessions/cleanup` | Deletes visible sessions in the age window. With no principal, the store cleanup stays unscoped. |
 | `HTTP_ACTIONS.loopList` | `GET /loops` | Returns every loop. The `session`, `agent`, and `status` queries only narrow. |
 | `HTTP_ACTIONS.loopRead` | `GET /loops/:id` | Returns that loop. `args.id` is the loop id. |
 | `HTTP_ACTIONS.taskList` | `GET /tasks` | Returns every task run. The `task`, `session`, `agent`, `status`, and `limit` queries only narrow. |
@@ -63,7 +63,7 @@ them.
 |---|---|---|
 | `A2A_ACTIONS.card` | `GET` at `A2AServerConfig.cardPath` | Returns the Agent Card. |
 | `A2A_ACTIONS.rpc` | `POST` at the pathname of `A2AServerConfig.url` | Handles one JSON-RPC call. |
-| `AG_UI_ACTIONS.run` | `POST` at the `path` option, default `/ag-ui/run` | `authorizeThread` still runs after the grant. |
+| `AG_UI_ACTIONS.run` | `POST` at the `path` option, default `/ag-ui/run` | `authorizeThread` still runs after the grant. When auth is configured, a missing `identity.principal` is `403` before the run. A present principal is copied onto the run. |
 | `MCP_ACTIONS.request` | Every method on the `path` option, default `/mcp` | Handles one MCP HTTP request. |
 
 A method of `*` matches every method on that path. A plugin that calls `app.get` or `app.post`
@@ -73,6 +73,9 @@ With no plugin named `auth`, `server.authorize` is not called. A request is allo
 when the `Host` header is loopback (`localhost`, `127.0.0.1`, `::1`, an optional port,
 and bracketed `[::1]` / `[::1]:port`). `localhost.`, `127.1`, `0.0.0.0`, and `::` are not
 loopback. `X-Forwarded-Host` is ignored. Anything else is `403` `{ "error": "Forbidden" }`.
+Those loopback `POST /agents/:id/run` and `POST /pipelines/:id/run` calls stamp
+`{ iss: "https://bread.local/cli", sub: "local" }`. `ag-ui.run` does the same when the request
+has no identity.
 
 `createServer` itself does not throw, so an in-process `app.request` still runs. The
 listen adapters check before the socket opens. No auth and a loopback bind warns that a
@@ -185,7 +188,8 @@ restart or on a different instance than the original run. See [hitl.md](./hitl.m
 ## Sessions
 
 `HTTP_ACTIONS.sessionList`, `HTTP_ACTIONS.sessionRead`, `HTTP_ACTIONS.sessionDelete`, and
-`HTTP_ACTIONS.sessionCleanup`. See [Core actions](#core-actions).
+`HTTP_ACTIONS.sessionCleanup`. See [Core actions](#core-actions) and
+[Ownership](./sessions.md#ownership).
 
 | Endpoint | Body / query | Response |
 |----------|--------------|----------|

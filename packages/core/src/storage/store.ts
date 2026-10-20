@@ -151,10 +151,19 @@ export interface DocumentRecord {
 
 export interface BreadStore {
   // --- Sessions --------------------------------------------------------------
-  createSession(opts?: { id?: string; tags?: Record<string, string> }): Promise<Session>
+  // A caller-supplied id that already exists is an insert conflict. The stored
+  // session and its messages stay as they were.
+  createSession(opts?: { id?: string; tags?: Record<string, string>; principal?: Principal }): Promise<Session>
+  // Writes principal only when the row has none. False if the row is missing
+  // or already stamped. The runner lets only the local CLI principal call this.
+  claimSessionPrincipal(id: string, principal: Principal): Promise<boolean>
   getSession(id: string): Promise<Session | undefined>
   listSessions(filter?: { tags?: Record<string, string> }): Promise<Session[]>
   deleteSession(id: string): Promise<void>
+  // One conditional write: the id, a non-null principal, and matching iss and
+  // sub. A row recreated under another principal after a read stays. False
+  // when no row was deleted. Tenant is not compared.
+  deleteSessionForPrincipal(id: string, principal: Principal): Promise<boolean>
   cleanupSessions(opts?: CleanupOptions): Promise<number>
   getMessages(sessionId: string): Promise<SessionMessage[]>
   addMessage(
