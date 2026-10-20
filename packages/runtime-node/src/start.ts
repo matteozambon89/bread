@@ -1,6 +1,12 @@
 import type { Server as HttpServer } from 'node:http'
 import type { AgentRegistry, BreadConfig, BreadInstance, TaskRegistry } from '@breadai/core'
-import { assertHttpAuth, createServer, httpAuthLoopbackWarning, type ServerOptions } from '@breadai/server'
+import {
+  assertHttpAuth,
+  createServer,
+  httpAuthLoopbackWarning,
+  listenMtls,
+  type ServerOptions,
+} from '@breadai/server'
 import { serve } from '@hono/node-server'
 
 /**
@@ -12,7 +18,8 @@ import { serve } from '@hono/node-server'
  * `idleTimeout` (seconds, same as Bun.serve) maps to Node `server.timeout` in ms
  * when set; omit it to keep Node's default socket timeout.
  *
- * Production source has no `bun:*` imports — listen is `@hono/node-server` only.
+ * Production source has no `bun:*` imports. Plain HTTP uses `@hono/node-server`.
+ * `config.server.tls` uses the shared mTLS listener instead.
  */
 export async function startServerNode(
   config: BreadConfig,
@@ -32,6 +39,32 @@ export async function startServerNode(
 
   const { bread, app } = createServer(config, agents, tasks)
   await bread.start()
+
+  const tls = config.server?.tls
+  if (tls) {
+    try {
+      const listened = await listenMtls({
+        fetch: (request) => app.fetch(request),
+        port,
+        host,
+        ...(idleTimeout !== undefined ? { idleTimeout } : {}),
+        tls,
+      })
+      return {
+        bread,
+        stop: async () => {
+          try {
+            await bread.stop()
+          } finally {
+            await listened.stop()
+          }
+        },
+      }
+    } catch (err) {
+      await bread.stop()
+      throw err
+    }
+  }
 
   // @hono/node-server defaults to overrideGlobalObjects: true, which replaces
   // globalThis.Request/Response with lightweight polyfills. That is fine on a

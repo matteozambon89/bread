@@ -40,6 +40,8 @@ Resolution: `--runtime` → `config.server.runtime` → `bun`. `@breadai/runtime
 
 The node child loads `bread.config.ts` and agents, so `bun:` imports (`@breadai/store-sqlite`) fail and the postgres or memory store is required.
 
+When `config.server.tls` is set, `bread dev` and `bread start` listen with mutual TLS on either runtime. `key`, `cert`, and `ca` are PEM contents, not paths. Omit `tls` and the bind stays plain HTTP. See [auth](./auth.md#mtls).
+
 ## `build`
 
 Loads every entrypoint agent and checks that each one has an `inputSchema`, an `outputSchema`, and a

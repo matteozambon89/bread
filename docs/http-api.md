@@ -84,6 +84,8 @@ combination throws `AUTH_NOT_CONFIGURED` and does not listen: auth without
 `server.authorize`, `server.authorize` without auth on a public bind, and neither on a
 public bind. See [auth.md#guarding-the-server](./auth.md#guarding-the-server).
 
+`config.server.tls` (`key`, `cert`, and `ca` PEM contents) makes both listen adapters require a verified client certificate. The principal still comes only from a strategy passed to `authPlugin()` — see [mTLS](./auth.md#mtls). Omit `tls` and the bind stays plain HTTP.
+
 ## Limits
 
 `createServer` applies a global request body-size cap (Hono's `bodyLimit`) ahead of every route,

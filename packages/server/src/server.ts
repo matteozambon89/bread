@@ -10,6 +10,7 @@ import type {
   TaskRegistry,
 } from '@breadai/core'
 import {
+  attachVerifiedPeer,
   BreadError,
   createBread,
   HTTP_ACTIONS,
@@ -17,6 +18,7 @@ import {
   matchHttpRoute,
   principalVisible,
   registerHttpRoute,
+  verifiedPeer,
 } from '@breadai/core'
 import { hasAuthPlugin } from './http-auth.js'
 
@@ -131,6 +133,21 @@ function httpGrant(config: BreadConfig, app: Hono<AuthEnv>): MiddlewareHandler<A
   }
 }
 
+function limitedBody(maxSize: number): MiddlewareHandler<AuthEnv> {
+  const limit = bodyLimit({
+    maxSize,
+    onError: (c) => c.json({ error: { code: 'BODY_TOO_LARGE', message: 'Request body too large' } }, 413),
+  })
+  return async (c, next) => {
+    const peer = verifiedPeer(c.req.raw)
+    return limit(c, async () => {
+      // Counting a chunked body replaces the Request and drops the WeakMap.
+      if (peer) attachVerifiedPeer(c.req.raw, peer)
+      await next()
+    })
+  }
+}
+
 export function createServer(
   config: BreadConfig,
   agents: AgentRegistry,
@@ -165,13 +182,7 @@ export function createServer(
   // request this app ever sees. Default 1 MB, override via
   // `config.server.maxBodyBytes`. Rate limiting / concurrency protection is
   // deliberately left to the operator — see docs/http-api.md#limits.
-  app.use(
-    '*',
-    bodyLimit({
-      maxSize: config.server?.maxBodyBytes ?? DEFAULT_MAX_BODY_BYTES,
-      onError: (c) => c.json({ error: { code: 'BODY_TOO_LARGE', message: 'Request body too large' } }, 413),
-    }),
-  )
+  app.use('*', limitedBody(config.server?.maxBodyBytes ?? DEFAULT_MAX_BODY_BYTES))
 
   if (typeof config.store.getCrumbs !== 'function') {
     console.log(

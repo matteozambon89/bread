@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
 import { SignJWT, type KeyLike, exportJWK, generateKeyPair } from 'jose'
-import { authStrategy, type TrustedOptions } from '@breadai/auth-trusted'
+import { authStrategy, mtlsStrategy, type MtlsOptions, type TrustedOptions } from '@breadai/auth-trusted'
+import { attachVerifiedPeer, isLocalCliPrincipal, LOCAL_CLI_PRINCIPAL, type VerifiedPeerCertificate } from '@breadai/core'
 
 const ISSUER = 'https://gateway.example'
 const AUDIENCE = 'bread'
@@ -289,5 +290,102 @@ describe('trusted auth strategy', () => {
     } finally {
       served.stop()
     }
+  })
+})
+
+const SPOOF_HEADERS = {
+  'x-user-id': 'spoof',
+  'x-forwarded-user': 'spoof',
+  'x-forwarded-email': 'spoof@evil.example',
+  'ssl-client-cert': 'spoof',
+  'x-forwarded-client-cert': 'spoof',
+}
+
+function peer(overrides: Partial<VerifiedPeerCertificate> = {}): VerifiedPeerCertificate {
+  return {
+    subjectCn: 'user-1',
+    issuerCn: 'gateway-ca',
+    fingerprint256: 'AA:BB',
+    organizationalUnits: [],
+    ...overrides,
+  }
+}
+
+function requestWith(peerCert: VerifiedPeerCertificate | undefined, headers: Record<string, string> = {}): Request {
+  const req = new Request('https://bread.example/agents', { headers })
+  if (peerCert) attachVerifiedPeer(req, peerCert)
+  return req
+}
+
+describe('mtls auth strategy', () => {
+  test('a verified leaf sets subject, principal, and fingerprint256', async () => {
+    const strategy = mtlsStrategy({ issuer: 'gateway-ca' })
+    const req = requestWith(peer({ organizationalUnits: ['acme'] }))
+    const identity = await strategy.authenticate(req)
+    expect(strategy.name).toBe('trusted-mtls')
+    expect(identity).toEqual({
+      subject: 'user-1',
+      claims: { iss: 'mtls:gateway-ca', sub: 'user-1', fingerprint256: 'AA:BB' },
+      principal: { iss: 'mtls:gateway-ca', sub: 'user-1' },
+    })
+    expect(identity?.principal).not.toHaveProperty('tenant')
+    expect(strategy).not.toHaveProperty('middleware')
+  })
+
+  test('tenantField ou copies one OU and omitting it leaves tenant unset', async () => {
+    const leaf = peer({ organizationalUnits: ['acme'] })
+    const withTenant = await mtlsStrategy({ issuer: 'gateway-ca', tenantField: 'ou' }).authenticate(requestWith(leaf))
+    expect(withTenant?.principal).toEqual({ iss: 'mtls:gateway-ca', sub: 'user-1', tenant: 'acme' })
+    const without = await mtlsStrategy({ issuer: 'gateway-ca' }).authenticate(requestWith(leaf))
+    expect(without?.principal).toEqual({ iss: 'mtls:gateway-ca', sub: 'user-1' })
+    expect(without?.principal).not.toHaveProperty('tenant')
+  })
+
+  test('a missing, empty, or multi-value OU returns null when tenantField is ou', async () => {
+    const strategy = mtlsStrategy({ issuer: 'gateway-ca', tenantField: 'ou' })
+    expect(await strategy.authenticate(requestWith(peer()))).toBeNull()
+    expect(await strategy.authenticate(requestWith(peer({ organizationalUnits: [''] })))).toBeNull()
+    expect(await strategy.authenticate(requestWith(peer({ organizationalUnits: ['acme', 'other'] })))).toBeNull()
+  })
+
+  test('no peer, an issuer mismatch, or an empty CN returns null', async () => {
+    const strategy = mtlsStrategy({ issuer: 'gateway-ca', tenantField: 'ou' })
+    expect(await strategy.authenticate(requestWith(undefined))).toBeNull()
+    expect(await strategy.authenticate(requestWith(peer({ issuerCn: 'other-ca', organizationalUnits: ['acme'] })))).toBeNull()
+    expect(await strategy.authenticate(requestWith(peer({ subjectCn: '' })))).toBeNull()
+    expect(await strategy.authenticate(requestWith(peer({ issuerCn: '' })))).toBeNull()
+  })
+
+  test('a CA named like the local CLI or a JWT issuer cannot produce that principal', async () => {
+    const cli = mtlsStrategy({ issuer: LOCAL_CLI_PRINCIPAL.iss })
+    const local = await cli.authenticate(requestWith(peer({ issuerCn: LOCAL_CLI_PRINCIPAL.iss, subjectCn: LOCAL_CLI_PRINCIPAL.sub })))
+    expect(local?.principal).toEqual({ iss: `mtls:${LOCAL_CLI_PRINCIPAL.iss}`, sub: LOCAL_CLI_PRINCIPAL.sub })
+    expect(isLocalCliPrincipal(local?.principal)).toBe(false)
+
+    const jwt = mtlsStrategy({ issuer: 'https://idp.example' })
+    const user = await jwt.authenticate(requestWith(peer({ issuerCn: 'https://idp.example' })))
+    expect(user?.principal?.iss).toBe('mtls:https://idp.example')
+    expect(user?.claims?.iss).toBe('mtls:https://idp.example')
+  })
+
+  test('forwarded identity and cert headers are not read and are not deleted', async () => {
+    const strategy = mtlsStrategy({ issuer: 'gateway-ca', tenantField: 'ou' })
+    const alone = requestWith(undefined, SPOOF_HEADERS)
+    expect(await strategy.authenticate(alone)).toBeNull()
+    for (const [name, value] of Object.entries(SPOOF_HEADERS)) expect(alone.headers.get(name)).toBe(value)
+
+    const authed = requestWith(peer({ organizationalUnits: ['acme'] }), SPOOF_HEADERS)
+    const identity = await strategy.authenticate(authed)
+    expect(identity?.principal).toEqual({ iss: 'mtls:gateway-ca', sub: 'user-1', tenant: 'acme' })
+    expect(identity?.subject).toBe('user-1')
+    for (const [name, value] of Object.entries(SPOOF_HEADERS)) expect(authed.headers.get(name)).toBe(value)
+  })
+
+  test('an empty issuer or tenantField, or any tenantField other than ou, throws', () => {
+    expect(() => mtlsStrategy({ issuer: '' })).toThrow(/issuer/)
+    expect(() => mtlsStrategy({} as MtlsOptions)).toThrow(/issuer/)
+    expect(() => mtlsStrategy({ issuer: 'gateway-ca', tenantField: '' as 'ou' })).toThrow(/tenantField/)
+    expect(() => mtlsStrategy({ issuer: 'gateway-ca', tenantField: 'tenant' as 'ou' })).toThrow(/tenantField/)
+    expect(() => mtlsStrategy({ issuer: 'gateway-ca', tenantField: 'OU' as 'ou' })).toThrow(/tenantField/)
   })
 })

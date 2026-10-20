@@ -1,7 +1,7 @@
 {
   "name": "@breadai/auth-trusted",
   "version": "0.1.0",
-  "description": "Trusted-identity auth for bread — verify one gateway JWT and set principal.",
+  "description": "Trusted-identity auth for bread — verify a gateway JWT or an mTLS client certificate and set principal.",
   "license": "MIT",
   "author": "Matteo Zambon <matteo@yeeti.co>",
   "keywords": [
@@ -9,6 +9,7 @@
     "agents",
     "auth",
     "jwt",
+    "mtls",
     "trusted",
     "bread",
     "plugin"
