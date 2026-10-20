@@ -1,7 +1,11 @@
 import { join } from 'node:path'
+import { Readable } from 'node:stream'
 import { afterEach, describe, expect, test } from 'bun:test'
-import { runInvoke } from '@breadai/server'
-import { mockToolCallModel, mockTextModel } from '@breadai/test-utils'
+import { LOCAL_CLI_PRINCIPAL } from '@breadai/core'
+import type { BreadStore } from '@breadai/core'
+import { runChat, runInvoke } from '@breadai/server'
+import { store } from '@breadai/store-memory'
+import { defineTestAgent, makeServer, mockTextModel, mockToolCallModel, runCollect } from '@breadai/test-utils'
 
 const projectRoot = join(import.meta.dir, 'fixtures', 'invoke-project')
 const noTransportRoot = join(import.meta.dir, 'fixtures', 'invoke-project-no-transport')
@@ -12,7 +16,26 @@ function setModel(model: unknown): void {
 
 afterEach(() => {
   delete (globalThis as Record<string, unknown>)['__breadInvokeTestModel']
+  delete (globalThis as Record<string, unknown>)['__breadInvokePrincipal']
+  delete (globalThis as Record<string, unknown>)['__breadInvokeStore']
 })
+
+async function withScriptedStdin(lines: string[], fn: () => Promise<void>): Promise<void> {
+  const stdin = process.stdin
+  const before = new Set(process.listeners('SIGINT'))
+  Object.defineProperty(process, 'stdin', {
+    configurable: true,
+    value: Readable.from(lines.map((line) => `${line}\n`)),
+  })
+  try {
+    await fn()
+  } finally {
+    Object.defineProperty(process, 'stdin', { configurable: true, value: stdin })
+    for (const listener of process.listeners('SIGINT')) {
+      if (!before.has(listener)) process.removeListener('SIGINT', listener)
+    }
+  }
+}
 
 // Captures stdout/stderr writes made by `fn` — mirrors
 // transports/stdout/test/stdout.test.ts's helper, made async-aware since
@@ -120,10 +143,67 @@ describe('runInvoke', () => {
     )
   })
 
+  test('passes the cli principal into the run', async () => {
+    setModel(mockToolCallModel({ toolName: 'tool_echo', args: { text: 'hi' }, then: 'done' }))
+    await captureWrites(() => runInvoke({ cwd: projectRoot, agentId: 'agent', input: 'go' }))
+    expect((globalThis as Record<string, unknown>)['__breadInvokePrincipal']).toEqual({
+      iss: 'https://bread.local/cli',
+      sub: 'local',
+    })
+  })
+
   test('throws TRANSPORT_NOT_CONFIGURED when config.transport is unset', async () => {
     setModel(mockTextModel('unused'))
     await expect(runInvoke({ cwd: noTransportRoot, agentId: 'agent', input: 'hi' })).rejects.toThrow(
       /No transport configured/,
     )
+  })
+
+  test('a no-auth http session resumes from chat and invoke and stays hidden from another iss or sub', async () => {
+    const shared: BreadStore = store()
+    ;(globalThis as { __breadInvokeStore?: BreadStore }).__breadInvokeStore = shared
+    const sessionId = 'loopback-session'
+    const { app, bread, stop } = await makeServer({
+      agents: { agent: defineTestAgent() },
+      model: mockTextModel('from-http'),
+      config: { store: shared },
+    })
+    try {
+      const res = await app.request('http://127.0.0.1/agents/agent/run', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ input: 'hi', session: { id: sessionId } }),
+      })
+      expect(res.status).toBe(200)
+      await res.text()
+      expect((await shared.getSession(sessionId))?.principal).toEqual(LOCAL_CLI_PRINCIPAL)
+
+      await expect(
+        runCollect(bread, 'agent', 'nope', {
+          principal: { iss: LOCAL_CLI_PRINCIPAL.iss, sub: 'other' },
+          session: { id: sessionId },
+        }),
+      ).rejects.toMatchObject({ code: 'SESSION_NOT_FOUND' })
+      await expect(
+        runCollect(bread, 'agent', 'nope', {
+          principal: { iss: 'https://other.example', sub: LOCAL_CLI_PRINCIPAL.sub },
+          session: { id: sessionId },
+        }),
+      ).rejects.toMatchObject({ code: 'SESSION_NOT_FOUND' })
+
+      setModel(mockTextModel('from-invoke'))
+      const { out } = await captureWrites(() =>
+        runInvoke({ cwd: projectRoot, agentId: 'agent', input: 'again', session: sessionId }),
+      )
+      expect(out).toBe('from-invoke\n')
+
+      setModel(mockTextModel('from-chat'))
+      await withScriptedStdin(['hello'], () => runChat({ cwd: projectRoot, agentId: 'agent', session: sessionId }))
+      expect((await shared.getMessages(sessionId)).map((message) => message.content)).toContain('hello')
+      expect((await shared.getSession(sessionId))?.principal).toEqual(LOCAL_CLI_PRINCIPAL)
+    } finally {
+      delete (globalThis as Record<string, unknown>)['__breadInvokeStore']
+      await stop()
+    }
   })
 })
