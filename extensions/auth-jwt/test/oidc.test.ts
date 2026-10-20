@@ -94,12 +94,13 @@ async function signToken(opts: {
 
 function strategy(
   issuer: string,
-  extra: { preset?: OidcPreset; tenantClaim?: string } = {},
+  extra: { preset?: OidcPreset; tenantClaim?: string; roleClaim?: string } = {},
   options: { header?: string } = {},
 ) {
   const entry: OidcIssuer = { issuer, audience: AUDIENCE }
   if (extra.preset !== undefined) entry.preset = extra.preset
   if (extra.tenantClaim !== undefined) entry.tenantClaim = extra.tenantClaim
+  if (extra.roleClaim !== undefined) entry.roleClaim = extra.roleClaim
   if (options.header !== undefined) return oidcStrategy({ issuers: [entry], header: options.header })
   return oidcStrategy({ issuers: [entry] })
 }
@@ -520,6 +521,185 @@ describe('oidc strategy', () => {
     expect(await strat.authenticate(reqWith({ authorization: 'Bearer ' }))).toBeNull()
   })
 
+  test('entra copies the roles array as issued and still copies tid', async () => {
+    const strat = strategy(primary.issuer, { preset: 'entra' })
+    const roles = ['zeta', 'alpha', 'alpha', ' beta']
+    const signed = await token({ sub: 'user-1', claims: { tid: 'tenant-guid', roles } })
+    const identity = await strat.authenticate(authed(signed))
+    expect(identity?.principal).toEqual({
+      iss: primary.issuer,
+      sub: 'user-1',
+      tenant: 'tenant-guid',
+      roles,
+    })
+    expect(identity?.principal?.roles).not.toBe(identity?.claims?.roles)
+    expect(identity?.claims).toMatchObject({ tid: 'tenant-guid', roles })
+  })
+
+  test('a missing, empty, or non-string entra roles claim leaves roles unset', async () => {
+    const strat = strategy(primary.issuer, { preset: 'entra' })
+    const cases = [
+      {},
+      { roles: [] },
+      { roles: 'admin' },
+      { roles: ['admin', 1] },
+    ]
+    for (const claims of cases) {
+      const signed = await token({ sub: 'user-1', claims })
+      const identity = await strat.authenticate(authed(signed))
+      expect(identity?.subject).toBe('user-1')
+      expect(identity?.principal).toEqual({ iss: primary.issuer, sub: 'user-1' })
+      expect(identity?.principal).not.toHaveProperty('roles')
+    }
+    const blanks = await token({ sub: 'user-1', claims: { roles: ['admin', ''] } })
+    expect((await strat.authenticate(authed(blanks)))?.principal?.roles).toEqual(['admin', ''])
+  })
+
+  test('cognito copies cognito:groups as issued and leaves roles unset when the claim is not a string array', async () => {
+    const strat = strategy(primary.issuer, { preset: 'cognito' })
+    const groups = ['beta', 'alpha', 'beta']
+    const present = await token({
+      sub: 'user-1',
+      claims: { 'custom:tenant': 'acme', 'cognito:groups': groups },
+    })
+    expect((await strat.authenticate(authed(present)))?.principal).toEqual({
+      iss: primary.issuer,
+      sub: 'user-1',
+      tenant: 'acme',
+      roles: groups,
+    })
+    const lone = await token({ sub: 'user-1', claims: { 'cognito:groups': 'admins' } })
+    const identity = await strat.authenticate(authed(lone))
+    expect(identity?.principal).toEqual({ iss: primary.issuer, sub: 'user-1' })
+    expect(identity?.principal).not.toHaveProperty('roles')
+    expect(identity?.claims).toMatchObject({ 'cognito:groups': 'admins' })
+  })
+
+  test('keycloak copies realm_access.roles and ignores resource_access', async () => {
+    const strat = strategy(primary.issuer, { preset: 'keycloak' })
+    const claims = {
+      realm_access: { roles: ['b', 'a', 'b'] },
+      resource_access: { account: { roles: ['manage-account'] } },
+    }
+    const signed = await token({ sub: 'user-1', claims })
+    const identity = await strat.authenticate(authed(signed))
+    expect(identity?.principal).toEqual({
+      iss: primary.issuer,
+      sub: 'user-1',
+      roles: ['b', 'a', 'b'],
+    })
+    expect(identity?.principal).not.toHaveProperty('tenant')
+    expect(identity?.claims).toMatchObject(claims)
+  })
+
+  test('a missing or unusable keycloak realm_access.roles leaves roles unset', async () => {
+    const strat = strategy(primary.issuer, { preset: 'keycloak' })
+    const cases = [
+      {},
+      { realm_access: {} },
+      { realm_access: { roles: [] } },
+      { realm_access: { roles: 'admin' } },
+      { realm_access: ['admin'] },
+      { resource_access: { account: { roles: ['manage-account'] } } },
+    ]
+    for (const claims of cases) {
+      const signed = await token({ sub: 'user-1', claims })
+      const identity = await strat.authenticate(authed(signed))
+      expect(identity?.subject).toBe('user-1')
+      expect(identity?.principal).toEqual({ iss: primary.issuer, sub: 'user-1' })
+      expect(identity?.principal).not.toHaveProperty('roles')
+    }
+  })
+
+  test('google, auth0, and okta leave a bare roles claim on claims', async () => {
+    for (const preset of ['google', 'auth0', 'okta'] as const) {
+      const strat = strategy(primary.issuer, { preset })
+      const signed = await token({ sub: 'user-1', claims: { roles: ['admin', 'user'] } })
+      const identity = await strat.authenticate(authed(signed))
+      expect(identity?.principal).toEqual({ iss: primary.issuer, sub: 'user-1' })
+      expect(identity?.principal).not.toHaveProperty('roles')
+      expect(identity?.claims).toMatchObject({ roles: ['admin', 'user'] })
+    }
+  })
+
+  test('a token with no preset leaves a roles claim off principal', async () => {
+    const strat = strategy(primary.issuer)
+    const signed = await token({ sub: 'user-1', claims: { roles: ['admin'] } })
+    const identity = await strat.authenticate(authed(signed))
+    expect(identity?.principal).toEqual({ iss: primary.issuer, sub: 'user-1' })
+    expect(identity?.principal).not.toHaveProperty('roles')
+    expect(identity?.claims).toMatchObject({ roles: ['admin'] })
+  })
+
+  test('roleClaim overrides the preset and copies one top-level claim as issued', async () => {
+    const strat = strategy(primary.issuer, { preset: 'entra', roleClaim: 'groups' })
+    const signed = await token({
+      sub: 'user-1',
+      claims: { tid: 'tenant-guid', roles: ['from-preset'], groups: [' zeta', 'zeta', 'a'] },
+    })
+    const identity = await strat.authenticate(authed(signed))
+    expect(identity?.principal).toEqual({
+      iss: primary.issuer,
+      sub: 'user-1',
+      tenant: 'tenant-guid',
+      roles: [' zeta', 'zeta', 'a'],
+    })
+    expect(identity?.claims).toMatchObject({ roles: ['from-preset'], groups: [' zeta', 'zeta', 'a'] })
+  })
+
+  test('roleClaim replaces the keycloak nested read and does not walk a dotted name', async () => {
+    const groups = strategy(primary.issuer, { preset: 'keycloak', roleClaim: 'groups' })
+    const grouped = await token({
+      sub: 'user-1',
+      claims: {
+        groups: ['g1', ' g2'],
+        realm_access: { roles: ['realm-admin'] },
+      },
+    })
+    expect((await groups.authenticate(authed(grouped)))?.principal).toEqual({
+      iss: primary.issuer,
+      sub: 'user-1',
+      roles: ['g1', ' g2'],
+    })
+
+    const dotted = strategy(primary.issuer, { preset: 'keycloak', roleClaim: 'realm_access.roles' })
+    const nestedOnly = await token({
+      sub: 'user-1',
+      claims: { realm_access: { roles: ['realm-admin'] } },
+    })
+    expect(await dotted.authenticate(authed(nestedOnly))).toBeNull()
+    const literal = await token({
+      sub: 'user-1',
+      claims: {
+        'realm_access.roles': ['literal'],
+        realm_access: { roles: ['nested'] },
+      },
+    })
+    expect((await dotted.authenticate(authed(literal)))?.principal?.roles).toEqual(['literal'])
+  })
+
+  test('a roleClaim that is missing, empty, a lone string, or not all non-empty strings returns null', async () => {
+    const strat = strategy(primary.issuer, { preset: 'entra', roleClaim: 'roles' })
+    const cases = [
+      { tid: 'from-preset' },
+      { roles: [], tid: 'from-preset' },
+      { roles: 'admin', tid: 'from-preset' },
+      { roles: ['admin', ''], tid: 'from-preset' },
+      { roles: ['admin', 1], tid: 'from-preset' },
+    ]
+    for (const claims of cases) {
+      const signed = await token({ sub: 'user-1', claims })
+      expect(await strat.authenticate(authed(signed))).toBeNull()
+    }
+    const spaced = await token({ sub: 'user-1', claims: { roles: [' '], tid: 'from-preset' } })
+    expect((await strat.authenticate(authed(spaced)))?.principal).toEqual({
+      iss: primary.issuer,
+      sub: 'user-1',
+      tenant: 'from-preset',
+      roles: [' '],
+    })
+  })
+
   test('reads the token from the configured header only', async () => {
     const strat = strategy(primary.issuer, {}, { header: 'x-access-token' })
     const signed = await token({ sub: 'user-1' })
@@ -576,6 +756,15 @@ describe('oidc strategy — construction', () => {
         { issuer: 'https://issuer.example', audience: 'b' },
       ],
     })).toThrow(/duplicate oidc issuer/)
+  })
+
+  test('an empty roleClaim throws at construction', () => {
+    expect(() => oidcStrategy({
+      issuers: [{ issuer: 'https://issuer.example', audience: AUDIENCE, roleClaim: '' }],
+    })).toThrow(/roleClaim must not be empty/)
+    expect(() => oidcStrategy({
+      issuers: [{ issuer: 'https://issuer.example', audience: AUDIENCE, preset: 'keycloak', roleClaim: 'groups' }],
+    })).not.toThrow()
   })
 
   test('an empty issuer or audience throws at construction', () => {

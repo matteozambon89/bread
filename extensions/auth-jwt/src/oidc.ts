@@ -37,6 +37,10 @@ export interface OidcIssuer {
   /**
    * Vendor preset. A non-empty string claim is copied to `principal.tenant`.
    * A missing or empty preset claim still authenticates, with `tenant` unset.
+   * Entra copies `roles`, Cognito copies `cognito:groups`, and Keycloak copies
+   * `realm_access.roles` only. Google, Auth0, and Okta copy no roles unless
+   * `roleClaim` is set. A missing, empty, or non-string-array preset role claim
+   * leaves `roles` unset and still authenticates.
    */
   preset?: OidcPreset
   /**
@@ -44,6 +48,13 @@ export interface OidcIssuer {
    * missing or empty rejects the token.
    */
   tenantClaim?: string
+  /**
+   * Top-level claim copied onto `principal.roles`. Overrides the preset role
+   * source, including Keycloak's nested read. A dotted name is one claim key.
+   * Missing, empty, a lone string, or any value that is not a non-empty array
+   * of non-empty strings rejects the token. An empty string throws at construction.
+   */
+  roleClaim?: string
 }
 
 export interface OidcOptions {
@@ -86,6 +97,12 @@ export function oidcStrategy(opts: OidcOptions): BreadAuthStrategy {
     }
     if (entry.preset !== undefined && !OIDC_PRESET_SET.has(entry.preset)) {
       throw new Error(`auth-jwt: unknown oidc preset "${entry.preset}"`)
+    }
+    if (
+      entry.roleClaim !== undefined &&
+      (typeof entry.roleClaim !== 'string' || entry.roleClaim.length === 0)
+    ) {
+      throw new Error('auth-jwt: oidc roleClaim must not be empty')
     }
     byIssuer.set(entry.issuer, entry)
   }
@@ -228,6 +245,61 @@ function nonEmpty(value: unknown): string | undefined {
   return typeof value === 'string' && value.length > 0 ? value : undefined
 }
 
+// Preset miss omits roles. An explicit roleClaim that fails returns null.
+function readRoles(payload: JWTPayload, entry: OidcIssuer): string[] | null | undefined {
+  if (entry.roleClaim !== undefined) return requiredRoles(payload[entry.roleClaim])
+  if (entry.preset === undefined) return undefined
+  return presetRoles(entry.preset, payload)
+}
+
+function presetRoles(preset: OidcPreset, payload: JWTPayload): string[] | undefined {
+  switch (preset) {
+    case 'entra':
+      return issuedStringArray(payload.roles)
+    case 'cognito':
+      return issuedStringArray(payload['cognito:groups'])
+    case 'google':
+    case 'auth0':
+    case 'okta':
+      return undefined
+    case 'keycloak':
+      return keycloakRealmRoles(payload.realm_access)
+    default: {
+      const unknown: never = preset
+      throw new Error(`auth-jwt: unknown oidc preset "${String(unknown)}"`)
+    }
+  }
+}
+
+function keycloakRealmRoles(realmAccess: unknown): string[] | undefined {
+  if (!realmAccess || typeof realmAccess !== 'object' || Array.isArray(realmAccess)) {
+    return undefined
+  }
+  return issuedStringArray((realmAccess as { roles?: unknown }).roles)
+}
+
+// Empty and non-string arrays are a preset miss. Values are copied, not normalized.
+function issuedStringArray(value: unknown): string[] | undefined {
+  if (!Array.isArray(value) || value.length === 0) return undefined
+  const roles: string[] = []
+  for (const item of value) {
+    if (typeof item !== 'string') return undefined
+    roles.push(item)
+  }
+  return roles
+}
+
+// roleClaim does not wrap a lone string and does not accept an empty string element.
+function requiredRoles(value: unknown): string[] | null {
+  if (!Array.isArray(value) || value.length === 0) return null
+  const roles: string[] = []
+  for (const item of value) {
+    if (typeof item !== 'string' || item.length === 0) return null
+    roles.push(item)
+  }
+  return roles
+}
+
 function acceptsGoogleBareIss(entry: OidcIssuer): boolean {
   return entry.preset === 'google' && entry.issuer === GOOGLE_ISSUER
 }
@@ -261,7 +333,10 @@ function toIdentity(payload: JWTPayload, entry: OidcIssuer): AuthIdentity | null
   if (typeof sub !== 'string' || sub.length === 0) return null
   const tenant = readTenant(payload, entry)
   if (tenant === null) return null
+  const roles = readRoles(payload, entry)
+  if (roles === null) return null
   const principal: Principal = { iss, sub }
   if (tenant !== undefined) principal.tenant = tenant
+  if (roles !== undefined) principal.roles = roles
   return { subject: sub, claims: payload as Record<string, unknown>, principal }
 }
