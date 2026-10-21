@@ -142,9 +142,10 @@ the configured issuer is exactly `https://accounts.google.com`: that URL and `ac
 a non-empty string. There is no `jwt` subject fallback. A failed discovery or a failed verify
 returns null. It does not throw on the request path.
 
-On success the identity is `{ subject: sub, claims: payload, principal: { iss, sub, tenant? } }`.
-`tenant` is set only when the chosen claim is a non-empty string. Roles stay on `claims`.
-`Principal` has no `roles` field.
+On success the identity is `{ subject: sub, claims: payload, principal: { iss, sub, tenant?, roles? } }`.
+`tenant` is set only when the chosen claim is a non-empty string. `roles`, when set, is a copy of
+the issued string array: no trim, sort, or dedupe. The property is omitted when unset. `claims`
+stays the full payload. `server.authorize` does not read `roles`.
 
 | Preset | Tenant claim | When it is copied |
 |---|---|---|
@@ -155,14 +156,27 @@ On success the identity is `{ subject: sub, claims: payload, principal: { iss, s
 | `okta` | none | No preset claim. Set `tenantClaim` to require one. |
 | `keycloak` | none | The realm is already in `iss`. Set `tenantClaim` to require one. |
 
-A preset claim that is missing, empty, or not a string leaves `tenant` unset and still
-authenticates. `tenantClaim` overrides the preset and is required: missing, empty, or not a
-string returns null.
+| Preset | Role claim | When it is copied |
+|---|---|---|
+| `entra` | `roles` | Top-level array of strings. |
+| `cognito` | `cognito:groups` | Top-level array of strings. |
+| `google` | none | A bare `roles` claim stays on `claims`. |
+| `auth0` | none | A bare `roles` claim stays on `claims`. |
+| `okta` | none | A bare `roles` claim stays on `claims`. Set `roleClaim` to require one. |
+| `keycloak` | `realm_access.roles` | Realm roles only. `resource_access` is not read. |
+
+A preset tenant claim that is missing, empty, or not a string leaves `tenant` unset and still
+authenticates. A preset role claim that is missing, empty, or not an array of strings leaves
+`roles` unset and still authenticates. A lone string is not wrapped. `tenantClaim` overrides the
+preset tenant claim and is required: missing, empty, or not a string returns null. `roleClaim`
+overrides the preset role source, including Keycloak's nested read. It names one top-level claim
+and does not walk dotted paths. That claim must be a non-empty array of non-empty strings, or
+authenticate returns null. An empty `roleClaim` throws at construction.
 
 Construction throws, with no network call, when `issuers` is empty, two entries share an
-`issuer` string, an `issuer` or `audience` is empty, an `issuer` is not `https` and not
-`http://localhost` or `http://127.0.0.1`, or `algorithms` includes anything outside the set
-above.
+`issuer` string, an `issuer` or `audience` is empty, `roleClaim` is an empty string, an `issuer`
+is not `https` and not `http://localhost` or `http://127.0.0.1`, or `algorithms` includes
+anything outside the set above.
 
 ## OAuth 2.0
 
@@ -244,15 +258,16 @@ and stashes the identity on the request context. That identity is what `server.a
 Arbitrary middleware does not count as auth — only a plugin whose `name` is `auth`. Applying
 `authMiddleware` by hand does not.
 
-A verified strategy may set `AuthIdentity.principal` (`iss` and `sub`, both required, and an
-optional `tenant`). It carries no email, name, or roles. `POST /agents/:id/run` and
-`POST /pipelines/:id/run` copy that principal onto the run and ignore a `principal` field on the
-JSON body. A missing principal does not reject the run. In-process callers pass
-`RunOptions.principal` to `run`, `runPipeline`, and `runTask`. Resume uses the principal stored
-on the checkpoint and does not take one as an argument. `@breadai/auth-trusted` sets it from
-the verified gateway token. `@breadai/auth-jwt` sets `iss` and `sub` with no tenant from
-`authStrategy`, and `iss`, `sub`, and an optional `tenant` from `oidcStrategy`.
-`@breadai/auth-oauth2` verifies through `authStrategy`, so it sets that principal.
+A verified strategy may set `AuthIdentity.principal` (`iss` and `sub`, both required, an optional
+`tenant`, and an optional `roles` array). It carries no email or name. `server.authorize` does not
+read `roles`. `POST /agents/:id/run` and `POST /pipelines/:id/run` copy that principal onto the run
+and ignore a `principal` field on the JSON body. A missing principal does not reject the run.
+In-process callers pass `RunOptions.principal` to `run`, `runPipeline`, and `runTask`. Resume uses
+the principal stored on the checkpoint and does not take one as an argument.
+`@breadai/auth-trusted` sets it from the verified gateway token. `@breadai/auth-jwt` sets `iss` and
+`sub` with no tenant and no roles from `authStrategy`, and `iss`, `sub`, an optional `tenant`, and
+an optional `roles` from `oidcStrategy`. `@breadai/auth-oauth2` verifies through `authStrategy`, so
+it sets that principal.
 `@breadai/auth-api-key` does not. Tools read it as
 [`principal`](./tools.md#toolcontext) on `ToolContext`.
 
