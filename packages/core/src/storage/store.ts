@@ -77,8 +77,9 @@ export interface LoopRecord {
   result?: unknown
   // Post-hook output of the latest finished iteration. The iteration row stays
   // raw; a rebuilt runtime reads this so core_iterate_loop / core_finish_loop
-  // match the tool result the model already saw. Absent on loops that have
-  // not finished an iteration since this field existed.
+  // match the tool result the model already saw. Absent only when no finished
+  // iteration has written it. Present null and present undefined are hook
+  // replacements, not a missing column.
   lastOutput?: unknown
   startedAt: number
   completedAt?: number | undefined
@@ -171,9 +172,13 @@ export interface BreadStore {
   // --- Checkpoints (HITL) ----------------------------------------------------
   saveCheckpoint(record: CheckpointRecord): Promise<void>
   getCheckpoint(id: string): Promise<CheckpointRecord | undefined>
+  // Claims a loop-worker row without deleting it. Returns the row once; a
+  // second caller gets undefined. getCheckpoint still returns a claimed row,
+  // and saveCheckpoint must not clear the flag. deleteCheckpoint releases it.
+  claimCheckpoint(id: string): Promise<CheckpointRecord | undefined>
   // Atomically deletes and returns the record, or undefined if it was already
-  // gone — the claim primitive resume() uses so a concurrent second resume of
-  // the same checkpoint loses the race instead of double-acting.
+  // gone — the claim primitive resume() uses for every checkpoint that is not
+  // a loop worker, so a concurrent second resume loses the race.
   deleteCheckpoint(id: string): Promise<CheckpointRecord | undefined>
   listCheckpoints(): Promise<CheckpointRecord[]>
   // Persists a suspending run's response messages and its checkpoint as one

@@ -1,5 +1,5 @@
 import type { RunnerContext } from './runner-types.js'
-import type { CheckpointRecord } from './storage/store.js'
+import type { CheckpointRecord, PendingDelegation } from './storage/store.js'
 import type { CheckpointParent, LoopHostLink, PipelineCheckpointParent } from './types.js'
 import { BreadError } from './types.js'
 
@@ -45,8 +45,10 @@ export function attachHostLoop(
 }
 
 // A later suspension in the same iteration replaces the worker checkpoint.
-// Point every loop host above this leaf at the checkpoint the client can resume.
-export async function retargetLoopHostPending(ctx: RunnerContext, leafId: string): Promise<void> {
+// Point every loop host above this leaf at a checkpoint that still exists.
+// Returns whether a loop host sits above the leaf (even if its pending list
+// already named it) so the caller can re-yield that leaf's human:required.
+export async function retargetLoopHostPending(ctx: RunnerContext, leafId: string): Promise<boolean> {
   const seen = new Set<string>()
   const hostIds: string[] = []
   let current: string | undefined = leafId
@@ -72,20 +74,141 @@ export async function retargetLoopHostPending(ctx: RunnerContext, leafId: string
     current = nextHost
   }
 
-  const leaf = await ctx.store.getCheckpoint(leafId)
-  if (!leaf) return
   const unique = [...new Set(hostIds)]
+  const leaf = await ctx.store.getCheckpoint(leafId)
+  if (!leaf || unique.length === 0) return false
+  const releasing = ctx.releasingLoopWorkerId
   for (const hostId of unique) {
     if (hostId === leafId) continue
     const host = await ctx.store.getCheckpoint(hostId)
-    if (!host?.pending || host.pending.length !== 1) continue
+    if (!host?.pending?.length) continue
     if (host.toolName !== 'core_start_loop' && host.toolName !== 'core_iterate_loop') continue
-    const pending = host.pending[0]!
-    if (pending.childCheckpointId === leafId && pending.subAgentId === leaf.agentId) continue
-    await ctx.store.saveCheckpoint({
-      ...host,
-      pending: [{ ...pending, childCheckpointId: leafId, subAgentId: leaf.agentId }],
-    })
+    const live: PendingDelegation[] = []
+    for (const entry of host.pending) {
+      if (entry.childCheckpointId === releasing) continue
+      if (entry.childCheckpointId === leafId) {
+        live.push(entry)
+        continue
+      }
+      if (await ctx.store.getCheckpoint(entry.childCheckpointId)) live.push(entry)
+    }
+    const hasLeaf = live.some((entry) => entry.childCheckpointId === leafId)
+    const next = hasLeaf
+      ? live
+      : [
+          ...live,
+          {
+            toolCallId: host.pending[0]!.toolCallId,
+            childCheckpointId: leafId,
+            subAgentId: leaf.agentId,
+          },
+        ]
+    if (samePending(host.pending, next)) continue
+    await ctx.store.saveCheckpoint({ ...host, pending: next })
+  }
+  return true
+}
+
+export async function loopHostLinkOf(
+  ctx: RunnerContext,
+  parent: CheckpointParent | undefined,
+): Promise<LoopHostLink | undefined> {
+  const seen = new Set<string>()
+  let current = parent
+  while (current) {
+    if (current.kind === 'supervisor') {
+      if (seen.has(current.checkpointId)) return undefined
+      seen.add(current.checkpointId)
+      const supervisor = await ctx.store.getCheckpoint(current.checkpointId)
+      current = supervisor?.parent
+      continue
+    }
+    let frame: PipelineCheckpointParent | undefined = current
+    while (frame) {
+      if (frame.hostLoop) return frame.hostLoop
+      frame = frame.outer
+    }
+    return undefined
+  }
+  return undefined
+}
+
+export async function failOpenLoops(
+  ctx: RunnerContext,
+  loopIds: readonly string[],
+  checkpointIds: readonly string[],
+): Promise<void> {
+  const loops = new Set(loopIds.filter((id) => id.length > 0))
+  const toDelete = new Set(checkpointIds.filter((id) => id.length > 0))
+  const seen = new Set<string>()
+  for (const leafId of [...toDelete]) await collectLoopChain(ctx, leafId, loops, toDelete, seen)
+  await collectHostsPendingOn(ctx, loops, toDelete)
+  for (const loopId of loops) await markLoopFailed(ctx, loopId)
+  for (const id of toDelete) await ctx.store.deleteCheckpoint(id)
+}
+
+// Follow supervisor and hostLoop links from a leaf. An inner host that is not
+// in the caller's id list is still this suspension: fail its loop and delete
+// it. Checkpoints off the chain are left alone.
+async function collectLoopChain(
+  ctx: RunnerContext,
+  id: string,
+  loops: Set<string>,
+  toDelete: Set<string>,
+  seen: Set<string>,
+): Promise<void> {
+  if (!id || seen.has(id)) return
+  seen.add(id)
+  const parent = (await ctx.store.getCheckpoint(id))?.parent
+  if (!parent) return
+  if (parent.kind === 'supervisor') {
+    await collectLoopChain(ctx, parent.checkpointId, loops, toDelete, seen)
+    return
+  }
+  const hosts: LoopHostLink[] = []
+  let frame: PipelineCheckpointParent | undefined = parent
+  while (frame) {
+    if (frame.hostLoop) hosts.push(frame.hostLoop)
+    frame = frame.outer
+  }
+  for (const link of hosts) {
+    loops.add(link.loopId)
+    toDelete.add(link.checkpointId)
+    await collectLoopChain(ctx, link.checkpointId, loops, toDelete, seen)
+  }
+}
+
+// A host whose only pending children are leaves this failure is deleting has
+// no live iteration left, even when the leaf no longer carries hostLoop.
+async function collectHostsPendingOn(
+  ctx: RunnerContext,
+  loops: Set<string>,
+  toDelete: Set<string>,
+): Promise<void> {
+  const all = await ctx.store.listCheckpoints()
+  let grew = true
+  while (grew) {
+    grew = false
+    for (const cp of all) {
+      if (toDelete.has(cp.id)) continue
+      if (cp.toolName !== 'core_start_loop' && cp.toolName !== 'core_iterate_loop') continue
+      const pending = cp.pending ?? []
+      if (pending.length === 0) continue
+      const allGone = pending.every(
+        (entry) => toDelete.has(entry.childCheckpointId) || !all.some((row) => row.id === entry.childCheckpointId),
+      )
+      if (!allGone) continue
+      toDelete.add(cp.id)
+      grew = true
+      const running = await ctx.store.listLoops({
+        sessionId: cp.sessionId,
+        agentId: cp.agentId,
+        status: 'running',
+      })
+      for (const loop of running) {
+        if (loop.runId === cp.runId) loops.add(loop.id)
+      }
+    }
   }
 }
 
@@ -141,11 +264,49 @@ export async function dropPendingLoopHosts(
   }
 }
 
+// True when this parent is a loop iteration whose hostLoop is not saved yet.
+// A later suspend in the same iteration already carries the link.
+export async function loopIterationAwaitingHost(
+  ctx: RunnerContext,
+  parent: CheckpointParent | undefined,
+  seen = new Set<string>(),
+): Promise<boolean> {
+  if (!parent) return false
+  if (parent.kind === 'supervisor') {
+    if (seen.has(parent.checkpointId)) return false
+    seen.add(parent.checkpointId)
+    const supervisor = await ctx.store.getCheckpoint(parent.checkpointId)
+    return loopIterationAwaitingHost(ctx, supervisor?.parent, seen)
+  }
+  const pipelineIds: string[] = []
+  let frame: PipelineCheckpointParent | undefined = parent
+  while (frame) {
+    if (frame.hostLoop) return false
+    pipelineIds.push(frame.pipelineId)
+    frame = frame.outer
+  }
+  for (const pipelineId of pipelineIds) {
+    const detail = await ctx.store.getLoop(pipelineId)
+    if (detail?.loop.status === 'running') return true
+  }
+  return false
+}
+
 export function missingHostCheckpoint(checkpointId: string, loopId: string): BreadError {
   return new BreadError(
     `Loop host checkpoint not found or already resumed: ${checkpointId}`,
     'CHECKPOINT_NOT_FOUND',
     { checkpointId, loopId },
+  )
+}
+
+function samePending(left: PendingDelegation[], right: PendingDelegation[]): boolean {
+  if (left.length !== right.length) return false
+  return left.every(
+    (entry, index) =>
+      entry.childCheckpointId === right[index]?.childCheckpointId &&
+      entry.subAgentId === right[index]?.subAgentId &&
+      entry.toolCallId === right[index]?.toolCallId,
   )
 }
 

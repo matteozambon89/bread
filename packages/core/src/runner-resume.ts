@@ -1,8 +1,15 @@
 import { completeLoopIteration } from './loop.js'
-import { dropPendingLoopHosts, markLoopFailed, missingHostCheckpoint } from './loop-host.js'
+import {
+  dropPendingLoopHosts,
+  loopHostLinkOf,
+  markLoopFailed,
+  missingHostCheckpoint,
+  retargetLoopHostPending,
+} from './loop-host.js'
 import { continuePipelineParent } from './pipeline.js'
 import type { FinishedLoopFrame } from './pipeline.js'
-import { crumbBase, nowMs } from './runner-helpers.js'
+import { TOOL_SCOPES, leafName } from './permissions.js'
+import { crumbBase, makeHumanRequiredCrumb, nowMs } from './runner-helpers.js'
 import { continueRun } from './runner-continue.js'
 import {
   executeStreamingToolWithHooks,
@@ -50,11 +57,37 @@ export async function* resumeRun(
     const childIds = cp.pending.map((p) => p.childCheckpointId).join(', ')
     const loopHost = cp.toolName === 'core_start_loop' || cp.toolName === 'core_iterate_loop'
     if (loopHost) {
+      const live = []
+      for (const entry of cp.pending) {
+        if (await ctx.store.getCheckpoint(entry.childCheckpointId)) live.push(entry)
+      }
+      if (live.length === 0) {
+        const running = await ctx.store.listLoops({
+          sessionId: cp.sessionId,
+          agentId: cp.agentId,
+          status: 'running',
+        })
+        for (const loop of running) {
+          if (loop.runId === cp.runId) await markLoopFailed(ctx, loop.id)
+        }
+        await ctx.store.deleteCheckpoint(cp.id)
+        await dropPendingLoopHosts(ctx, cp.parent, cp.pending[0]?.childCheckpointId ?? cp.id)
+        throw new BreadError(
+          `Checkpoint ${checkpointId} belongs to loop host "${cp.agentId}" but its worker ` +
+            `checkpoint is gone (${childIds}). The loop was marked failed.`,
+          'LOOP_CHECKPOINT_NOT_RESUMABLE',
+          { checkpointId, agentId: cp.agentId, pending: cp.pending },
+        )
+      }
+      if (live.length !== cp.pending.length) {
+        await ctx.store.saveCheckpoint({ ...cp, pending: live })
+      }
+      const liveIds = live.map((entry) => entry.childCheckpointId).join(', ')
       throw new BreadError(
         `Checkpoint ${checkpointId} belongs to loop host "${cp.agentId}" awaiting a suspended ` +
-          `iteration — resume the worker checkpoint instead (checkpoint at suspension time: ${childIds}).`,
+          `iteration — resume the worker checkpoint instead (checkpoint at suspension time: ${liveIds}).`,
         'LOOP_CHECKPOINT_NOT_RESUMABLE',
-        { checkpointId, agentId: cp.agentId, pending: cp.pending },
+        { checkpointId, agentId: cp.agentId, pending: live },
       )
     }
     throw new BreadError(
@@ -100,28 +133,67 @@ export async function* resumeRun(
   // answer. There is no declared shape for `response` to validate against;
   // taking it as-is is correct given the current defineHumanTool API, not a
   // gap — see kind === 'input' below.
-  // Atomically claim the checkpoint before doing anything else observable —
-  // a concurrent second resume() of the same checkpoint loses this race and
-  // hits CHECKPOINT_NOT_FOUND instead of also executing/appending. Once
-  // claimed it's gone regardless of what happens below, so a failed tool
-  // execution can no longer strand an orphaned-but-still-claimable checkpoint.
-  const claimed = await ctx.store.deleteCheckpoint(checkpointId)
-  if (!claimed) {
-    throw new BreadError(
-      `Checkpoint not found or already resumed: ${checkpointId}`,
-      'CHECKPOINT_NOT_FOUND',
-      { checkpointId },
-    )
+  // A loop worker is claimed, not deleted. The row has to stay so the host
+  // can still resolve it; the loser throws and does not fail the loop.
+  // Other checkpoints are still deleted up front so a concurrent second
+  // resume loses the race.
+  const loopWorker = (await loopHostLinkOf(ctx, cp.parent)) !== undefined
+  if (!loopWorker) {
+    const claimed = await ctx.store.deleteCheckpoint(checkpointId)
+    if (!claimed) {
+      throw new BreadError(
+        `Checkpoint not found or already resumed: ${checkpointId}`,
+        'CHECKPOINT_NOT_FOUND',
+        { checkpointId },
+      )
+    }
+  } else {
+    const claimed = await ctx.store.claimCheckpoint(checkpointId)
+    if (!claimed) {
+      throw new BreadError(
+        `Checkpoint not found or already resumed: ${checkpointId}`,
+        'CHECKPOINT_NOT_FOUND',
+        { checkpointId },
+      )
+    }
+    ctx.releasingLoopWorkerId = checkpointId
   }
 
   try {
-    yield* resumeClaimed(checkpointId, response, cp, kind, executables, def, runOpts, ctx)
+    for await (const crumb of resumeClaimed(checkpointId, response, cp, kind, executables, def, runOpts, ctx)) {
+      if (
+        ctx.releasingLoopWorkerId === checkpointId &&
+        (crumb.type === 'loop:iteration:end' ||
+          (crumb.type === 'human:required' && crumb.checkpointId !== checkpointId))
+      ) {
+        // An inner iteration end still has the worker on an outer host.
+        // A replacement human:required already retargets hosts onto the new id.
+        if (!(await checkpointStillPending(ctx, checkpointId))) {
+          ctx.releasingLoopWorkerId = undefined
+          await ctx.store.deleteCheckpoint(checkpointId)
+        }
+      }
+      yield crumb
+    }
   } catch (err) {
     // The worker row is still here. A host is dropped only when this id was
     // its last live child — a sibling that is still stored keeps the loop.
     await dropPendingLoopHosts(ctx, cp.parent, checkpointId)
+    if (ctx.releasingLoopWorkerId === checkpointId) {
+      ctx.releasingLoopWorkerId = undefined
+      await ctx.store.deleteCheckpoint(checkpointId)
+    }
     throw err
   }
+}
+
+async function checkpointStillPending(ctx: RunnerContext, checkpointId: string): Promise<boolean> {
+  const all = await ctx.store.listCheckpoints()
+  return all.some(
+    (cp) =>
+      (cp.toolName === 'core_start_loop' || cp.toolName === 'core_iterate_loop') &&
+      cp.pending?.some((entry) => entry.childCheckpointId === checkpointId),
+  )
 }
 
 async function* resumeClaimed(
@@ -257,7 +329,12 @@ async function* continueParent(
 ): AsyncGenerator<BreadCrumb> {
   if (parent.kind === 'pipeline') {
     const finished = yield* continuePipelineParent(parent, output, ctx, undefined, principal)
-    if (finished) yield* continueLoopHost(finished, ctx)
+    if (!finished) return
+    if ('hostLoop' in finished && finished.hostLoop) {
+      yield* continueLoopHost(finished, ctx)
+      return
+    }
+    if (finished.supervisor) yield* continueSupervisorParent(finished.supervisor, finished.output, ctx)
     return
   }
   yield* continueSupervisorParent(parent, output, ctx)
@@ -350,6 +427,8 @@ async function* continueLoopHost(
     if (ended) yield* closeLoopIfRunning(ctx, link.loopId, 'completed', completed.lastOutput)
     if (ended && hostCp.parent) {
       yield* continueParent(hostCp.parent, output, ctx, hostCp.principal)
+    } else if (ended && finished.supervisor) {
+      yield* continueSupervisorParent(finished.supervisor, output, ctx)
     }
   } catch (err) {
     // This host checkpoint is already claimed, so its parent is the only
@@ -434,6 +513,18 @@ async function* continueSupervisorParent(
     // read-modify-write (same ceiling as parallel pipeline branches);
     // sequential resumes are correct.
     await ctx.store.saveCheckpoint({ ...scp, pending: remaining })
+    const sibling = await firstLivePending(ctx, remaining)
+    if (sibling && (await retargetLoopHostPending(ctx, sibling.id))) {
+      yield makeHumanRequiredCrumb(
+        sibling.agentId,
+        sibling.runId,
+        sibling.sessionId,
+        sibling.id,
+        sibling.toolName,
+        sibling.schema,
+        suspensionKind(ctx, sibling.agentId, sibling.toolName),
+      )
+    }
     return
   }
 
@@ -468,4 +559,21 @@ async function* continueSupervisorParent(
   if (ended && scp.parent) {
     yield* continueParent(scp.parent, output, ctx, scp.principal)
   }
+}
+
+async function firstLivePending(
+  ctx: RunnerContext,
+  pending: NonNullable<NonNullable<Awaited<ReturnType<RunnerContext['store']['getCheckpoint']>>>['pending']>,
+): Promise<NonNullable<Awaited<ReturnType<RunnerContext['store']['getCheckpoint']>>> | undefined> {
+  for (const entry of pending) {
+    const child = await ctx.store.getCheckpoint(entry.childCheckpointId)
+    if (child) return child
+  }
+  return undefined
+}
+
+function suspensionKind(ctx: RunnerContext, agentId: string, toolName: string): 'input' | 'approval' {
+  const humans = (ctx.agents.get(agentId)?.config as { _humanTools?: { name: string }[] } | undefined)?._humanTools
+  if (humans?.some((tool) => leafName({ scope: TOOL_SCOPES.HUMAN, name: tool.name }) === toolName)) return 'input'
+  return 'approval'
 }

@@ -89,14 +89,23 @@ restart-safe guarantee, extended by **checkpoint linkage** (`CheckpointRecord.pa
   error). The host link is stored on **this loop's** pipeline frame (an ancestor of the human
   checkpoint when the pool agent delegated, or is itself a loop host) and does not replace an
   inner host link. The host checkpoint is not directly resumable
-  (`LOOP_CHECKPOINT_NOT_RESUMABLE`); its pending child is the live human checkpoint, updated if
-  the same iteration suspends again. Resuming that checkpoint continues the same iteration: the
-  suspended step closes, remaining steps run, and only when that frame finishes unsuspended is the
-  iteration row written and `loop:iteration:end` emitted. That output is then the host's tool
-  result and the host run continues. A later suspension in the same iteration still does not
-  finalize the iteration or continue the host. A pipeline step that finishes without
-  `human:required` still finalizes immediately. A loop suspension is not an agent error: the
-  client still sees `human:required`, and the loop stays `running`.
+  (`LOOP_CHECKPOINT_NOT_RESUMABLE`); its pending list names every live human checkpoint for that
+  iteration, and a later suspension replaces a checkpoint that is gone. Resuming one delegated
+  leaf while a sibling is still pending retargets that list at a checkpoint that still exists and
+  ends the stream on that sibling's `human:required`. If every pending child is already gone,
+  resuming the host marks the loop failed and deletes the host. Resuming a live child continues
+  the same iteration: the suspended step closes, remaining steps run, and only when that frame
+  finishes unsuspended is the iteration row written and `loop:iteration:end` emitted. The worker
+  checkpoint stays until a replacement checkpoint is saved, or that row commits and no host
+  checkpoint still names the worker. An inner iteration end does not drop a worker an outer host
+  still has pending. That output is
+  then the host's tool result and the host run continues. A later suspension in the same iteration
+  still does not finalize the iteration or continue the host. A pipeline step that finishes without
+  `human:required` still finalizes immediately. One loop suspension is not an agent error: the
+  client still sees `human:required`, and the loop stays `running`. A loop suspension in the same
+  turn as a host human tool, an ask-gated tool, another loop suspension, or a host delegation is
+  `MIXED_SUSPENSION_UNSUPPORTED`: the turn fails, the loop is marked failed, and the worker
+  checkpoint is deleted instead of yielding `human:required`.
 - **Supervisor delegation**: a delegated run suspending chain-suspends the supervisor — its turn
   persists with the `core_delegate` call left dangling, and a supervisor checkpoint lists the
   pending delegation(s). Resuming the **child** cascades: the child completes, its output lands as

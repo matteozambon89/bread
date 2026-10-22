@@ -96,7 +96,7 @@ export async function completeLoopIteration(
   })
   await ctx.store.updateLoop(loop.id, {
     iterations: index,
-    ...(finalOutput !== undefined ? { lastOutput: finalOutput } : {}),
+    lastOutput: finalOutput,
   })
   return {
     crumb: {
@@ -172,17 +172,21 @@ export async function buildLoopTools(args: BuildLoopToolsArgs): Promise<LoopRunt
   if (mine) {
     const detail = await ctx.store.getLoop(mine.id)
     const last = detail?.iterations.at(-1)
+    const loopRecord = detail?.loop
     // The iteration row stays raw. The post-hook value lives on the loop so a
     // later resume (or a new process) matches the tool result the model saw.
-    const storedLast = detail?.loop.lastOutput
+    // A present undefined is a hook replacement; only a missing field falls
+    // back to the raw row. An older lastOutput must not outrank this iteration.
+    const hasStoredLast =
+      loopRecord !== undefined && Object.prototype.hasOwnProperty.call(loopRecord, 'lastOutput')
     active = {
       loopId: mine.id,
       pipeline: mine.pipeline,
       iteration: mine.iterations,
       lastOutput: restoredLastOutput
         ? restoredLastOutput.value
-        : storedLast !== undefined
-          ? storedLast
+        : hasStoredLast
+          ? loopRecord.lastOutput
           : last?.output,
       status: 'running',
     }
@@ -199,8 +203,12 @@ export async function buildLoopTools(args: BuildLoopToolsArgs): Promise<LoopRunt
   // streamText runs a step's tool calls concurrently, and stopWhen only fires
   // after the step. A second loop call must not start another pipeline.
   let loopBusy = false
+  // core_start_loop / core_iterate_loop threw LOOP_SUSPENDED and no iteration
+  // row exists yet. The in-flight guard stays held for the rest of this step;
+  // iterate and finish must not run against that open iteration either.
+  let suspendedWithoutRow = false
   function claimLoopCall(): void {
-    if (loopBusy) {
+    if (loopBusy || suspendedWithoutRow) {
       throw new BreadError(
         'A loop tool call is already running in this turn.',
         'LOOP_TOOL_IN_FLIGHT',
@@ -213,9 +221,15 @@ export async function buildLoopTools(args: BuildLoopToolsArgs): Promise<LoopRunt
     return async (args) => {
       claimLoopCall()
       try {
-        return await fn(args)
-      } finally {
+        const result = await fn(args)
         loopBusy = false
+        return result
+      } catch (err) {
+        // Keep the guard until this runtime is discarded. Releasing it in
+        // finally lets a later tool in the same step iterate or finish the
+        // open iteration before the host suspends.
+        if (!(err instanceof BreadError && err.code === 'LOOP_SUSPENDED')) loopBusy = false
+        throw err
       }
     }
   }
@@ -235,14 +249,16 @@ export async function buildLoopTools(args: BuildLoopToolsArgs): Promise<LoopRunt
     })
     const held: BreadCrumb[] = []
     heldBatches.push(held)
-    let suspendedCheckpointId: string | undefined
+    const suspendedCheckpointIds: string[] = []
     for (;;) {
       const next = await gen.next()
       if (next.done) {
         if (next.value.suspended) {
+          suspendedWithoutRow = true
+          const checkpointId = suspendedCheckpointIds.at(-1)
           throw new BreadError(
             `Loop "${a.loopId}" iteration ${a.iteration + 1} suspended for human input` +
-              (suspendedCheckpointId ? ` (checkpoint ${suspendedCheckpointId})` : '') +
+              (checkpointId ? ` (checkpoint ${checkpointId})` : '') +
               '; the host run suspends with it.',
             'LOOP_SUSPENDED',
             {
@@ -250,7 +266,8 @@ export async function buildLoopTools(args: BuildLoopToolsArgs): Promise<LoopRunt
               iteration: a.iteration + 1,
               input,
               startedAt,
-              ...(suspendedCheckpointId ? { checkpointId: suspendedCheckpointId } : {}),
+              ...(checkpointId ? { checkpointId } : {}),
+              ...(suspendedCheckpointIds.length ? { checkpointIds: suspendedCheckpointIds } : {}),
             },
           )
         }
@@ -258,7 +275,7 @@ export async function buildLoopTools(args: BuildLoopToolsArgs): Promise<LoopRunt
       }
       const crumb = next.value
       if (crumb.type === 'human:required') {
-        suspendedCheckpointId = crumb.checkpointId
+        suspendedCheckpointIds.push(crumb.checkpointId)
         held.push(crumb)
         continue
       }
@@ -287,7 +304,7 @@ export async function buildLoopTools(args: BuildLoopToolsArgs): Promise<LoopRunt
     })
     await ctx.store.updateLoop(a.loopId, {
       iterations: index,
-      ...(finalOutput !== undefined ? { lastOutput: finalOutput } : {}),
+      lastOutput: finalOutput,
     })
     a.iteration = index
     a.lastOutput = finalOutput
