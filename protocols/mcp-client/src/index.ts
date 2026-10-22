@@ -5,6 +5,8 @@ import { type McpExternalServerConfig, createExternalConnectionCache, namespaced
 export type { McpServerConfig, ConnectedServer } from './client.js'
 export type { McpExternalServerConfig } from './external.js'
 export { connectServer, sanitizeMcpToolName } from './client.js'
+export { mcpToolNeedsAsk } from './ask.js'
+export type { McpToolAnnotations } from './ask.js'
 export { jsonSchemaToZod } from './json-schema-to-zod.js'
 
 export interface McpClientOptions {

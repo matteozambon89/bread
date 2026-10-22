@@ -145,6 +145,44 @@ before they reach `defineAgent`.
 browser-redirect-shaped (a human approves a consent screen), which doesn't fit a backend agent
 connecting to a pre-configured server non-interactively. Bearer/API-key auth via `BreadSigner`
 — including a token you obtained through OAuth some other way — is the supported mechanism.
+Per-user OAuth waits on issue #41. See [Single-tenant connect](#single-tenant-connect).
+
+## Ask before writes
+
+`askWrites` on a config-level server is optional. When it is true, each imported tool is
+defined with `ask: true` unless its annotations have `readOnlyHint: true` and `destructiveHint`
+is not true. `destructiveHint: true` asks even when `readOnlyHint` is also true. Missing
+annotations ask. `mcpToolNeedsAsk` is that check, exported for callers that map tools
+themselves. A server without `askWrites` never sets `ask`. `ask` is not copied onto the model tool.
+
+The runner gates that leaf unless `permissions.allow` matches the origin and `permissions.ask`
+does not. An empty `allow` list is not an explicit allow, so the default still gates.
+`permissions.deny` has already removed the tool. Continue and resume both assemble tools the
+same way, so both see the gate. Selectors are documented in [agents.md](./agents.md#permissions).
+
+`bread mcp add <name>` prints `askWrites: true`. `bread mcp add --url` does not. An MCP tool
+`echo` from server `stripe` is namespaced `stripe__echo`; under the `mcp_client` plugin the
+leaf is `plugin_mcp_client_stripe__echo` (`plugin:mcp_client/stripe__echo`).
+
+## Single-tenant connect
+
+`bread mcp list` and `bread mcp add` print a server entry to paste into `bread.config.ts`.
+They do not edit that file, and the CLI does not fetch the registry. The allowlist is a
+reviewed pin of `com.*` servers whose registry entry has a streamable-http URL. Community
+namespaces are not included. An unknown name throws `UNKNOWN_MCP_CONNECTOR` and lists the
+allowlist. `--url` with `--name` prints that exact URL and does not check HTTPS, loopback,
+or the allowlist. `--name` is only valid with `--url`. See [cli.md](./cli.md#mcp).
+
+This path is single-tenant. An `api_key` pin prints `import { envProvider } from '@breadai/core'`
+and `const mcpCredentials = envProvider()` before the object. The banner says to paste that
+import and const into `bread.config.ts` and the object into `mcpClient({ servers })`. The
+`BreadSigner` calls `mcpCredentials.get` with one pinned credential name, throws if the secret
+is missing, and sets the pinned header to the pinned scheme plus the secret. No secret value
+is printed, and the object does not mention a free `credentials` identifier. An `oauth` pin
+prints the URL and still sets `askWrites: true`. Before the object, it logs its own line that
+per-user OAuth is not available in this command (it waits on issue #41). That line is not part
+of the object. The command does not open a browser, print a client id, or print a token URL.
+A `none` pin prints no signer.
 
 ## Building blocks
 

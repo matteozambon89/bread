@@ -2,7 +2,7 @@ import { createDocTools } from './documents.js'
 import { buildKgContext, createKgTools } from './kg.js'
 import { buildLoopTools, loopSummary } from './loop.js'
 import type { LoopRuntime } from './loop.js'
-import { TOOL_SCOPES, leafName, resolvePermissions } from './permissions.js'
+import { TOOL_SCOPES, gateAskDefaults, leafName, resolvePermissions } from './permissions.js'
 import type { ToolOrigin } from './permissions.js'
 import { createTaskTool } from './task.js'
 import {
@@ -178,6 +178,13 @@ export async function assembleTools(
   const origins = sources.map((s) => s.origin)
   const { allowed, gated } = resolvePermissions(origins, cfg.permissions)
   const allowedSet = new Set(allowed)
+  // `deny` already removed those origins. `ask: true` gates a survivor unless
+  // allow matches that origin and ask does not.
+  gateAskDefaults(
+    gated,
+    sources.filter((source) => allowedSet.has(source.origin)),
+    cfg.permissions,
+  )
 
   const executables = new Map<string, ExecutableEntry>()
   for (const s of sources) {
