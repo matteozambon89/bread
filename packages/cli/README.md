@@ -26,6 +26,8 @@ bun add -g @breadai/cli   # or: npm i -g @breadai/cli
 | `bread tool add [agent] [name]` | Write a tool (`--human` stays a flag). `web-search` is not a valid tool name |
 | `bread skill add [agent] [id]` | Write `SKILL.md` (`--description` stays a flag) |
 | `bread agent eval [agent] [name]` | Write an eval file. Does not change `bread eval` |
+| `bread mcp list` | List curated MCP connectors: name, registry namespace, pinned URL, auth, and version |
+| `bread mcp add [name]` | Print a server entry to paste into `bread.config.ts`. Does not edit the project. `--name` is only valid with `--url` |
 
 `bread init` on a TTY asks in this order. A passed flag is not asked. An existing `bread.config.ts`, `package.json`, or `agents/` throws `SCAFFOLD_EXISTS` before the first question. Enter accepts the default for runtime, store, transport, agent, and install. Provider and model have no default: a blank answer is asked again. Cancel exits 0; before any write, the directory is unchanged. Without a TTY, missing `--provider` or `--model` throws and writes nothing. A flag-only init that never asks is unchanged.
 
@@ -40,6 +42,8 @@ bun add -g @breadai/cli   # or: npm i -g @breadai/cli
 | 7 | Model id | text | none — a blank answer is asked again |
 
 The chosen provider is installed after `bun install`. `--no-install` prints `bread provider add <name>` instead. The outro names that provider. Add commands use text only for a missing name. Tool, skill, and eval do not ask for a provider or model.
+
+`bread mcp list` and `bread mcp add` print a curated connector. They do not edit the project. An `api_key` add prints `import { envProvider } from '@breadai/core'` and `const mcpCredentials = envProvider()` before the object; paste that import and const into `bread.config.ts` and the object into `mcpClient({ servers })`. The signer calls `mcpCredentials.get`, throws if the secret is missing, and sets the pinned header to the pinned scheme plus the secret. An `oauth` add logs that per-user OAuth waits on issue #41 as its own line before the object (not inside it) and still sets `askWrites`. `--name` is only valid with `--url`. `--url` with `--name` is the unconstrained opt-in and does not set `askWrites`. An allowlisted add does. The connect path is single-tenant. See [MCP client](https://matteozambon89.github.io/bread/mcp-client.html#ask-before-writes) and [CLI](https://matteozambon89.github.io/bread/cli.html#mcp).
 
 ## Listen runtime
 

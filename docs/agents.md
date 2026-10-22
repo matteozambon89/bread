@@ -47,6 +47,13 @@ tools it may call. Resolution is `(allow ∪ ask) − deny`: `deny` beats everyt
 `allow` (a tool in both is gated, not free), and an unset/empty `allow` means "all tools".
 Human tools are exempt and may not appear in any list.
 
+A tool definition may also set `ask: true` (not a `defineTool` field, and not sent to the
+model). After `deny` has already dropped a tool, that default gates the leaf unless an exact
+`allow` selector (no `*`) matches the origin and `ask` does not. A glob `allow` does not opt a
+tool out. An empty `allow` list is not an explicit allow.
+`@breadai/protocol-mcp-client` sets it when a server's `askWrites` is true — see
+[mcp-client.md](./mcp-client.md#ask-before-writes).
+
 Every tool carries a structured origin — its scope, an optional sub-id (the skill or plugin that
 contributed it), and its name. Selectors address that origin:
 
