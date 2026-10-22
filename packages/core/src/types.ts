@@ -589,6 +589,10 @@ export interface ToolDefinition<A = unknown, R = unknown> {
   schema: z.ZodType<A>
   outputSchema?: z.ZodType<R>
   credentials?: string[]
+  // Default ask gate. Not a `defineTool` field and not copied onto the model
+  // tool. `gateAskDefaults` adds the leaf unless an exact (no `*`)
+  // `permissions.allow` selector matches and `permissions.ask` does not.
+  ask?: boolean
   // Per-tool override of the credential resolver, distinct from `credentials`
   // above (which only *names* the secrets this tool needs). When set, this
   // provider is consulted instead of the `BreadConfig`-level default.

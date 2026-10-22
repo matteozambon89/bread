@@ -73,10 +73,18 @@ export {
 export { envProvider, vaultProvider } from './credentials.js'
 
 // Tool scopes, naming & permission resolution
-export type { ToolScope, ToolOrigin, ParsedSelector, ToolPermissions, ResolvedPermissions } from './permissions.js'
+export type {
+  AskDefaultEntry,
+  ToolScope,
+  ToolOrigin,
+  ParsedSelector,
+  ToolPermissions,
+  ResolvedPermissions,
+} from './permissions.js'
 export {
   TOOL_SCOPES,
   assertName,
+  gateAskDefaults,
   leafName,
   permId,
   parseSelector,
