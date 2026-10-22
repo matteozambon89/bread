@@ -72,7 +72,7 @@ Server runners do not read stdin for init or add.
 | `@breadai/auth-api-key` | `extensions/auth-api-key` | API-key auth strategy + signer |
 | `@breadai/auth-jwt` | `extensions/auth-jwt` | JWT auth strategy (verification only) |
 | `@breadai/auth-oauth2` | `extensions/auth-oauth2` | OAuth2 bearer-token verify + client-credentials signer |
-| `@breadai/auth-trusted` | `extensions/auth-trusted` | Trusted gateway JWT auth strategy (sets principal, verification only) |
+| `@breadai/auth-trusted` | `extensions/auth-trusted` | Trusted gateway JWT or mTLS auth strategy (sets principal, verification only) |
 | `@breadai/ui-orb` | `extensions/ui-orb` | WebGPU liquid-orb status widget (idle/thinking) — no runtime dependency |
 | `@breadai/transport-stdout` | `transports/stdout` | Terminal-rendering `BreadTransport` (`sink`) for `bread chat`/`bread invoke` |
 | `@breadai/transport-redis` | `transports/redis` | Redis Streams `BreadTransport` (cross-replica crumb fan-out; no `mount`) |
