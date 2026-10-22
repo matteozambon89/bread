@@ -16,6 +16,8 @@ through the same core `bread.run(agentId, input, opts)` the HTTP server uses.
 | `bread sessions cleanup` | Bulk delete (`--older-than <days>`, `--tag`) |
 | `bread provider list` | List catalog providers with install/env status for this project |
 | `bread provider add <name>` | Install a catalog provider's peer package and show required env vars |
+| `bread mcp list` | List curated MCP connectors: name, registry namespace, pinned URL, auth, and version |
+| `bread mcp add [name]` | Print a server entry to paste into `bread.config.ts` (`--name` is only valid with `--url`; `--url` is unconstrained and does not set `askWrites`) |
 | `bread init [dir]` | Scaffold a project (TTY wizard; without a TTY, runtime, store, transport, agent, and install keep their defaults, and `--provider` and `--model` are required) |
 | `bread agent add [id]` | Add an agent (`--provider` and `--model`; a TTY asks when omitted) and insert its id into `entrypoints` |
 | `bread agent eval [agent] [name]` | Write `agents/<agent>/evals/<name>.eval.ts` (does not run evals) |
@@ -25,7 +27,39 @@ through the same core `bread.run(agentId, input, opts)` the HTTP server uses.
 All commands accept `--cwd <dir>` to point at a project root other than the current
 directory. The command **enters** that directory, so relative paths in `bread.config.ts`
 (e.g. a SQLite file) resolve against the project root, exactly as if you had run the
-command from there.
+command from there. `bread mcp` accepts `--cwd` the same way and then ignores it: list
+and add neither read nor write the project.
+
+## `mcp`
+
+`bread mcp list` prints the checked-in allowlist. Each line is the short name, the
+registry namespace, the pinned URL, the auth mode (`none`, `api_key`, or `oauth`), and
+the registry version when the pin has one.
+
+`bread mcp add <name>` resolves `<name>` only against that allowlist and prints a server
+entry to paste into `mcpClient({ servers })`. It does not edit `bread.config.ts`. An
+unknown name throws `UNKNOWN_MCP_CONNECTOR` and lists the allowlist names. There is no
+fuzzy match and no registry fetch. The allowlisted entry sets `askWrites: true`.
+
+`bread mcp add --url <url> --name <name>` prints an `http` entry for that exact URL. It
+does not check HTTPS, loopback, or the allowlist, and it does not set `askWrites`. A
+positional name together with `--url` throws `MCP_ADD_EXCLUSIVE`. `--url` without
+`--name` throws `MCP_NAME_REQUIRED`. `--name` without `--url` throws
+`MCP_NAME_REQUIRES_URL` (`--name` is only valid with `--url`). Neither a name nor
+`--url` throws `MCP_ADD_TARGET_REQUIRED`. `--name` and the positional name must match
+`^[a-z][a-z0-9_]*$` (`INVALID_NAME`), including when `--name` is passed without `--url`.
+
+An `api_key` entry prints `import { envProvider } from '@breadai/core'` and
+`const mcpCredentials = envProvider()` before the object. The banner says to paste that
+import and const into `bread.config.ts` and the object into `mcpClient({ servers })`.
+The signer calls `mcpCredentials.get` with the pinned credential name, throws if the
+secret is missing, and sets the pinned header to the pinned scheme plus the secret
+(`Bearer` on the pinned api_key connectors). The object does not mention a free
+`credentials` identifier, and the secret value is not printed. An `oauth` entry prints
+the URL and still sets `askWrites: true`. Before the object, it logs its own line that
+per-user OAuth is not available in this command (it waits on issue #41). That line is
+not part of the object. A `none` entry prints no signer. See
+[mcp-client.md](./mcp-client.md#ask-before-writes).
 
 ## Listen runtime (`--runtime` / `config.server.runtime`)
 
