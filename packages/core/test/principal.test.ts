@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { defineHumanTool, defineTask, defineTool } from '@breadai/core'
+import { defineHumanTool, defineTask, defineTool, LOCAL_CLI_PRINCIPAL, principalVisible } from '@breadai/core'
 import type { CancellableOptions, HumanRequiredCrumb, Principal } from '@breadai/core'
 import {
   collect,
@@ -59,6 +59,26 @@ describe('principal', () => {
     try {
       await runCollect(bread, 'agent', 'go', { principal: host })
       expect(seen).toEqual([host])
+    } finally {
+      await stop()
+    }
+  })
+
+  test('agent:run:start carries iss and sub and drops tenant', async () => {
+    const { bread, stop } = await makeBread({
+      agents: { agent: defineTestAgent() },
+      model: mockTextModel('hi'),
+    })
+    try {
+      const stamped = await runCollect(bread, 'agent', 'go', { principal: host })
+      const start = stamped.find((crumb) => crumb.type === 'agent:run:start')
+      expect(start?.type === 'agent:run:start' ? start.principal : undefined).toEqual({
+        iss: host.iss,
+        sub: host.sub,
+      })
+      const plain = await runCollect(bread, 'agent', 'again')
+      const plainStart = plain.find((crumb) => crumb.type === 'agent:run:start')
+      expect(plainStart?.type === 'agent:run:start' ? plainStart.principal : undefined).toBeUndefined()
     } finally {
       await stop()
     }
@@ -222,6 +242,111 @@ describe('principal', () => {
       const cp = first.find((c) => c.type === 'human:required') as HumanRequiredCrumb
       await collect(bread.resume(cp.checkpointId, { ok: true }, { principal: spoof } as CancellableOptions))
       expect(seen).toEqual([host])
+    } finally {
+      await stop()
+    }
+  })
+
+  test('principalVisible matches iss and sub, ignores tenant, and hides an unstamped row from a caller', () => {
+    expect(principalVisible(undefined, undefined)).toBe(true)
+    expect(principalVisible(host, undefined)).toBe(true)
+    expect(principalVisible(undefined, host)).toBe(false)
+    expect(principalVisible(host, { iss: host.iss, sub: host.sub })).toBe(true)
+    expect(principalVisible(host, { iss: host.iss, sub: host.sub, tenant: 'other' })).toBe(true)
+    expect(principalVisible({ iss: host.iss, sub: host.sub }, host)).toBe(true)
+    expect(principalVisible(host, spoof)).toBe(false)
+  })
+
+  test('a requested session the caller cannot see throws SESSION_NOT_FOUND before agent:run:start', async () => {
+    let hooked = false
+    const { bread, stop } = await makeBread({
+      agents: {
+        agent: defineTestAgent({
+          config: {
+            hooks: {
+              beforeRun() {
+                hooked = true
+              },
+            },
+          },
+        }),
+      },
+      model: mockTextModel('hi'),
+    })
+    const started: string[] = []
+    bread.on('crumb', (crumb) => {
+      if (crumb.type === 'agent:run:start') started.push(crumb.sessionId)
+    })
+    try {
+      const first = await runCollect(bread, 'agent', 'go', { principal: host, session: { id: 'owned', tags: { user: 'spoof' } } })
+      expect(first.some((crumb) => crumb.type === 'agent:run:start')).toBe(true)
+      expect((await bread.store.getSession('owned'))?.principal).toEqual(host)
+      expect(hooked).toBe(true)
+      hooked = false
+
+      await expect(
+        runCollect(bread, 'agent', 'again', {
+          principal: spoof,
+          session: { id: 'owned', tags: { user: spoof.sub } },
+        }),
+      ).rejects.toMatchObject({ code: 'SESSION_NOT_FOUND' })
+      expect(hooked).toBe(false)
+      expect(started).toEqual(['owned'])
+      expect(await bread.store.getSession('owned')).toBeDefined()
+
+      const continued = await runCollect(bread, 'agent', 'again', {
+        principal: { iss: host.iss, sub: host.sub },
+        session: { id: 'owned' },
+      })
+      expect(continued.some((crumb) => crumb.type === 'agent:run:start')).toBe(true)
+      expect((await bread.store.getSession('owned'))?.principal).toEqual(host)
+
+      await bread.store.createSession({ id: 'plain' })
+      await expect(
+        runCollect(bread, 'agent', 'nope', { principal: host, session: { id: 'plain' } }),
+      ).rejects.toMatchObject({ code: 'SESSION_NOT_FOUND' })
+      const unscoped = await runCollect(bread, 'agent', 'open', { session: { id: 'plain' } })
+      expect(unscoped.some((crumb) => crumb.type === 'agent:run:start')).toBe(true)
+      expect((await bread.store.getSession('plain'))?.principal).toBeUndefined()
+    } finally {
+      await stop()
+    }
+  })
+
+  test('the local cli principal claims a null session and another iss or sub does not', async () => {
+    const { bread, stop } = await makeBread({
+      agents: { agent: defineTestAgent() },
+      model: mockTextModel('hi'),
+    })
+    try {
+      await bread.store.createSession({ id: 'legacy' })
+      await expect(
+        runCollect(bread, 'agent', 'nope', {
+          principal: { iss: LOCAL_CLI_PRINCIPAL.iss, sub: 'other' },
+          session: { id: 'legacy' },
+        }),
+      ).rejects.toMatchObject({ code: 'SESSION_NOT_FOUND' })
+      await expect(
+        runCollect(bread, 'agent', 'nope', {
+          principal: { iss: 'https://other.example', sub: LOCAL_CLI_PRINCIPAL.sub },
+          session: { id: 'legacy' },
+        }),
+      ).rejects.toMatchObject({ code: 'SESSION_NOT_FOUND' })
+      expect((await bread.store.getSession('legacy'))?.principal).toBeUndefined()
+
+      const opened = await runCollect(bread, 'agent', 'go', {
+        principal: LOCAL_CLI_PRINCIPAL,
+        session: { id: 'legacy' },
+      })
+      expect(opened.some((crumb) => crumb.type === 'agent:run:start')).toBe(true)
+      expect((await bread.store.getSession('legacy'))?.principal).toEqual(LOCAL_CLI_PRINCIPAL)
+
+      const again = await runCollect(bread, 'agent', 'go', {
+        principal: { ...LOCAL_CLI_PRINCIPAL, tenant: 'ignored' },
+        session: { id: 'legacy' },
+      })
+      expect(again.some((crumb) => crumb.type === 'agent:run:start')).toBe(true)
+      expect((await bread.store.getSession('legacy'))?.principal).toEqual(LOCAL_CLI_PRINCIPAL)
     } finally {
       await stop()
     }

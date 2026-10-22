@@ -35,7 +35,9 @@ export default defineConfig({
 ```
 
 Exposed agents run via `bread.run(..., { mode: 'sync' })` with real input/output schemas; tasks
-keep their full hook chain and crumbs.
+keep their full hook chain and crumbs. Stdio passes `expose.principal`, or
+`{ iss: "https://bread.local/mcp", sub: "stdio" }` when it is omitted. HTTP ignores that field.
+See [Transports, protocol eras, and auth](https://matteozambon89.github.io/bread/mcp-server.html#transports-protocol-eras-and-auth).
 
 Part of **[bread](https://github.com/matteozambon89/bread)** — an explicit-by-design framework for AI agents.
 Docs: [MCP server](https://matteozambon89.github.io/bread/mcp-server.html) ·

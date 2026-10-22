@@ -24,7 +24,8 @@ const headerStrategy: BreadAuthStrategy = {
   name: 'header',
   authenticate(req: Request): AuthIdentity | null {
     const subject = req.headers.get('x-identity')
-    return subject ? { subject } : null
+    // run.start requires a principal. Stream checks still use subject.
+    return subject ? { subject, principal: { iss: 'https://bread.local/test', sub: subject } } : null
   },
 }
 

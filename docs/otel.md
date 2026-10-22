@@ -4,7 +4,7 @@ Traces every run. The plugin subscribes to the crumb bus and maps each crumb typ
 
 | Span | Opens on | Closes on | Attributes |
 |------|----------|-----------|------------|
-| `agent.run` | `agent:run:start` | `agent:run:end` / `agent:error` (exception recorded) | `bread.agent_id`, `bread.run_id`, `bread.session_id`, `bread.duration_ms`, `bread.output_file_uri` (only when the run's output is a tool-echoed file reference) |
+| `agent.run` | `agent:run:start` | `agent:run:end` / `agent:error` (exception recorded) | `bread.agent_id`, `bread.run_id`, `bread.session_id`, `bread.duration_ms`, `bread.output_file_uri` (only when the run's output is a tool-echoed file reference), `user.id` (only when the run has a principal) |
 | `tool.call.<leaf>` | `tool:call` | `tool:result` / `tool:error` (exception recorded) | `bread.tool_name`, `bread.tool_call_id`, `bread.duration_ms` |
 | `pipeline.step.<n>` | `pipeline:step:start` | `pipeline:step:end` | `bread.pipeline_id`, `bread.step_index`, `bread.agent_id` |
 | `human.wait` | `human:required` | `human:resumed` | `bread.checkpoint_id`, `bread.tool_name`, `bread.kind` |
@@ -12,6 +12,10 @@ Traces every run. The plugin subscribes to the crumb bus and maps each crumb typ
 | `loop.run` | `loop:start` | `loop:end` | `bread.loop_id`, `bread.pipeline`, `bread.max_iterations`, `bread.status`, `bread.iterations` (the last two on close) |
 | `loop.iteration.<n>` | `loop:iteration:start` | `loop:iteration:end` (or closed by `loop:end` if a failed iteration left one dangling) | `bread.loop_id`, `bread.iteration` |
 | `file.generated` | `file:generated` | (single-shot — opens and closes immediately) | `bread.file_uri`, `bread.file_mime_type` |
+
+`user.id` is the hex SHA-256 of the UTF-8 bytes of `iss`, one `0x00` byte, then the UTF-8 bytes of
+`sub`. The `agent:run:start` crumb carries `{ iss, sub }` and not the hash. `tenant`, email, and name
+are not span attributes. A run with no principal sets no `user.*` attribute.
 
 Tool, human-wait, subagent, loop, and file spans are children of their run span (`subagent.run` finds
 its parent via a secondary `agentId`-keyed index, since `subagent:run:start` carries `parentAgentId`,

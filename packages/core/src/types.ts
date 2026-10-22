@@ -40,6 +40,8 @@ export interface AgentRunStartCrumb extends BaseCrumb {
   type: 'agent:run:start'
   input: unknown
   skill?: string | undefined
+  // iss and sub only. Tenant is not a trace field.
+  principal?: { iss: string; sub: string }
 }
 
 export interface AgentRunEndCrumb extends BaseCrumb {
@@ -448,6 +450,9 @@ export interface Session {
   updatedAt: number
   tags: Record<string, string>
   agentId?: string
+  // Stamped from the run principal at create, or claimed later when still unset.
+  // Ownership uses iss and sub only.
+  principal?: Principal
 }
 
 export interface SessionMessage {
@@ -461,10 +466,12 @@ export interface SessionMessage {
 export interface CleanupOptions {
   olderThanMs?: number | undefined
   tags?: Record<string, string> | undefined
+  // When set, only sessions visible to this caller are deleted. Omitted, cleanup is unscoped.
+  principal?: Principal | undefined
 }
 
 export interface SessionManager {
-  create(opts?: { id?: string; tags?: Record<string, string> }): Promise<Session>
+  create(opts?: { id?: string; tags?: Record<string, string>; principal?: Principal }): Promise<Session>
   get(id: string): Promise<Session | undefined>
   list(filter?: { tags?: Record<string, string> }): Promise<Session[]>
   delete(id: string): Promise<void>

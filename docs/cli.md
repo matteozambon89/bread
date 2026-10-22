@@ -63,6 +63,12 @@ bread chat support -s ses_42  # resume an existing session id
 - `-s, --session <id>` resumes a prior session instead of starting a fresh one.
 - Type `/exit` (or `/quit`, or press Ctrl-D) to leave.
 
+Every turn passes `{ iss: "https://bread.local/cli", sub: "local" }` as the run principal.
+There is no flag for it. An inline resume keeps the principal stored on the checkpoint.
+Unauthenticated loopback HTTP runs stamp that same principal, so `-s` resumes a session
+created by `bread dev` with no auth. A session with no principal is claimed and stamped
+on open by this principal only. A different `iss` or `sub` still gets `SESSION_NOT_FOUND`.
+
 **Human-in-the-loop.** When the agent calls a [human tool](./hitl.md) the run suspends on a
 checkpoint and `chat` prompts you inline, showing the tool name and its argument schema.
 Your answer is parsed as JSON when it parses, otherwise sent as a raw string, and the run
@@ -85,6 +91,7 @@ bread invoke echo "data" --trace             # also log tool calls to stderr
   of streamed text.
 - `--trace` writes tool calls to stderr so stdout stays clean for piping.
 - `--skill <skill>` / `-s, --session <id>` as for `chat`.
+- The run principal is `{ iss: "https://bread.local/cli", sub: "local" }`. There is no flag for it. Session resume follows the same claim as `chat`.
 
 **No human-in-the-loop.** `invoke` is non-interactive, so if the agent calls a human tool
 the run could never complete unattended. Instead of hanging, `invoke` prints a clear message

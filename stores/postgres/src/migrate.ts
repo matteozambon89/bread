@@ -11,7 +11,8 @@ CREATE TABLE IF NOT EXISTS bread_sessions (
   created_at BIGINT NOT NULL,
   updated_at BIGINT NOT NULL,
   agent_id TEXT,
-  tags JSONB NOT NULL DEFAULT '{}'
+  tags JSONB NOT NULL DEFAULT '{}',
+  principal JSONB
 );
 CREATE TABLE IF NOT EXISTS bread_session_messages (
   id TEXT PRIMARY KEY,
@@ -140,6 +141,7 @@ ALTER TABLE bread_checkpoints ADD COLUMN IF NOT EXISTS skill TEXT;
 ALTER TABLE bread_checkpoints ADD COLUMN IF NOT EXISTS parent JSONB;
 ALTER TABLE bread_checkpoints ADD COLUMN IF NOT EXISTS pending JSONB;
 ALTER TABLE bread_checkpoints ADD COLUMN IF NOT EXISTS principal JSONB;
+ALTER TABLE bread_sessions ADD COLUMN IF NOT EXISTS principal JSONB;
 `
 
 export async function migrate(sql: Sql, withVectors: boolean): Promise<void> {
