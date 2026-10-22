@@ -193,3 +193,26 @@ export function resolvePermissions(
 
   return { allowed, gated }
 }
+
+// A surviving tool whose definition says `ask`. Callers pass only origins that
+// already survived `deny` — this does not put a dropped tool back.
+export interface AskDefaultEntry {
+  origin: ToolOrigin
+  def: { ask?: boolean }
+}
+
+export function gateAskDefaults(
+  gated: Set<string>,
+  entries: readonly AskDefaultEntry[],
+  permissions?: ToolPermissions,
+): Set<string> {
+  const hasAllowlist = !!permissions?.allow && permissions.allow.length > 0
+  for (const entry of entries) {
+    if (entry.def.ask !== true) continue
+    const explicitlyAllowed = hasAllowlist && matchesAny(permissions?.allow, entry.origin)
+    const explicitlyAsked = matchesAny(permissions?.ask, entry.origin)
+    if (explicitlyAllowed && !explicitlyAsked) continue
+    gated.add(leafName(entry.origin))
+  }
+  return gated
+}

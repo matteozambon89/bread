@@ -3,6 +3,7 @@ import type { ClientOptions, McpSubscription } from '@modelcontextprotocol/clien
 import { StdioClientTransport } from '@modelcontextprotocol/client/stdio'
 import { BreadError, assertName } from '@breadai/core'
 import type { BreadSigner, ToolDefinition } from '@breadai/core'
+import { mcpToolNeedsAsk } from './ask.js'
 import { type JSONSchema, jsonSchemaToZod } from './json-schema-to-zod.js'
 
 export interface McpServerConfig {
@@ -16,6 +17,9 @@ export interface McpServerConfig {
   url?: string
   /** Signer used to sign outgoing requests (HTTP transport). */
   signer?: BreadSigner
+  // When true, tools that are not read-only are created with `ask: true`.
+  // Absent means this server never sets `ask`.
+  askWrites?: boolean
   /**
    * Opt into probing the server for the 2026-07-28 protocol revision
    * (`{ mode: 'auto' }`), falling back to the 2025-11-25 wire format bread
@@ -90,10 +94,12 @@ async function fetchTools(cfg: McpServerConfig, client: Client): Promise<ToolDef
     }
     seen.set(name, t.name)
     const description = t.description ?? t.name
+    const ask = cfg.askWrites === true && mcpToolNeedsAsk(t.annotations)
     return {
       name,
       description: name === t.name ? description : `${description} (server tool "${t.name}")`,
       schema: jsonSchemaToZod(t.inputSchema as JSONSchema),
+      ...(ask ? { ask: true as const } : {}),
       async execute(args: unknown) {
         const res = await client.callTool({
           name: t.name,
