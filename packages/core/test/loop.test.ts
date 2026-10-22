@@ -1,14 +1,19 @@
 import { describe, expect, test } from 'bun:test'
+import { defineHumanTool } from '@breadai/core'
 import type { BreadCrumb, BreadInstance, LoopEndCrumb, LoopHooks, ToolErrorCrumb } from '@breadai/core'
+import { store as memoryStore } from '@breadai/store-memory'
+import { z } from 'zod'
 import {
   defineTestAgent,
   makeBread,
   mockErrorModel,
   mockScript,
   mockTextModel,
+  mockToolCallModel,
   runCollect,
 } from '@breadai/test-utils'
 import type { ScriptStep } from '@breadai/test-utils'
+import type { MockLanguageModelV4 } from 'ai/test'
 
 // Boots a `host` agent with a loop over a single `worker`, driven by a scripted
 // sequence of host tool calls.
@@ -314,6 +319,343 @@ describe('runner — loop tool guard violations', () => {
       const errorCrumbs = crumbs.filter((c) => c.type === 'tool:error') as ToolErrorCrumb[]
       const errorCrumb = errorCrumbs.find((c) => c.error.code === 'LOOP_ALREADY_ACTIVE')
       expect(errorCrumb?.toolName).toBe('core_start_loop')
+    } finally {
+      await stop()
+    }
+  })
+})
+
+describe('runner — loop iteration HITL', () => {
+  const approve = defineHumanTool('approve', z.object({ question: z.string() }))
+
+  function types(crumbs: BreadCrumb[]): string[] {
+    return crumbs.map((c) => c.type)
+  }
+
+  test('a finished iteration still emits loop:iteration:end', async () => {
+    const { bread, stop } = await makeLoopBread(3, [start, { text: 'done' }])
+    try {
+      const crumbs = await runCollect(bread, 'host', 'go')
+      const order = types(crumbs)
+      expect(order.indexOf('loop:iteration:end')).toBeGreaterThan(order.indexOf('loop:iteration:start'))
+      expect(order).not.toContain('human:required')
+      const loops = await bread.store.listLoops()
+      expect(loops[0]!.iterations).toBe(1)
+      expect(loops[0]!.status).toBe('completed')
+    } finally {
+      await stop()
+    }
+  })
+
+  test('a human tool inside an iteration suspends the host and resume continues that iteration', async () => {
+    const host = mockScript([start, { text: 'judged' }]) as MockLanguageModelV4
+    const { bread, stop } = await makeBread({
+      agents: {
+        host: defineTestAgent({
+          model: 'host',
+          config: { loop: { pool: ['worker'], maxIterations: 3 } },
+        }),
+        worker: defineTestAgent({ model: 'worker', humanTools: [approve] }),
+      },
+      models: {
+        host,
+        worker: mockToolCallModel({ toolName: 'human_approve', args: { question: 'ok?' }, then: 'worker output' }),
+      },
+    })
+    try {
+      const first = await runCollect(bread, 'host', 'go')
+      const order = types(first)
+      const humanAt = order.lastIndexOf('human:required')
+      expect(humanAt).toBeGreaterThanOrEqual(0)
+      expect(order.indexOf('loop:iteration:end')).toBe(-1)
+      expect(order.slice(humanAt)).not.toContain('loop:iteration:end')
+      expect(order).not.toContain('loop:end')
+      expect(order).not.toContain('agent:run:end')
+      expect(
+        first.some(
+          (c) =>
+            (c.type === 'tool:result' || c.type === 'tool:error') &&
+            'toolName' in c &&
+            (c.toolName === 'core_start_loop' || c.toolName === 'core_iterate_loop'),
+        ),
+      ).toBe(false)
+      expect(host.doStreamCalls).toHaveLength(1)
+
+      const loops = await bread.store.listLoops()
+      expect(loops).toHaveLength(1)
+      expect(loops[0]!.status).toBe('running')
+      expect(loops[0]!.iterations).toBe(0)
+      const detail = await bread.store.getLoop(loops[0]!.id)
+      expect(detail?.iterations).toHaveLength(0)
+
+      const checkpoints = await bread.store.listCheckpoints()
+      expect(checkpoints).toHaveLength(2)
+      const hostCp = checkpoints.find((c) => c.agentId === 'host')
+      const workerCp = checkpoints.find((c) => c.agentId === 'worker')
+      expect(hostCp?.toolName).toBe('core_start_loop')
+      expect(hostCp?.pending).toHaveLength(1)
+      expect(workerCp?.parent?.kind).toBe('pipeline')
+      if (workerCp?.parent?.kind === 'pipeline') {
+        expect(workerCp.parent.pipelineId).toBe(loops[0]!.id)
+        expect(workerCp.parent.hostLoop?.toolName).toBe('core_start_loop')
+        expect(workerCp.parent.hostLoop?.toolCallId).toBe(hostCp?.toolCallId)
+        expect(workerCp.parent.hostLoop?.checkpointId).toBe(hostCp?.id)
+      }
+
+      await expect(
+        (async () => {
+          for await (const _ of bread.resume(hostCp!.id, { approved: true })) void _
+        })(),
+      ).rejects.toMatchObject({ code: 'LOOP_CHECKPOINT_NOT_RESUMABLE' })
+      expect(await bread.store.listCheckpoints()).toHaveLength(2)
+
+      const cont: BreadCrumb[] = []
+      for await (const c of bread.resume(workerCp!.id, { approved: true })) cont.push(c)
+      const contTypes = types(cont)
+      expect(contTypes).toContain('loop:iteration:end')
+      expect(contTypes.filter((t) => t === 'loop:iteration:end')).toHaveLength(1)
+      expect(contTypes).toContain('loop:end')
+      const hostEnd = cont.find((c) => c.type === 'agent:run:end' && (c as { agentId: string }).agentId === 'host')
+      expect(hostEnd).toBeDefined()
+      expect(JSON.stringify(host.doStreamCalls.at(-1)!.prompt)).toContain('worker output')
+
+      const after = await bread.store.getLoop(loops[0]!.id)
+      expect(after?.loop.iterations).toBe(1)
+      expect(after?.loop.status).toBe('completed')
+      expect(after?.iterations).toHaveLength(1)
+      expect(after?.iterations[0]!.output).toBe('worker output')
+      expect(await bread.store.listCheckpoints()).toHaveLength(0)
+    } finally {
+      await stop()
+    }
+  })
+
+  test('a later suspension in the same iteration does not finalize or continue the host', async () => {
+    const host = mockScript([
+      { tool: 'core_start_loop', args: { pipeline: ['gate', 'second'], input: 'seed' } },
+      { text: 'host done' },
+    ]) as MockLanguageModelV4
+    const second = mockToolCallModel({
+      toolName: 'human_approve',
+      args: { question: 'second?' },
+      then: 'second output',
+    }) as MockLanguageModelV4
+    const { bread, stop } = await makeBread({
+      agents: {
+        host: defineTestAgent({
+          model: 'host',
+          config: { loop: { pool: ['gate', 'second'], maxIterations: 3 } },
+        }),
+        gate: defineTestAgent({ model: 'gate', humanTools: [approve] }),
+        second: defineTestAgent({ model: 'second', humanTools: [approve] }),
+      },
+      models: {
+        host,
+        gate: mockToolCallModel({ toolName: 'human_approve', args: { question: 'gate?' }, then: 'gate output' }),
+        second,
+      },
+    })
+    try {
+      const first = await runCollect(bread, 'host', 'go')
+      expect(types(first)).toContain('human:required')
+      expect(types(first)).not.toContain('loop:iteration:end')
+      expect(second.doStreamCalls).toHaveLength(0)
+      const gateCp = first.find((c) => c.type === 'human:required') as { checkpointId: string }
+
+      const mid: BreadCrumb[] = []
+      for await (const c of bread.resume(gateCp.checkpointId, { approved: true })) mid.push(c)
+      expect(types(mid)).toContain('human:required')
+      expect(types(mid)).not.toContain('loop:iteration:end')
+      expect(types(mid)).not.toContain('loop:end')
+      expect(mid.some((c) => c.type === 'agent:run:end' && (c as { agentId: string }).agentId === 'host')).toBe(
+        false,
+      )
+      expect(host.doStreamCalls).toHaveLength(1)
+      const loops = await bread.store.listLoops()
+      expect(loops[0]!.iterations).toBe(0)
+      expect((await bread.store.getLoop(loops[0]!.id))?.iterations).toHaveLength(0)
+
+      const secondCp = mid.find((c) => c.type === 'human:required') as { checkpointId: string }
+      const worker = (await bread.store.listCheckpoints()).find((c) => c.id === secondCp.checkpointId)
+      expect(worker?.parent?.kind).toBe('pipeline')
+      if (worker?.parent?.kind === 'pipeline') {
+        expect(worker.parent.pipelineId).toBe(loops[0]!.id)
+        expect(worker.parent.hostLoop?.toolName).toBe('core_start_loop')
+      }
+      const hostCp = (await bread.store.listCheckpoints()).find((c) => c.agentId === 'host')
+      expect(hostCp?.pending?.length).toBe(1)
+
+      const cont: BreadCrumb[] = []
+      for await (const c of bread.resume(secondCp.checkpointId, { approved: true })) cont.push(c)
+      expect(types(cont).filter((t) => t === 'loop:iteration:end')).toHaveLength(1)
+      const end = cont.find((c) => c.type === 'loop:iteration:end') as { output?: unknown }
+      expect(end.output).toBe('second output')
+      expect(types(cont)).toContain('loop:end')
+      expect(JSON.stringify(host.doStreamCalls.at(-1)!.prompt)).toContain('second output')
+      const after = await bread.store.getLoop(loops[0]!.id)
+      expect(after?.loop.iterations).toBe(1)
+      expect(after?.iterations).toHaveLength(1)
+      expect(after?.loop.status).toBe('completed')
+    } finally {
+      await stop()
+    }
+  })
+
+  test('suspending core_iterate_loop keeps that later iteration open until resume', async () => {
+    const host = mockScript([
+      start,
+      { tool: 'core_iterate_loop', args: { feedback: 'again' } },
+      { text: 'judged both' },
+    ]) as MockLanguageModelV4
+    const { bread, stop } = await makeBread({
+      agents: {
+        host: defineTestAgent({
+          model: 'host',
+          config: { loop: { pool: ['worker'], maxIterations: 3 } },
+        }),
+        worker: defineTestAgent({ model: 'worker', humanTools: [approve] }),
+      },
+      models: {
+        host,
+        worker: mockScript([
+          { tool: 'human_approve', args: { question: 'ok?' } },
+          { text: 'worker output' },
+          { tool: 'human_approve', args: { question: 'ok?' } },
+          { text: 'worker output' },
+        ]),
+      },
+    })
+    try {
+      const first = await runCollect(bread, 'host', 'go')
+      const firstCp = first.find((c) => c.type === 'human:required') as { checkpointId: string }
+      expect(types(first)).not.toContain('loop:iteration:end')
+
+      const mid: BreadCrumb[] = []
+      for await (const c of bread.resume(firstCp.checkpointId, { approved: true })) mid.push(c)
+      expect(types(mid).filter((t) => t === 'loop:iteration:end')).toHaveLength(1)
+      expect(types(mid)).toContain('human:required')
+      expect(types(mid)).not.toContain('loop:end')
+      expect(mid.some((c) => c.type === 'agent:run:end' && (c as { agentId: string }).agentId === 'host')).toBe(
+        false,
+      )
+      const loops = await bread.store.listLoops()
+      expect(loops[0]!.iterations).toBe(1)
+      expect(loops[0]!.status).toBe('running')
+
+      const secondCp = mid.find((c) => c.type === 'human:required') as { checkpointId: string }
+      const worker = (await bread.store.listCheckpoints()).find((c) => c.id === secondCp.checkpointId)
+      expect(worker?.parent?.kind).toBe('pipeline')
+      if (worker?.parent?.kind === 'pipeline') {
+        expect(worker.parent.hostLoop?.toolName).toBe('core_iterate_loop')
+      }
+
+      const cont: BreadCrumb[] = []
+      for await (const c of bread.resume(secondCp.checkpointId, { approved: true })) cont.push(c)
+      expect(types(cont).filter((t) => t === 'loop:iteration:end')).toHaveLength(1)
+      expect(types(cont)).toContain('loop:end')
+      const after = await bread.store.getLoop(loops[0]!.id)
+      expect(after?.loop.iterations).toBe(2)
+      expect(after?.iterations).toHaveLength(2)
+      expect(after?.loop.status).toBe('completed')
+    } finally {
+      await stop()
+    }
+  })
+
+  test('resume continues a suspended iteration across a restart', async () => {
+    const testStore = memoryStore()
+    const host = mockScript([start, { text: 'after restart' }]) as MockLanguageModelV4
+    const worker = mockToolCallModel({
+      toolName: 'human_approve',
+      args: { question: 'ok?' },
+      then: 'worker output',
+    })
+    const agents = () => ({
+      host: defineTestAgent({
+        model: 'host',
+        config: { loop: { pool: ['worker'], maxIterations: 3 } },
+      }),
+      worker: defineTestAgent({ model: 'worker', humanTools: [approve] }),
+    })
+    const a = await makeBread({
+      agents: agents(),
+      models: { host, worker },
+      config: { store: testStore },
+    })
+    const first = await runCollect(a.bread, 'host', 'go')
+    const workerCp = first.find((c) => c.type === 'human:required') as { checkpointId: string }
+    expect(types(first)).not.toContain('loop:iteration:end')
+    await a.stop()
+
+    const b = await makeBread({
+      agents: agents(),
+      models: { host, worker },
+      config: { store: testStore },
+    })
+    try {
+      const cont: BreadCrumb[] = []
+      for await (const c of b.bread.resume(workerCp.checkpointId, { approved: true })) cont.push(c)
+      expect(types(cont)).toContain('loop:iteration:end')
+      expect(types(cont)).toContain('loop:end')
+      const loops = await b.bread.store.listLoops()
+      expect(loops[0]!.iterations).toBe(1)
+      expect(loops[0]!.status).toBe('completed')
+    } finally {
+      await b.stop()
+    }
+  })
+
+
+  test('a later step after human resume recovers through LoopHooks.onError', async () => {
+    let onErrorCalls = 0
+    const { bread, stop } = await makeBread({
+      agents: {
+        host: defineTestAgent({
+          model: 'host',
+          config: {
+            loop: {
+              pool: ['gate', 'second'],
+              maxIterations: 3,
+              hooks: {
+                onError: () => {
+                  onErrorCalls += 1
+                  return { action: 'recover', output: 'recovered' }
+                },
+              },
+            },
+          },
+        }),
+        gate: defineTestAgent({ model: 'gate', humanTools: [approve] }),
+        second: defineTestAgent({ model: 'second' }),
+      },
+      models: {
+        host: mockScript([
+          { tool: 'core_start_loop', args: { pipeline: ['gate', 'second'], input: 'seed' } },
+          { text: 'host done' },
+        ]),
+        gate: mockToolCallModel({
+          toolName: 'human_approve',
+          args: { question: 'gate?' },
+          then: 'gate output',
+        }),
+        second: mockErrorModel('second down'),
+      },
+    })
+    try {
+      const first = await runCollect(bread, 'host', 'go')
+      expect(types(first).filter((type) => type === 'loop:iteration:start')).toHaveLength(1)
+      const gateId = (first.find((c) => c.type === 'human:required') as { checkpointId: string }).checkpointId
+      const loopId = (await bread.store.listLoops())[0]!.id
+      const cont: BreadCrumb[] = []
+      for await (const crumb of bread.resume(gateId, { approved: true })) cont.push(crumb)
+      expect(onErrorCalls).toBe(1)
+      expect(types(cont)).not.toContain('loop:iteration:start')
+      const end = cont.find((c) => c.type === 'loop:iteration:end') as { output?: unknown }
+      expect(end.output).toBe('recovered')
+      const after = await bread.store.getLoop(loopId)
+      expect(after?.loop.status).toBe('completed')
+      expect(after?.iterations).toHaveLength(1)
+      expect(after?.iterations[0]?.output).toBe('recovered')
     } finally {
       await stop()
     }

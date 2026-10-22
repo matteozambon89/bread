@@ -1,4 +1,6 @@
+import { completeLoopIteration } from './loop.js'
 import { continuePipelineParent } from './pipeline.js'
+import type { FinishedLoopFrame } from './pipeline.js'
 import { crumbBase, nowMs } from './runner-helpers.js'
 import { continueRun } from './runner-continue.js'
 import {
@@ -13,6 +15,7 @@ import type {
   BreadCrumb,
   CheckpointParent,
   HumanResumedCrumb,
+  LoopHostLink,
   Principal,
   RunOptions,
   SupervisorCheckpointParent,
@@ -36,14 +39,25 @@ export async function* resumeRun(
       { checkpointId },
     )
   }
-  // A supervisor checkpoint chain-suspended by delegations is not directly
-  // resumable — its dangling core_delegate call(s) resolve from the child
-  // runs' outputs, never from a human response. Resume the children instead.
+  // A chain-suspended host checkpoint is not directly resumable — its dangling
+  // tool call resolves from the child run, never from a human response.
+  // Resume the child instead. Loop hosts dangle core_start_loop /
+  // core_iterate_loop; supervisors dangle core_delegate.
   if (cp.pending?.length) {
+    const childIds = cp.pending.map((p) => p.childCheckpointId).join(', ')
+    const loopHost = cp.toolName === 'core_start_loop' || cp.toolName === 'core_iterate_loop'
+    if (loopHost) {
+      throw new BreadError(
+        `Checkpoint ${checkpointId} belongs to loop host "${cp.agentId}" awaiting a suspended ` +
+          `iteration — resume the worker checkpoint instead (checkpoint at suspension time: ${childIds}).`,
+        'LOOP_CHECKPOINT_NOT_RESUMABLE',
+        { checkpointId, agentId: cp.agentId, pending: cp.pending },
+      )
+    }
     throw new BreadError(
       `Checkpoint ${checkpointId} belongs to supervisor "${cp.agentId}" awaiting ` +
         `${cp.pending.length} suspended delegation(s) — resume the delegated run(s) instead ` +
-        `(child checkpoint(s) at suspension time: ${cp.pending.map((p) => p.childCheckpointId).join(', ')}).`,
+        `(child checkpoint(s) at suspension time: ${childIds}).`,
       'SUPERVISOR_CHECKPOINT_NOT_RESUMABLE',
       { checkpointId, agentId: cp.agentId, pending: cp.pending },
     )
@@ -221,10 +235,77 @@ async function* continueParent(
   principal?: Principal,
 ): AsyncGenerator<BreadCrumb> {
   if (parent.kind === 'pipeline') {
-    yield* continuePipelineParent(parent, output, ctx, undefined, principal)
+    const finished = yield* continuePipelineParent(parent, output, ctx, undefined, principal)
+    if (finished) yield* continueLoopHost(finished, ctx)
     return
   }
   yield* continueSupervisorParent(parent, output, ctx)
+}
+
+// The loop frame finished unsuspended and has no outer frame. Write the open
+// iteration, hand that result to the host as the dangling tool result, and
+// continue the host. A fresh LoopRuntime is seeded inside continueRun.
+async function* continueLoopHost(
+  finished: FinishedLoopFrame,
+  ctx: RunnerContext,
+): AsyncGenerator<BreadCrumb> {
+  const link: LoopHostLink = finished.hostLoop
+  const hostCp = await ctx.store.getCheckpoint(link.checkpointId)
+  if (!hostCp) return
+
+  const completed = await completeLoopIteration(ctx, link, finished.output)
+  yield completed.crumb
+
+  await ctx.store.addMessage(hostCp.sessionId, {
+    role: 'tool',
+    content: [
+      {
+        type: 'tool-result',
+        toolCallId: link.toolCallId,
+        toolName: link.toolName,
+        output: { type: 'json', value: completed.toolResult },
+      },
+    ],
+    timestamp: nowMs(),
+  })
+
+  const claimed = await ctx.store.deleteCheckpoint(hostCp.id)
+  if (!claimed) return
+
+  const def = ctx.agents.get(hostCp.agentId)
+  if (!def) {
+    throw new BreadError(`Agent not found: "${hostCp.agentId}"`, 'AGENT_NOT_FOUND', {
+      agentId: hostCp.agentId,
+    })
+  }
+  const runOpts: RunOptions = {
+    ...(hostCp.skill ? { skill: hostCp.skill } : {}),
+    ...(hostCp.principal ? { principal: hostCp.principal } : {}),
+    ...(hostCp.parent ? { _parent: hostCp.parent } : {}),
+    _loopLastOutput: { value: completed.lastOutput },
+  }
+
+  let output: unknown
+  let ended = false
+  for await (const crumb of continueRun(
+    hostCp.agentId,
+    def,
+    hostCp.runId,
+    hostCp.sessionId,
+    completed.toolResult,
+    runOpts,
+    ctx,
+  )) {
+    yield crumb
+    if (crumb.type === 'agent:run:end') {
+      output = crumb.output
+      ended = true
+    }
+  }
+
+  if (ended && hostCp.parent) {
+    yield* continueParent(hostCp.parent, output, ctx, hostCp.principal)
+  }
 }
 
 // A delegated child run completed: feed its output back as the supervisor's

@@ -38,6 +38,8 @@ import type {
   BreadCrumb,
   GlobalHookContext,
   HumanRequiredEvent,
+  LoopHostLink,
+  PipelineCheckpointParent,
   RunContext,
   RunOptions,
 } from './types.js'
@@ -183,6 +185,19 @@ export async function* continueRun(
     childCheckpointId: string
     subAgentId: string
   }> = []
+  // core_start_loop / core_iterate_loop calls whose iteration suspended for
+  // HITL. Same chain-suspension shape as a delegation, but the worker
+  // checkpoint keeps its pipeline parent.
+  const suspendedLoops: Array<{
+    toolCallId: string
+    toolName: string
+    args: unknown
+    childCheckpointId: string
+    loopId: string
+    iteration: number
+    input: unknown
+    startedAt: number
+  }> = []
 
   // Stop the tool loop on step budget, and also the moment a human or
   // ask-gated tool is called so the run can suspend for input/approval
@@ -193,7 +208,21 @@ export async function* continueRun(
     isStepCount(maxSteps),
     ...[...humanLeaves.keys()].map((leaf) => hasToolCall(leaf)),
     ...[...gated].map((leaf) => hasToolCall(leaf)),
-    () => suspendedDelegations.length > 0,
+    // The stream-side flag is set too late to stop the next model call. The
+    // recorded step already carries the suspension error, so stop on that.
+    ({ steps }: { steps: Array<{ content?: ReadonlyArray<{ type?: string; error?: unknown }> }> }) => {
+      if (suspendedDelegations.length > 0 || suspendedLoops.length > 0) return true
+      const content = steps.at(-1)?.content
+      if (!content) return false
+      return content.some((part) => {
+        const err = part.error
+        return (
+          part.type === 'tool-error' &&
+          err instanceof BreadError &&
+          (err.code === 'DELEGATION_SUSPENDED' || err.code === 'LOOP_SUSPENDED')
+        )
+      })
+    },
   ]
 
   const mainRetryState = { attempt: 1, usedUnconfiguredRetry: false }
@@ -243,7 +272,9 @@ export async function* continueRun(
       // Text / streaming. Drop any stale suspension state from a failed
       // previous attempt before the model runs again.
       suspendedDelegations.length = 0
+      suspendedLoops.length = 0
       supervisorRuntime?.takeHeldCrumbs()
+      loopRuntime?.takeHeldCrumbs()
       const streamResult = streamText({
         model,
         messages,
@@ -360,6 +391,27 @@ export async function* continueRun(
               })
             }
           }
+          if (toolErr instanceof BreadError && toolErr.code === 'LOOP_SUSPENDED') {
+            const errCtx = (toolErr.context ?? {}) as {
+              checkpointId?: string
+              loopId?: string
+              iteration?: number
+              input?: unknown
+              startedAt?: number
+            }
+            if (errCtx.checkpointId && errCtx.loopId !== undefined && errCtx.iteration !== undefined) {
+              suspendedLoops.push({
+                toolCallId: part.toolCallId,
+                toolName: part.toolName,
+                args: part.input,
+                childCheckpointId: errCtx.checkpointId,
+                loopId: errCtx.loopId,
+                iteration: errCtx.iteration,
+                input: errCtx.input,
+                startedAt: errCtx.startedAt ?? nowMs(),
+              })
+            }
+          }
         } else if (part.type === 'abort') {
           // streamText closes with an in-band abort part instead of rejecting
           // the iterator. Rethrow so the catch's cancelled-run path fires.
@@ -455,6 +507,78 @@ export async function* continueRun(
           ...runCtx,
           toolName: first.toolName,
           checkpointId: supervisorCpId,
+        })
+        return
+      }
+
+      // Leave the loop tool dangling and keep the worker's pipeline parent
+      // (pipelineId is the loop id). Return before finalize so the iteration
+      // stays open — no row, no loop:iteration:end, no loop:end.
+      if (suspendedLoops.length > 0) {
+        if (pending || suspendedDelegations.length > 0) {
+          throw new BreadError(
+            `Agent "${agentId}" suspended a loop iteration in the same turn as ` +
+              `${pending ? `a ${pending.kind === 'input' ? 'human' : 'ask-gated'} tool call` : 'a delegation'}` +
+              ' — this combination is unsupported. ',
+            'MIXED_SUSPENSION_UNSUPPORTED',
+            { agentId, runId, loops: suspendedLoops.length },
+          )
+        }
+        const loopSusp = suspendedLoops[0]!
+        const suspendedIds = new Set(suspendedLoops.map((d) => d.toolCallId))
+        const strippedRows = withoutSuspendedToolResults(responseRows, suspendedIds)
+        const childCp = await ctx.store.getCheckpoint(loopSusp.childCheckpointId)
+        const childParent = childCp?.parent
+        if (!childCp || !childParent || childParent.kind !== 'pipeline') {
+          throw new BreadError(
+            `Loop "${loopSusp.loopId}" suspended without a pipeline checkpoint to resume.`,
+            'LOOP_SUSPENDED',
+            { loopId: loopSusp.loopId, checkpointId: loopSusp.childCheckpointId },
+          )
+        }
+        const hostCpId = uuidv7()
+        const record: CheckpointRecord = {
+          id: hostCpId,
+          agentId,
+          runId,
+          sessionId,
+          toolName: loopSusp.toolName,
+          toolCallId: loopSusp.toolCallId,
+          schema: loopSusp.args,
+          ...(opts.skill ? { skill: opts.skill } : {}),
+          ...(opts.principal ? { principal: opts.principal } : {}),
+          ...(opts._parent ? { parent: opts._parent } : {}),
+          pending: [
+            {
+              toolCallId: loopSusp.toolCallId,
+              childCheckpointId: loopSusp.childCheckpointId,
+              subAgentId: childCp.agentId,
+            },
+          ],
+          createdAt: nowMs(),
+        }
+        await ctx.store.suspendRun(sessionId, strippedRows, record)
+        const link: LoopHostLink = {
+          checkpointId: hostCpId,
+          toolCallId: loopSusp.toolCallId,
+          toolName: loopSusp.toolName,
+          loopId: loopSusp.loopId,
+          iteration: loopSusp.iteration,
+          input: loopSusp.input,
+          startedAt: loopSusp.startedAt,
+        }
+        await ctx.store.saveCheckpoint({
+          ...childCp,
+          parent: attachHostLoop(childParent, link),
+        })
+
+        for (const crumb of loopRuntime?.takeHeldCrumbs() ?? []) yield crumb
+
+        await runObserverChain(agentHookChain(cfg, ctx, 'onSuspend'), {
+          scope: 'agent',
+          ...runCtx,
+          toolName: loopSusp.toolName,
+          checkpointId: hostCpId,
         })
         return
       }
@@ -599,4 +723,26 @@ export async function* continueRun(
       throw finalErr
     }
   }
+}
+
+function withoutSuspendedToolResults<T extends { role: string; content: unknown }>(
+  rows: T[],
+  suspendedIds: Set<string>,
+): T[] {
+  return rows
+    .map((row) => {
+      if (row.role !== 'tool' || !Array.isArray(row.content)) return row
+      const content = (row.content as Array<{ type?: string; toolCallId?: string }>).filter(
+        (part) => !(part.toolCallId !== undefined && suspendedIds.has(part.toolCallId)),
+      )
+      return { ...row, content }
+    })
+    .filter((row) => !(row.role === 'tool' && Array.isArray(row.content) && row.content.length === 0))
+}
+
+// Attach the dangling host call to the outermost pipeline frame. Replacing
+// the parent would drop the remaining steps of this iteration.
+function attachHostLoop(parent: PipelineCheckpointParent, link: LoopHostLink): PipelineCheckpointParent {
+  if (parent.outer) return { ...parent, outer: attachHostLoop(parent.outer, link) }
+  return { ...parent, hostLoop: link }
 }

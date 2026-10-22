@@ -3,7 +3,16 @@ import { z } from 'zod'
 import { runWithOnErrorRetry } from './hooks.js'
 import { runPipeline } from './pipeline.js'
 import type { RunnerContext } from './runner.js'
-import type { BreadCrumb, LoopConfig, LoopStatus, PipelineStep, Principal, ToolDefinition } from './types.js'
+import type {
+  BreadCrumb,
+  LoopConfig,
+  LoopHostLink,
+  LoopIterationEndCrumb,
+  LoopStatus,
+  PipelineStep,
+  Principal,
+  ToolDefinition,
+} from './types.js'
 import { BreadError } from './types.js'
 
 function toLoopError(err: unknown, loopId: string): BreadError {
@@ -26,6 +35,9 @@ export interface BuildLoopToolsArgs {
   onCrumb: (crumb: BreadCrumb) => void
   // Host run principal. Passed into each iteration's pipeline.
   principal?: Principal
+  // Set when continueRun rebuilds this runtime after a suspended iteration
+  // completed. Wins over the raw iteration-row output as lastOutput.
+  restoredLastOutput?: { value: unknown }
 }
 
 export interface LoopRuntime {
@@ -35,6 +47,70 @@ export interface LoopRuntime {
   tools: ToolDefinition[]
   // Close a loop the agent left running when its run ends (or errors).
   finalize(failed: boolean): Promise<void>
+  // Held, not forwarded live, so the runner can persist the host checkpoint
+  // and the worker hostLoop link before a client can resume.
+  takeHeldCrumbs(): BreadCrumb[]
+}
+
+export interface CompletedLoopIteration {
+  crumb: LoopIterationEndCrumb
+  toolResult: {
+    loopId: string
+    iteration: number
+    maxIterations: number
+    canIterate: boolean
+    output: unknown
+  }
+  lastOutput: unknown
+}
+
+// Writes the open iteration once its pipeline frame has finished unsuspended.
+// The crumb shows the raw pipeline output; lastOutput / toolResult carry the
+// onIterationEnd replacement, same as an iteration that never suspended.
+export async function completeLoopIteration(
+  ctx: RunnerContext,
+  link: LoopHostLink,
+  output: unknown,
+): Promise<CompletedLoopIteration> {
+  const detail = await ctx.store.getLoop(link.loopId)
+  if (!detail) {
+    throw new BreadError(`Loop not found: "${link.loopId}".`, 'LOOP_NOT_FOUND', { loopId: link.loopId })
+  }
+  const { loop } = detail
+  const hooks = ctx.agents.get(loop.agentId)?.config.loop?.hooks ?? {}
+  const index = link.iteration
+  await ctx.store.addLoopIteration({
+    id: uuidv7(),
+    loopId: loop.id,
+    index,
+    input: link.input,
+    output,
+    startedAt: link.startedAt,
+    completedAt: Date.now(),
+  })
+  await ctx.store.updateLoop(loop.id, { iterations: index })
+  const after = await hooks.onIterationEnd?.({ loopId: loop.id, iteration: index, output })
+  const finalOutput = after ? after.output : output
+  return {
+    crumb: {
+      type: 'loop:iteration:end',
+      agentId: loop.agentId,
+      runId: loop.runId,
+      sessionId: loop.sessionId,
+      timestamp: Date.now(),
+      loopId: loop.id,
+      iteration: index,
+      output,
+    },
+    lastOutput: finalOutput,
+    toolResult: {
+      loopId: loop.id,
+      iteration: index,
+      maxIterations: loop.maxIterations,
+      canIterate: index < loop.maxIterations,
+      output: finalOutput,
+    },
+  }
 }
 
 interface ActiveLoop {
@@ -78,36 +154,76 @@ export function loopSummary(loopCfg: LoopConfig): string {
   ].join('\n')
 }
 
-export function buildLoopTools(args: BuildLoopToolsArgs): LoopRuntime {
-  const { loopCfg, agentId, runId, sessionId, ctx, onCrumb, principal } = args
+export async function buildLoopTools(args: BuildLoopToolsArgs): Promise<LoopRuntime> {
+  const { loopCfg, agentId, runId, sessionId, ctx, onCrumb, principal, restoredLastOutput } = args
 
   let active: ActiveLoop | null = null
+  // The host process that started the loop is gone after a chain-suspension.
+  // Rebuild the in-memory cursor from the store so iterate/finish still see it.
+  const running = await ctx.store.listLoops({ sessionId, agentId, status: 'running' })
+  const mine = running.find((loop) => loop.runId === runId)
+  if (mine) {
+    const detail = await ctx.store.getLoop(mine.id)
+    const last = detail?.iterations.at(-1)
+    active = {
+      loopId: mine.id,
+      pipeline: mine.pipeline,
+      iteration: mine.iterations,
+      lastOutput: restoredLastOutput ? restoredLastOutput.value : last?.output,
+      status: 'running',
+    }
+  }
 
   const base = () => ({ agentId, runId, sessionId, timestamp: Date.now() })
   // Loop crumbs surface through the host run's stream (the runner's
   // crumbBuffer); the instance-level choke point handles listeners/bus.
   const emit = onCrumb
   const hooks = loopCfg.hooks ?? {}
+  let heldCrumbs: BreadCrumb[] = []
 
-  // Run the composed pipeline once, forwarding inner crumbs to the host stream.
-  // No bookkeeping here — a retry re-invokes just this, not the persist/emit
-  // steps in finalizeIteration below.
-  async function runPipelineOnce(input: unknown): Promise<unknown> {
+  // No bookkeeping here — a retry re-invokes just this, not finalizeIteration.
+  // for-await drops runPipeline's return, so a suspension looked finished.
+  // Read it and leave the iteration open instead.
+  async function runPipelineOnce(input: unknown, startedAt: number): Promise<unknown> {
     const a = active!
     const steps: PipelineStep[] = a.pipeline.map((id) => ({ type: 'agent', agentId: id }))
-    let output: unknown
-    for await (const crumb of runPipeline({
+    const gen = runPipeline({
       pipelineId: a.loopId,
       steps,
       input,
       ctx,
       ...(principal ? { principal } : {}),
-    })) {
-      // Surface inner pipeline/agent crumbs in the host run's stream.
+    })
+    heldCrumbs = []
+    let suspendedCheckpointId: string | undefined
+    for (;;) {
+      const next = await gen.next()
+      if (next.done) {
+        if (next.value.suspended) {
+          throw new BreadError(
+            `Loop "${a.loopId}" iteration ${a.iteration + 1} suspended for human input` +
+              (suspendedCheckpointId ? ` (checkpoint ${suspendedCheckpointId})` : '') +
+              '; the host run suspends with it.',
+            'LOOP_SUSPENDED',
+            {
+              loopId: a.loopId,
+              iteration: a.iteration + 1,
+              input,
+              startedAt,
+              ...(suspendedCheckpointId ? { checkpointId: suspendedCheckpointId } : {}),
+            },
+          )
+        }
+        return next.value.output
+      }
+      const crumb = next.value
+      if (crumb.type === 'human:required') {
+        suspendedCheckpointId = crumb.checkpointId
+        heldCrumbs.push(crumb)
+        continue
+      }
       onCrumb(crumb)
-      if (crumb.type === 'pipeline:step:end') output = crumb.output
     }
-    return output
   }
 
   // Persists, advances, and closes out one iteration given its (possibly
@@ -146,7 +262,7 @@ export function buildLoopTools(args: BuildLoopToolsArgs): LoopRuntime {
     await hooks.onIterationStart?.({ loopId: a.loopId, iteration: nextIndex, input })
 
     const output = await runWithOnErrorRetry<unknown>(
-      () => runPipelineOnce(input),
+      () => runPipelineOnce(input, startedAt),
       (error) => Promise.resolve(hooks.onError?.({ loopId: a.loopId, iteration: nextIndex, error })),
       (err) => toLoopError(err, a.loopId),
       loopCfg.errorHandling?.retry,
@@ -329,5 +445,10 @@ export function buildLoopTools(args: BuildLoopToolsArgs): LoopRuntime {
   return {
     tools: [startLoop, iterateLoop, finishLoop],
     finalize,
+    takeHeldCrumbs() {
+      const held = heldCrumbs
+      heldCrumbs = []
+      return held
+    },
   }
 }

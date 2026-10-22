@@ -78,12 +78,22 @@ Suspension is durable through [pipelines and supervisors](./pipelines.md) too �
 restart-safe guarantee, extended by **checkpoint linkage** (`CheckpointRecord.parent`):
 
 - **Pipeline**: a step's agent suspending stops the pipeline; the checkpoint carries the remaining
-  steps (self-contained — this also covers dynamically composed pipelines, e.g.
-  [loop](./loops.md) iterations). Resuming the agent closes the suspended step and runs the rest
-  of the pipeline in the same continuation stream. A suspended `parallel` branch surfaces its
-  `human:required` only after every sibling settles (so the linkage is complete before anyone can
-  resume); each branch's resume fills its slot, and the **last** one carries the merged output into
-  the remaining steps.
+  steps (self-contained — pipelines can be composed at runtime, not only from config). Resuming the
+  agent closes the suspended step and runs the rest of the pipeline in the same continuation stream.
+  A suspended `parallel` branch surfaces its `human:required` only after every sibling settles (so
+  the linkage is complete before anyone can resume); each branch's resume fills its slot, and the
+  **last** one carries the merged output into the remaining steps.
+- **Loop iteration**: a human tool inside a [loop](./loops.md) iteration chain-suspends the host.
+  The iteration stays open — no iteration row and no `loop:iteration:end` — and the host turn
+  persists with `core_start_loop` / `core_iterate_loop` left dangling (no tool result, no tool
+  error). The worker checkpoint keeps its pipeline parent (`pipelineId` is the loop id) and records
+  that dangling host call. The host checkpoint is not directly resumable
+  (`LOOP_CHECKPOINT_NOT_RESUMABLE`). Resuming the **worker** continues the same iteration: the
+  suspended step closes, remaining steps run, and only when that frame finishes unsuspended is the
+  iteration row written and `loop:iteration:end` emitted. That output is then the host's tool
+  result and the host run continues. A later suspension in the same iteration still does not
+  finalize the iteration or continue the host. A pipeline step that finishes without
+  `human:required` still finalizes immediately.
 - **Supervisor delegation**: a delegated run suspending chain-suspends the supervisor — its turn
   persists with the `core_delegate` call left dangling, and a supervisor checkpoint lists the
   pending delegation(s). Resuming the **child** cascades: the child completes, its output lands as
