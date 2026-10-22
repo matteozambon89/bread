@@ -12,6 +12,8 @@ import {
   runDev,
   runEvalCommand,
   runInvoke,
+  runMcpAdd,
+  runMcpList,
   runProviderAdd,
   runProviderList,
   runSkillAdd,
@@ -227,6 +229,31 @@ provider
   .option('--cwd <dir>', 'Project root directory', process.cwd())
   .action(async (name, opts) => {
     await runProviderAdd({ cwd: enterProjectRoot(opts.cwd), name })
+  })
+
+const mcp = program.command('mcp').description('Print MCP server entries from the curated allowlist')
+
+mcp
+  .command('list')
+  .description('List allowlisted MCP connectors')
+  .option('--cwd <dir>', 'Project root directory', process.cwd())
+  .action(async (opts) => {
+    await runMcpList({ cwd: enterProjectRoot(opts.cwd) })
+  })
+
+mcp
+  .command('add [name]')
+  .description('Print an MCP server entry to paste into bread.config.ts')
+  .option('--url <url>', 'HTTP server URL. Does not check the allowlist')
+  .option('--name <name>', 'Server name for --url')
+  .option('--cwd <dir>', 'Project root directory', process.cwd())
+  .action(async (name: string | undefined, opts) => {
+    await runMcpAdd({
+      cwd: enterProjectRoot(opts.cwd),
+      ...(name ? { name } : {}),
+      ...(opts.url ? { url: String(opts.url) } : {}),
+      ...(opts.name ? { serverName: String(opts.name) } : {}),
+    })
   })
 
 function isInteractiveTTY(): boolean {
