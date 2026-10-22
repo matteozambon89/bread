@@ -985,9 +985,9 @@ export interface RunOptions {
   // callers). Persisted onto the checkpoint if this run suspends for HITL, so
   // resume can continue the surrounding pipeline, not just this agent.
   _parent?: CheckpointParent
-  // @internal — post-hook lastOutput when continueRun rebuilds a LoopRuntime
-  // after a suspended iteration just completed. Not persisted. The iteration
-  // row still stores the raw pipeline output.
+  // @internal — post-hook lastOutput for the continueRun that immediately
+  // follows a suspended iteration. Not persisted on the checkpoint. A later
+  // rebuild reads LoopRecord.lastOutput; the iteration row stays raw.
   _loopLastOutput?: { value: unknown }
 }
 

@@ -66,6 +66,7 @@ CREATE TABLE IF NOT EXISTS loops (
   status TEXT NOT NULL,
   iterations INTEGER NOT NULL DEFAULT 0,
   result TEXT,
+  last_output TEXT,
   started_at INTEGER NOT NULL,
   completed_at INTEGER
 );
@@ -223,6 +224,7 @@ interface LoopRow {
   status: string
   iterations: number
   result: string | null
+  last_output: string | null
   started_at: number
   completed_at: number | null
 }
@@ -249,6 +251,7 @@ function rowToLoop(r: LoopRow): LoopRecord {
     status: r.status as LoopStatus,
     iterations: r.iterations,
     ...(r.result != null ? { result: JSON.parse(r.result) as unknown } : {}),
+    ...(r.last_output != null ? { lastOutput: JSON.parse(r.last_output) as unknown } : {}),
     startedAt: r.started_at,
     ...(r.completed_at != null ? { completedAt: r.completed_at } : {}),
   }
@@ -339,6 +342,11 @@ export function store(opts: SqliteStoreOptions = {}): BreadStore {
     } catch (err) {
       if (!(err instanceof Error) || !err.message.includes('duplicate column name')) throw err
     }
+  }
+  try {
+    db.exec('ALTER TABLE loops ADD COLUMN last_output TEXT')
+  } catch (err) {
+    if (!(err instanceof Error) || !err.message.includes('duplicate column name')) throw err
   }
 
   function matchTags(tags: Record<string, string>, filter?: Record<string, string>): boolean {
@@ -516,6 +524,8 @@ export function store(opts: SqliteStoreOptions = {}): BreadStore {
         db.prepare('UPDATE loops SET iterations = ? WHERE id = ?').run(patch.iterations, id)
       if (patch.result !== undefined)
         db.prepare('UPDATE loops SET result = ? WHERE id = ?').run(JSON.stringify(patch.result), id)
+      if (patch.lastOutput !== undefined)
+        db.prepare('UPDATE loops SET last_output = ? WHERE id = ?').run(JSON.stringify(patch.lastOutput), id)
       if (patch.completedAt !== undefined)
         db.prepare('UPDATE loops SET completed_at = ? WHERE id = ?').run(patch.completedAt, id)
     },

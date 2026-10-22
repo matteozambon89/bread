@@ -50,7 +50,8 @@ order, each step's output feeding the next — the same engine as [pipelines](./
 - **Iteration suspends for HITL** → the host run stops at `human:required`. That iteration stays open:
   no iteration row, no `loop:iteration:end`, no `loop:end`, and `core_start_loop` / `core_iterate_loop`
   does not return a tool result. Resume continues the **same** iteration and finalizes it only after
-  the pipeline frame finishes. See [hitl.md](./hitl.md#hitl-inside-a-composition).
+  the pipeline frame finishes. A pool agent that delegates, or that runs its own loop, still suspends
+  this host; the link is written on this loop's frame, not over the inner one. See [hitl.md](./hitl.md#hitl-inside-a-composition).
 
 ## Lifecycle
 
@@ -102,7 +103,7 @@ Partial<LoopHooks>` uses its own methods instead, one per lifecycle point above:
 |--------|-------|-------|
 | `onInit(ctx)` | Right after `loop:start`, once. | `{ loopId, pipeline, maxIterations }` |
 | `onIterationStart(ctx)` | Right after `loop:iteration:start`, once per iteration (not re-fired on retry). | `{ loopId, iteration, input }` |
-| `onIterationEnd(ctx)` | Before `loop:iteration:end`. May return `{ output }` to replace that iteration's result — the replacement becomes `lastOutput` and what the tool caller sees; the persisted iteration row and crumb still show the raw pipeline output. | `{ loopId, iteration, output }` |
+| `onIterationEnd(ctx)` | Before `loop:iteration:end`. May return `{ output }` to replace that iteration's result — the replacement becomes `lastOutput` (stored on the loop row) and what the tool caller sees; the persisted iteration row and crumb still show the raw pipeline output. A later resume reads the stored value, not the raw row. | `{ loopId, iteration, output }` |
 | `onError(ctx)` | On a thrown error from the iteration's pipeline, including a step that runs after a human resume. Same `recover` / `retry` / `fail` / `void` resolution as every other scope's `onError`, bounded by `LoopConfig.errorHandling.retry` — `recover` substitutes that iteration's output and the loop continues, `retry` re-runs just that iteration. After a human resume, retry re-runs only the remaining steps and does not emit another `loop:iteration:start`. | `{ loopId, iteration, error }` |
 | `onFinish(ctx)` | Alongside every `loop:end` (satisfied, cap reached, or run ends/errors with a loop still open). | `{ loopId, status, iterations }` |
 

@@ -26,6 +26,7 @@ import {
   nowMs,
   toBreadError,
 } from './runner-helpers.js'
+import { attachHostLoop, locateLoopPipelineCheckpoint, retargetLoopHostPending } from './loop-host.js'
 import { assembleTools } from './runner-tool-assembly.js'
 import { buildAiSdkTools } from './runner-tool-execution.js'
 import type { RunnerContext } from './runner-types.js'
@@ -39,7 +40,6 @@ import type {
   GlobalHookContext,
   HumanRequiredEvent,
   LoopHostLink,
-  PipelineCheckpointParent,
   RunContext,
   RunOptions,
 } from './types.js'
@@ -439,6 +439,19 @@ export async function* continueRun(
         timestamp: nowMs(),
       }))
 
+      // More than one loop suspension, or a loop suspension beside a human
+      // tool or a delegation, is unsupported. Throwing would enter this run's
+      // catch, which retries or finalize(true) and never yields human:required.
+      // Leave the loop running and still surface the worker checkpoint.
+      if (
+        suspendedLoops.length > 1 ||
+        (suspendedLoops.length > 0 && (pending !== null || suspendedDelegations.length > 0))
+      ) {
+        for (const crumb of loopRuntime?.takeHeldCrumbs() ?? []) yield crumb
+        for (const crumb of supervisorRuntime?.takeHeldCrumbs() ?? []) yield crumb
+        return
+      }
+
       // Chain-suspension: one or more delegations suspended for HITL. Persist
       // this run's state with the delegate tool-call(s) left dangling (their
       // synthetic error results stripped), link each child checkpoint back,
@@ -500,6 +513,8 @@ export async function* continueRun(
           }
         }
 
+        for (const d of suspendedDelegations) await retargetLoopHostPending(ctx, d.childCheckpointId)
+
         for (const crumb of supervisorRuntime?.takeHeldCrumbs() ?? []) yield crumb
 
         await runObserverChain(agentHookChain(cfg, ctx, 'onSuspend'), {
@@ -511,31 +526,17 @@ export async function* continueRun(
         return
       }
 
-      // Leave the loop tool dangling and keep the worker's pipeline parent
-      // (pipelineId is the loop id). Return before finalize so the iteration
-      // stays open — no row, no loop:iteration:end, no loop:end.
+      // Leave the loop tool dangling. Attach the host link to this loop's
+      // pipeline frame — not the leaf human checkpoint, which may be a
+      // delegated child or an inner loop's worker. Return before finalize so
+      // the iteration stays open. A missing frame still suspends the host and
+      // yields human:required; it must not throw into the run catch.
       if (suspendedLoops.length > 0) {
-        if (pending || suspendedDelegations.length > 0) {
-          throw new BreadError(
-            `Agent "${agentId}" suspended a loop iteration in the same turn as ` +
-              `${pending ? `a ${pending.kind === 'input' ? 'human' : 'ask-gated'} tool call` : 'a delegation'}` +
-              ' — this combination is unsupported. ',
-            'MIXED_SUSPENSION_UNSUPPORTED',
-            { agentId, runId, loops: suspendedLoops.length },
-          )
-        }
         const loopSusp = suspendedLoops[0]!
-        const suspendedIds = new Set(suspendedLoops.map((d) => d.toolCallId))
+        const suspendedIds = new Set([loopSusp.toolCallId])
         const strippedRows = withoutSuspendedToolResults(responseRows, suspendedIds)
-        const childCp = await ctx.store.getCheckpoint(loopSusp.childCheckpointId)
-        const childParent = childCp?.parent
-        if (!childCp || !childParent || childParent.kind !== 'pipeline') {
-          throw new BreadError(
-            `Loop "${loopSusp.loopId}" suspended without a pipeline checkpoint to resume.`,
-            'LOOP_SUSPENDED',
-            { loopId: loopSusp.loopId, checkpointId: loopSusp.childCheckpointId },
-          )
-        }
+        const leaf = await ctx.store.getCheckpoint(loopSusp.childCheckpointId)
+        const frame = await locateLoopPipelineCheckpoint(ctx, loopSusp.childCheckpointId, loopSusp.loopId)
         const hostCpId = uuidv7()
         const record: CheckpointRecord = {
           id: hostCpId,
@@ -552,7 +553,7 @@ export async function* continueRun(
             {
               toolCallId: loopSusp.toolCallId,
               childCheckpointId: loopSusp.childCheckpointId,
-              subAgentId: childCp.agentId,
+              subAgentId: leaf?.agentId ?? 'unknown',
             },
           ],
           createdAt: nowMs(),
@@ -567,10 +568,13 @@ export async function* continueRun(
           input: loopSusp.input,
           startedAt: loopSusp.startedAt,
         }
-        await ctx.store.saveCheckpoint({
-          ...childCp,
-          parent: attachHostLoop(childParent, link),
-        })
+        if (frame?.parent?.kind === 'pipeline') {
+          await ctx.store.saveCheckpoint({
+            ...frame,
+            parent: attachHostLoop(frame.parent, link),
+          })
+        }
+        await retargetLoopHostPending(ctx, loopSusp.childCheckpointId)
 
         for (const crumb of loopRuntime?.takeHeldCrumbs() ?? []) yield crumb
 
@@ -607,6 +611,7 @@ export async function* continueRun(
           createdAt: nowMs(),
         }
         await ctx.store.suspendRun(sessionId, responseRows, record)
+        await retargetLoopHostPending(ctx, checkpointId)
 
         const event: HumanRequiredEvent = {
           agentId,
@@ -738,11 +743,4 @@ function withoutSuspendedToolResults<T extends { role: string; content: unknown 
       return { ...row, content }
     })
     .filter((row) => !(row.role === 'tool' && Array.isArray(row.content) && row.content.length === 0))
-}
-
-// Attach the dangling host call to the outermost pipeline frame. Replacing
-// the parent would drop the remaining steps of this iteration.
-function attachHostLoop(parent: PipelineCheckpointParent, link: LoopHostLink): PipelineCheckpointParent {
-  if (parent.outer) return { ...parent, outer: attachHostLoop(parent.outer, link) }
-  return { ...parent, hostLoop: link }
 }

@@ -389,10 +389,16 @@ export function storeContractCases(): StoreCase[] {
           startedAt: 1,
           completedAt: 2,
         })
-        await store.updateLoop('loop-1', { status: 'completed', iterations: 1, result: 'done' })
+        await store.updateLoop('loop-1', {
+          status: 'completed',
+          iterations: 1,
+          result: 'done',
+          lastOutput: 'forwarded',
+        })
         const got = await store.getLoop('loop-1')
         assert.equal(got?.loop.status, 'completed')
         assert.equal(got?.loop.iterations, 1)
+        assert.equal(got?.loop.lastOutput, 'forwarded')
         assert.equal(got?.iterations.length, 1)
       },
     },

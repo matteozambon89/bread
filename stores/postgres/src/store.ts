@@ -109,6 +109,7 @@ interface LoopRow {
   status: string
   iterations: number
   result: unknown
+  last_output: unknown
   started_at: string
   completed_at: string | null
 }
@@ -135,6 +136,7 @@ function rowToLoop(r: LoopRow): LoopRecord {
     status: r.status as LoopStatus,
     iterations: Number(r.iterations),
     ...(r.result != null ? { result: r.result } : {}),
+    ...(r.last_output != null ? { lastOutput: r.last_output } : {}),
     startedAt: Number(r.started_at),
     ...(r.completed_at != null ? { completedAt: Number(r.completed_at) } : {}),
   }
@@ -371,6 +373,8 @@ export function store(opts: PostgresStoreOptions = {}): BreadStore {
         await sql`UPDATE bread_loops SET iterations = ${patch.iterations} WHERE id = ${id}`
       if (patch.result !== undefined)
         await sql`UPDATE bread_loops SET result = ${j(patch.result)} WHERE id = ${id}`
+      if (patch.lastOutput !== undefined)
+        await sql`UPDATE bread_loops SET last_output = ${j(patch.lastOutput)} WHERE id = ${id}`
       if (patch.completedAt !== undefined)
         await sql`UPDATE bread_loops SET completed_at = ${patch.completedAt} WHERE id = ${id}`
     },

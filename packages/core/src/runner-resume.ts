@@ -1,4 +1,5 @@
 import { completeLoopIteration } from './loop.js'
+import { dropPendingLoopHosts, markLoopFailed, missingHostCheckpoint } from './loop-host.js'
 import { continuePipelineParent } from './pipeline.js'
 import type { FinishedLoopFrame } from './pipeline.js'
 import { crumbBase, nowMs } from './runner-helpers.js'
@@ -12,9 +13,11 @@ import { assembleTools } from './runner-tool-assembly.js'
 import type { RunnerContext } from './runner-types.js'
 import type {
   AgentConfig,
+  AgentDefinition,
   BreadCrumb,
   CheckpointParent,
   HumanResumedCrumb,
+  LoopEndCrumb,
   LoopHostLink,
   Principal,
   RunOptions,
@@ -97,11 +100,6 @@ export async function* resumeRun(
   // answer. There is no declared shape for `response` to validate against;
   // taking it as-is is correct given the current defineHumanTool API, not a
   // gap — see kind === 'input' below.
-  let output: unknown
-  if (kind === 'input') {
-    output = response
-  }
-
   // Atomically claim the checkpoint before doing anything else observable —
   // a concurrent second resume() of the same checkpoint loses this race and
   // hits CHECKPOINT_NOT_FOUND instead of also executing/appending. Once
@@ -115,6 +113,29 @@ export async function* resumeRun(
       { checkpointId },
     )
   }
+
+  try {
+    yield* resumeClaimed(checkpointId, response, cp, kind, executables, def, runOpts, ctx)
+  } catch (err) {
+    // The worker row is still here. A host is dropped only when this id was
+    // its last live child — a sibling that is still stored keeps the loop.
+    await dropPendingLoopHosts(ctx, cp.parent, checkpointId)
+    throw err
+  }
+}
+
+async function* resumeClaimed(
+  checkpointId: string,
+  response: unknown,
+  cp: NonNullable<Awaited<ReturnType<RunnerContext['store']['getCheckpoint']>>>,
+  kind: 'input' | 'approval',
+  executables: Awaited<ReturnType<typeof assembleTools>>['executables'],
+  def: AgentDefinition<unknown, unknown>,
+  runOpts: RunOptions,
+  ctx: RunnerContext,
+): AsyncGenerator<BreadCrumb> {
+  let output: unknown
+  if (kind === 'input') output = response
 
   if (kind === 'approval') {
     const approved = (response as { approved?: boolean } | undefined)?.approved === true
@@ -251,29 +272,46 @@ async function* continueLoopHost(
 ): AsyncGenerator<BreadCrumb> {
   const link: LoopHostLink = finished.hostLoop
   const hostCp = await ctx.store.getCheckpoint(link.checkpointId)
-  if (!hostCp) return
+  if (!hostCp) {
+    await markLoopFailed(ctx, link.loopId)
+    throw missingHostCheckpoint(link.checkpointId, link.loopId)
+  }
 
-  const completed = await completeLoopIteration(ctx, link, finished.output)
+  let claimedHost = false
+  let completed: Awaited<ReturnType<typeof completeLoopIteration>>
+  try {
+    completed = await completeLoopIteration(ctx, link, finished.output, async () => {
+      const claimed = await ctx.store.deleteCheckpoint(hostCp.id)
+      if (!claimed) throw missingHostCheckpoint(hostCp.id, link.loopId)
+      claimedHost = true
+    })
+  } catch (err) {
+    if (claimedHost) yield* closeLoopIfRunning(ctx, link.loopId, 'failed')
+    throw err
+  }
   yield completed.crumb
 
-  await ctx.store.addMessage(hostCp.sessionId, {
-    role: 'tool',
-    content: [
-      {
-        type: 'tool-result',
-        toolCallId: link.toolCallId,
-        toolName: link.toolName,
-        output: { type: 'json', value: completed.toolResult },
-      },
-    ],
-    timestamp: nowMs(),
-  })
-
-  const claimed = await ctx.store.deleteCheckpoint(hostCp.id)
-  if (!claimed) return
+  try {
+    await ctx.store.addMessage(hostCp.sessionId, {
+      role: 'tool',
+      content: [
+        {
+          type: 'tool-result',
+          toolCallId: link.toolCallId,
+          toolName: link.toolName,
+          output: { type: 'json', value: completed.toolResult },
+        },
+      ],
+      timestamp: nowMs(),
+    })
+  } catch (err) {
+    yield* closeLoopIfRunning(ctx, link.loopId, 'failed')
+    throw err
+  }
 
   const def = ctx.agents.get(hostCp.agentId)
   if (!def) {
+    yield* closeLoopIfRunning(ctx, link.loopId, 'failed')
     throw new BreadError(`Agent not found: "${hostCp.agentId}"`, 'AGENT_NOT_FOUND', {
       agentId: hostCp.agentId,
     })
@@ -284,28 +322,77 @@ async function* continueLoopHost(
     ...(hostCp.parent ? { _parent: hostCp.parent } : {}),
     _loopLastOutput: { value: completed.lastOutput },
   }
+  const failingChildId = hostCp.pending?.[0]?.childCheckpointId ?? hostCp.id
 
-  let output: unknown
-  let ended = false
-  for await (const crumb of continueRun(
-    hostCp.agentId,
-    def,
-    hostCp.runId,
-    hostCp.sessionId,
-    completed.toolResult,
-    runOpts,
-    ctx,
-  )) {
-    yield crumb
-    if (crumb.type === 'agent:run:end') {
-      output = crumb.output
-      ended = true
+  try {
+    let output: unknown
+    let ended = false
+    for await (const crumb of continueRun(
+      hostCp.agentId,
+      def,
+      hostCp.runId,
+      hostCp.sessionId,
+      completed.toolResult,
+      runOpts,
+      ctx,
+    )) {
+      yield crumb
+      if (crumb.type === 'agent:run:end') {
+        output = crumb.output
+        ended = true
+      }
     }
-  }
 
-  if (ended && hostCp.parent) {
-    yield* continueParent(hostCp.parent, output, ctx, hostCp.principal)
+    // The host was claimed before this run. A throw before the loop runtime
+    // exists, or an onError recover that skips finalize, would leave the loop
+    // running with both checkpoints gone. A runtime that already finalized
+    // (status no longer running) is left as-is.
+    if (ended) yield* closeLoopIfRunning(ctx, link.loopId, 'completed', completed.lastOutput)
+    if (ended && hostCp.parent) {
+      yield* continueParent(hostCp.parent, output, ctx, hostCp.principal)
+    }
+  } catch (err) {
+    // This host checkpoint is already claimed, so its parent is the only
+    // place an outer loop's link still lives.
+    await dropPendingLoopHosts(ctx, hostCp.parent, failingChildId)
+    yield* closeLoopIfRunning(ctx, link.loopId, 'failed')
+    throw err
   }
+}
+
+// Same store row and loop:end crumb as LoopRuntime.finalize. No-op when the
+// runtime already closed the loop. Does not delete another checkpoint.
+async function* closeLoopIfRunning(
+  ctx: RunnerContext,
+  loopId: string,
+  status: 'completed' | 'failed',
+  result?: unknown,
+): AsyncGenerator<BreadCrumb> {
+  const detail = await ctx.store.getLoop(loopId)
+  if (!detail || detail.loop.status !== 'running') return
+  const completedAt = nowMs()
+  await ctx.store.updateLoop(loopId, {
+    status,
+    completedAt,
+    ...(status === 'completed' ? { result } : {}),
+  })
+  const crumb: LoopEndCrumb = {
+    type: 'loop:end',
+    agentId: detail.loop.agentId,
+    runId: detail.loop.runId,
+    sessionId: detail.loop.sessionId,
+    timestamp: completedAt,
+    loopId,
+    status,
+    iterations: detail.loop.iterations,
+    ...(status === 'completed' ? { result } : {}),
+  }
+  yield crumb
+  await ctx.agents.get(detail.loop.agentId)?.config.loop?.hooks?.onFinish?.({
+    loopId,
+    status,
+    iterations: detail.loop.iterations,
+  })
 }
 
 // A delegated child run completed: feed its output back as the supervisor's

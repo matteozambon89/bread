@@ -45,9 +45,9 @@ export interface CheckpointRecord {
   // Set on a checkpoint that is waiting on a suspended child and is not
   // directly resumable. A supervisor lists dangling core_delegate calls
   // (entries resolve as each child completes; the last one continues the
-  // run). A loop host lists the worker checkpoint its open iteration suspended
-  // on — resume that worker, not the host. Child ids are the ones from
-  // suspension time; a child that re-suspends gets a fresh checkpoint.
+  // run). A loop host lists the live human checkpoint for its open iteration
+  // — resume that checkpoint, not the host. A later suspension in the same
+  // iteration updates the child id; the previous worker checkpoint is gone.
   pending?: PendingDelegation[] | undefined
   createdAt: number
 }
@@ -75,6 +75,11 @@ export interface LoopRecord {
   status: LoopStatus
   iterations: number // count of completed iterations
   result?: unknown
+  // Post-hook output of the latest finished iteration. The iteration row stays
+  // raw; a rebuilt runtime reads this so core_iterate_loop / core_finish_loop
+  // match the tool result the model already saw. Absent on loops that have
+  // not finished an iteration since this field existed.
+  lastOutput?: unknown
   startedAt: number
   completedAt?: number | undefined
 }
@@ -184,7 +189,7 @@ export interface BreadStore {
   createLoop(record: LoopRecord): Promise<void>
   updateLoop(
     id: string,
-    patch: Partial<Pick<LoopRecord, 'status' | 'iterations' | 'result' | 'completedAt'>>,
+    patch: Partial<Pick<LoopRecord, 'status' | 'iterations' | 'result' | 'lastOutput' | 'completedAt'>>,
   ): Promise<void>
   addLoopIteration(iteration: LoopIteration): Promise<void>
   getLoop(id: string): Promise<{ loop: LoopRecord; iterations: LoopIteration[] } | undefined>

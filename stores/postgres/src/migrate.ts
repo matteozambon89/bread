@@ -50,6 +50,7 @@ CREATE TABLE IF NOT EXISTS bread_loops (
   status TEXT NOT NULL,
   iterations INTEGER NOT NULL DEFAULT 0,
   result JSONB,
+  last_output JSONB,
   started_at BIGINT NOT NULL,
   completed_at BIGINT
 );
@@ -140,6 +141,7 @@ ALTER TABLE bread_checkpoints ADD COLUMN IF NOT EXISTS skill TEXT;
 ALTER TABLE bread_checkpoints ADD COLUMN IF NOT EXISTS parent JSONB;
 ALTER TABLE bread_checkpoints ADD COLUMN IF NOT EXISTS pending JSONB;
 ALTER TABLE bread_checkpoints ADD COLUMN IF NOT EXISTS principal JSONB;
+ALTER TABLE bread_loops ADD COLUMN IF NOT EXISTS last_output JSONB;
 `
 
 export async function migrate(sql: Sql, withVectors: boolean): Promise<void> {
