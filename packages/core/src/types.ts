@@ -833,6 +833,9 @@ export interface PipelineCheckpointParent {
   // host run chain-suspended. Stays kind: 'pipeline' (pipelineId is the loop
   // id). Resume finishes the frame before writing the iteration row.
   hostLoop?: LoopHostLink
+  // A delegation that chain-suspended onto this frame. The frame stays so a
+  // loop pipeline is not dropped. Followed only after this frame finishes.
+  supervisor?: SupervisorCheckpointParent
 }
 
 // The dangling core_start_loop / core_iterate_loop call a suspended loop

@@ -1,9 +1,10 @@
 import { decisionLabel, resolveDecisionClient, toHostQuestion } from './decision.js'
 import { runWithOnErrorRetry } from './hooks.js'
-import type { BreadCrumb, LoopHostLink, PipelineCheckpointParent, PipelineStep, Principal, RunOptions } from './types.js'
+import type { BreadCrumb, LoopHostLink, PipelineCheckpointParent, PipelineStep, Principal, RunOptions, SupervisorCheckpointParent } from './types.js'
 import { BreadError } from './types.js'
 import { runAgent } from './runner.js'
 import type { RunnerContext } from './runner.js'
+import type { CheckpointRecord } from './storage/store.js'
 
 export interface PipelineRunOpts {
   pipelineId: string
@@ -33,6 +34,16 @@ export interface PipelineRunOpts {
 export interface FinishedLoopFrame {
   hostLoop: LoopHostLink
   output: unknown
+  // Present when the finished frame also carries a delegation link. The host
+  // run is continued first; the supervisor runs only if the host has no parent.
+  supervisor?: SupervisorCheckpointParent
+}
+
+// The pipeline frame finished and its only continuation is a delegation that
+// was stored beside the frame instead of replacing it.
+export interface FinishedSupervisorFrame {
+  output: unknown
+  supervisor: SupervisorCheckpointParent
 }
 
 interface PipelineResult {
@@ -276,15 +287,38 @@ function pipelineResult(
 
 // The parallel slot for this step sits on its own frame. Nested arms push
 // frames in front of it, so the checkpoint parent is not always that frame.
-function findParallelFrame(
-  parent: PipelineCheckpointParent,
+// A loop worker's parent is the iteration frame; the parallel frame is on the
+// loop host. Walk outer first, then that host, and return the checkpoint that
+// owns the frame so the caller saves that row.
+async function findParallelFrame(
+  ctx: RunnerContext,
+  checkpoint: CheckpointRecord,
   pipelineId: string,
   stepIndex: number,
-): PipelineCheckpointParent | undefined {
-  let frame: PipelineCheckpointParent | undefined = parent
+  seen = new Set<string>(),
+): Promise<{ checkpoint: CheckpointRecord; frame: PipelineCheckpointParent } | undefined> {
+  if (seen.has(checkpoint.id)) return undefined
+  seen.add(checkpoint.id)
+  if (checkpoint.parent?.kind !== 'pipeline') return undefined
+  let frame: PipelineCheckpointParent | undefined = checkpoint.parent
   while (frame) {
-    if (frame.parallel && frame.pipelineId === pipelineId && frame.stepIndex === stepIndex) return frame
+    if (frame.parallel && frame.pipelineId === pipelineId && frame.stepIndex === stepIndex) {
+      return { checkpoint, frame }
+    }
     frame = frame.outer
+  }
+  const links: LoopHostLink[] = []
+  frame = checkpoint.parent
+  while (frame) {
+    if (frame.hostLoop) links.push(frame.hostLoop)
+    frame = frame.outer
+  }
+  for (const link of links) {
+    if (seen.has(link.checkpointId)) continue
+    const host = await ctx.store.getCheckpoint(link.checkpointId)
+    if (!host) continue
+    const found = await findParallelFrame(ctx, host, pipelineId, stepIndex, seen)
+    if (found) return found
   }
   return undefined
 }
@@ -466,13 +500,13 @@ async function* runParallelSteps(
     // durable do the held human:required crumbs surface to the client.
     for (const checkpointId of suspendedCheckpoints) {
       const cp = await ctx.store.getCheckpoint(checkpointId)
-      if (cp?.parent?.kind !== 'pipeline') continue
-      const frame = findParallelFrame(cp.parent, pipelineId, stepIndex)
-      if (!frame?.parallel) continue
-      frame.parallel.settledOutputs = outputs.slice()
-      frame.parallel.pendingCheckpointIds = suspendedCheckpoints.slice()
-      writeDecisionLabel(frame, joined)
-      await ctx.store.saveCheckpoint(cp)
+      if (!cp) continue
+      const hit = await findParallelFrame(ctx, cp, pipelineId, stepIndex)
+      if (!hit?.frame.parallel) continue
+      hit.frame.parallel.settledOutputs = outputs.slice()
+      hit.frame.parallel.pendingCheckpointIds = suspendedCheckpoints.slice()
+      writeDecisionLabel(hit.frame, joined)
+      await ctx.store.saveCheckpoint(hit.checkpoint)
     }
     for (const crumb of heldHumanRequired) yield crumb
     return { suspended: true }
@@ -496,7 +530,7 @@ export async function* continuePipelineParent(
   ctx: RunnerContext,
   slotLabel?: string,
   principal?: Principal,
-): AsyncGenerator<BreadCrumb, FinishedLoopFrame | undefined> {
+): AsyncGenerator<BreadCrumb, FinishedLoopFrame | FinishedSupervisorFrame | undefined> {
   if (slotLabel !== undefined) adoptSlotLabel(parent, slotLabel)
   let stepOutput: unknown = resumedOutput
   let carriedLabel = parent.decisionLabel
@@ -563,18 +597,18 @@ export async function* continuePipelineParent(
       // into a store-side atomic update if concurrent resumes ever matter.
       for (const id of stillPending) {
         const cp = await ctx.store.getCheckpoint(id)
-        if (cp?.parent?.kind !== 'pipeline') continue
-        const frame = findParallelFrame(cp.parent, parent.pipelineId, parent.stepIndex)
-        if (!frame?.parallel) continue
-        frame.parallel.settledOutputs[branchIndex] = stepOutput
+        if (!cp) continue
+        const hit = await findParallelFrame(ctx, cp, parent.pipelineId, parent.stepIndex)
+        if (!hit?.frame.parallel) continue
+        hit.frame.parallel.settledOutputs[branchIndex] = stepOutput
         writeDecisionLabel(
-          frame,
-          joinSlotLabel(frame.parallel.incomingLabel, frame.decisionLabel, parent.decisionLabel, {
-            pipelineId: frame.pipelineId,
-            stepIndex: frame.stepIndex,
+          hit.frame,
+          joinSlotLabel(hit.frame.parallel.incomingLabel, hit.frame.decisionLabel, parent.decisionLabel, {
+            pipelineId: hit.frame.pipelineId,
+            stepIndex: hit.frame.stepIndex,
           }),
         )
-        await ctx.store.saveCheckpoint(cp)
+        await ctx.store.saveCheckpoint(hit.checkpoint)
       }
       return // pipeline stays suspended on the remaining branches
     }
@@ -612,7 +646,14 @@ export async function* continuePipelineParent(
   if (parent.outer) {
     return yield* continuePipelineParent(parent.outer, driven.output, ctx, driven.decisionLabel, principal)
   }
-  if (parent.hostLoop) return { hostLoop: parent.hostLoop, output: driven.output }
+  if (parent.hostLoop) {
+    return {
+      hostLoop: parent.hostLoop,
+      output: driven.output,
+      ...(parent.supervisor ? { supervisor: parent.supervisor } : {}),
+    }
+  }
+  if (parent.supervisor) return { output: driven.output, supervisor: parent.supervisor }
 }
 
 type RemainingBoxed =
