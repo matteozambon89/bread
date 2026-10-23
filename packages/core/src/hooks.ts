@@ -134,11 +134,17 @@ export async function runWithOnErrorRetry<TOutput>(
     try {
       return await operation()
     } catch (err) {
-      // A delegated sub-run suspending for HITL escapes through its delegate
-      // tool as DELEGATION_SUSPENDED — a suspension, not a failure. It must
-      // reach the runner's chain-suspension path untouched: no onError chain,
-      // and never a retry (that would re-run the whole delegation).
-      if (err instanceof BreadError && err.code === 'DELEGATION_SUSPENDED') throw err
+      // A delegated sub-run or a loop iteration suspending for HITL escapes
+      // through its tool as DELEGATION_SUSPENDED / LOOP_SUSPENDED — a
+      // suspension, not a failure. It must reach the runner's chain-suspension
+      // path untouched: no onError chain, and never a retry (that would re-run
+      // the delegation or finalize the open iteration).
+      if (
+        err instanceof BreadError &&
+        (err.code === 'DELEGATION_SUSPENDED' || err.code === 'LOOP_SUSPENDED')
+      ) {
+        throw err
+      }
       const breadErr = toError(err)
       const resolution = await resolveError(breadErr)
       const decision = decideRetry(resolution, breadErr, retryConfig, state)

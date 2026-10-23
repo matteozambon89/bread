@@ -262,6 +262,22 @@ export function storeContractCases(): StoreCase[] {
       },
     },
     {
+      name: 'claimCheckpoint claims once and saveCheckpoint keeps the claim',
+      fn: async (store) => {
+        await store.createSession({ id: 's' })
+        await store.saveCheckpoint(checkpoint())
+        const first = await store.claimCheckpoint('cp-1')
+        assert.equal(first?.id, 'cp-1')
+        assert.equal((await store.getCheckpoint('cp-1'))?.id, 'cp-1')
+        assert.equal(await store.claimCheckpoint('cp-1'), undefined)
+        await store.saveCheckpoint(checkpoint({ prompt: 'still' }))
+        assert.equal(await store.claimCheckpoint('cp-1'), undefined)
+        assert.equal((await store.getCheckpoint('cp-1'))?.prompt, 'still')
+        assert.equal((await store.deleteCheckpoint('cp-1'))?.id, 'cp-1')
+        assert.equal(await store.getCheckpoint('cp-1'), undefined)
+      },
+    },
+    {
       name: 'round-trips the composition parent linkage on a checkpoint',
       fn: async (store) => {
         await store.createSession({ id: 's' })
@@ -389,11 +405,36 @@ export function storeContractCases(): StoreCase[] {
           startedAt: 1,
           completedAt: 2,
         })
-        await store.updateLoop('loop-1', { status: 'completed', iterations: 1, result: 'done' })
+        await store.updateLoop('loop-1', {
+          status: 'completed',
+          iterations: 1,
+          result: 'done',
+          lastOutput: 'forwarded',
+        })
         const got = await store.getLoop('loop-1')
         assert.equal(got?.loop.status, 'completed')
         assert.equal(got?.loop.iterations, 1)
+        assert.equal(got?.loop.lastOutput, 'forwarded')
         assert.equal(got?.iterations.length, 1)
+      },
+    },
+    {
+      name: 'loop lastOutput round-trips null and an explicit undefined replacement',
+      fn: async (store) => {
+        const s = await store.createSession()
+        await store.createLoop(loop(s.id))
+        await store.updateLoop('loop-1', { lastOutput: null })
+        const nulled = await store.getLoop('loop-1')
+        assert.equal(Object.prototype.hasOwnProperty.call(nulled?.loop ?? {}, 'lastOutput'), true)
+        assert.equal(nulled?.loop.lastOutput, null)
+        await store.updateLoop('loop-1', { lastOutput: undefined })
+        const cleared = await store.getLoop('loop-1')
+        assert.equal(Object.prototype.hasOwnProperty.call(cleared?.loop ?? {}, 'lastOutput'), true)
+        assert.equal(cleared?.loop.lastOutput, undefined)
+        await store.updateLoop('loop-1', { iterations: 2 })
+        const kept = await store.getLoop('loop-1')
+        assert.equal(Object.prototype.hasOwnProperty.call(kept?.loop ?? {}, 'lastOutput'), true)
+        assert.equal(kept?.loop.lastOutput, undefined)
       },
     },
     {

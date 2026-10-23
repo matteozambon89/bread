@@ -43,6 +43,9 @@ export interface RunnerContext {
   pluginHooks?: Partial<BreadHooks>[] | undefined
   hooks?: Partial<BreadHooks> | undefined
   signal?: AbortSignal | undefined
+  // Set while resuming a loop worker that this call claimed. The row stays
+  // until no host checkpoint still names it. Cleared once it is deleted.
+  releasingLoopWorkerId?: string | undefined
 }
 
 // One assembled tool plus the structured provenance the permissions module

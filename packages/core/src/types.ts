@@ -829,6 +829,27 @@ export interface PipelineCheckpointParent {
   }
   // Next frame to run after this one finishes. Absent on the outermost frame.
   outer?: PipelineCheckpointParent
+  // Set on the outermost frame when this pipeline is a loop iteration whose
+  // host run chain-suspended. Stays kind: 'pipeline' (pipelineId is the loop
+  // id). Resume finishes the frame before writing the iteration row.
+  hostLoop?: LoopHostLink
+  // A delegation that chain-suspended onto this frame. The frame stays so a
+  // loop pipeline is not dropped. Followed only after this frame finishes.
+  supervisor?: SupervisorCheckpointParent
+}
+
+// The dangling core_start_loop / core_iterate_loop call a suspended loop
+// iteration must resolve. Bookkeeping lives here because the host process
+// that started the iteration is gone; the iteration row is written only when
+// this frame finishes unsuspended.
+export interface LoopHostLink {
+  checkpointId: string
+  toolCallId: string
+  toolName: string
+  loopId: string
+  iteration: number
+  input: unknown
+  startedAt: number
 }
 
 // Chain-suspension linkage for delegation: set on a delegated sub-run's
@@ -967,6 +988,10 @@ export interface RunOptions {
   // callers). Persisted onto the checkpoint if this run suspends for HITL, so
   // resume can continue the surrounding pipeline, not just this agent.
   _parent?: CheckpointParent
+  // @internal — post-hook lastOutput for the continueRun that immediately
+  // follows a suspended iteration. Not persisted on the checkpoint. A later
+  // rebuild reads LoopRecord.lastOutput; the iteration row stays raw.
+  _loopLastOutput?: { value: unknown }
 }
 
 // Shared by resume()/runPipeline(), which have no other RunOptions fields to
