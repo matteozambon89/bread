@@ -30,6 +30,8 @@ import {
   attachHostLoop,
   failOpenLoops,
   locateLoopPipelineCheckpoint,
+  loopHostLinkOf,
+  loopIterationAwaitingHost,
   retargetLoopHostPending,
 } from './loop-host.js'
 import { assembleTools } from './runner-tool-assembly.js'
@@ -45,8 +47,10 @@ import type {
   GlobalHookContext,
   HumanRequiredEvent,
   LoopHostLink,
+  PipelineCheckpointParent,
   RunContext,
   RunOptions,
+  SupervisorCheckpointParent,
 } from './types.js'
 import { BreadError } from './types.js'
 
@@ -542,13 +546,11 @@ export async function* continueRun(
         await ctx.store.suspendRun(sessionId, strippedRows, record)
 
         for (const d of suspendedDelegations) {
-          const childCp = await ctx.store.getCheckpoint(d.childCheckpointId)
-          if (childCp) {
-            await ctx.store.saveCheckpoint({
-              ...childCp,
-              parent: { kind: 'supervisor', checkpointId: supervisorCpId, toolCallId: d.toolCallId },
-            })
-          }
+          await linkDelegatedChild(ctx, d.childCheckpointId, {
+            kind: 'supervisor',
+            checkpointId: supervisorCpId,
+            toolCallId: d.toolCallId,
+          })
         }
 
         for (const d of suspendedDelegations) await retargetLoopHostPending(ctx, d.childCheckpointId)
@@ -631,7 +633,11 @@ export async function* continueRun(
         })
         for (const id of loopSusp.childCheckpointIds) await retargetLoopHostPending(ctx, id)
 
-        for (const crumb of loopRuntime?.takeHeldCrumbs() ?? []) yield crumb
+        for (const crumb of loopRuntime?.takeHeldCrumbs() ?? []) {
+          // The worker deferred this callback until hostLoop was saved.
+          notifyHumanRequired(ctx, crumb)
+          yield crumb
+        }
 
         await runObserverChain(agentHookChain(cfg, ctx, 'onSuspend'), {
           scope: 'agent',
@@ -677,7 +683,9 @@ export async function* continueRun(
           schema: pending.args,
           kind: pending.kind,
         }
-        ctx.onHumanRequired?.(event)
+        // A loop iteration that does not yet have hostLoop must not resume
+        // from this callback: the worker would be claimed as a normal checkpoint.
+        if (!(await loopIterationAwaitingHost(ctx, record.parent))) ctx.onHumanRequired?.(event)
 
         const crumb = makeHumanRequiredCrumb(
           agentId,
@@ -793,6 +801,65 @@ export async function* continueRun(
       throw finalErr
     }
   }
+}
+
+function notifyHumanRequired(ctx: RunnerContext, crumb: BreadCrumb): void {
+  if (crumb.type !== 'human:required') return
+  ctx.onHumanRequired?.({
+    agentId: crumb.agentId,
+    runId: crumb.runId,
+    sessionId: crumb.sessionId,
+    checkpointId: crumb.checkpointId,
+    toolName: crumb.toolName,
+    schema: crumb.schema,
+    ...(crumb.prompt !== undefined ? { prompt: crumb.prompt } : {}),
+    kind: crumb.kind,
+  })
+}
+
+// A pipeline parent is the only copy of a loop frame and its hostLoop. Leave
+// it on the child. The supervisor link goes on the host when that host has no
+// parent, or beside a pipeline parent that must finish first.
+async function linkDelegatedChild(
+  ctx: RunnerContext,
+  childCheckpointId: string,
+  supervisorLink: SupervisorCheckpointParent,
+): Promise<void> {
+  const child = await ctx.store.getCheckpoint(childCheckpointId)
+  if (!child) return
+  if (child.parent?.kind !== 'pipeline') {
+    await ctx.store.saveCheckpoint({ ...child, parent: supervisorLink })
+    return
+  }
+  const hostLink = await loopHostLinkOf(ctx, child.parent)
+  if (!hostLink) {
+    await ctx.store.saveCheckpoint({
+      ...child,
+      parent: withSupervisorLink(child.parent, supervisorLink),
+    })
+    return
+  }
+  const host = await ctx.store.getCheckpoint(hostLink.checkpointId)
+  if (!host) return
+  if (!host.parent) {
+    await ctx.store.saveCheckpoint({ ...host, parent: supervisorLink })
+    return
+  }
+  if (host.parent.kind === 'pipeline') {
+    await ctx.store.saveCheckpoint({
+      ...host,
+      parent: withSupervisorLink(host.parent, supervisorLink),
+    })
+  }
+}
+
+function withSupervisorLink(
+  parent: PipelineCheckpointParent,
+  link: SupervisorCheckpointParent,
+): PipelineCheckpointParent {
+  if (parent.outer) return { ...parent, outer: withSupervisorLink(parent.outer, link) }
+  if (parent.supervisor) return parent
+  return { ...parent, supervisor: link }
 }
 
 function withoutSuspendedToolResults<T extends { role: string; content: unknown }>(
