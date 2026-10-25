@@ -193,3 +193,28 @@ export function resolvePermissions(
 
   return { allowed, gated }
 }
+
+// A surviving tool whose definition says `ask`. Callers pass only origins that
+// already survived `deny` — this does not put a dropped tool back.
+export interface AskDefaultEntry {
+  origin: ToolOrigin
+  def: { ask?: boolean }
+}
+
+export function gateAskDefaults(
+  gated: Set<string>,
+  entries: readonly AskDefaultEntry[],
+  permissions?: ToolPermissions,
+): Set<string> {
+  // Only an exact selector opts a tool out. A glob such as `plugin:mcp_client/*`
+  // is how MCP tools are usually enabled, so it must not also drop every ask.
+  const exactAllow = (permissions?.allow ?? []).filter((s) => !s.includes('*'))
+  for (const entry of entries) {
+    if (entry.def.ask !== true) continue
+    const explicitlyAllowed = matchesAny(exactAllow, entry.origin)
+    const explicitlyAsked = matchesAny(permissions?.ask, entry.origin)
+    if (explicitlyAllowed && !explicitlyAsked) continue
+    gated.add(leafName(entry.origin))
+  }
+  return gated
+}

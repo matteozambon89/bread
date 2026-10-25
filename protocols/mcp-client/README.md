@@ -12,7 +12,14 @@ across agents, plus per-agent inline `external` servers under `cfg.plugins.mcp_c
 tools are snake_case-sanitized, namespaced `<server>__<tool>`, permission-tagged
 `plugin:mcp_client/…`, and auth-signed per request (expiring tokens refresh naturally). Speaks
 the 2025-11-25 protocol revision by default; set `versionNegotiation: { mode: 'auto' }` on a
-server to probe for 2026-07-28 instead.
+server to probe for 2026-07-28 instead. `askWrites: true` asks before every tool on that
+server; server annotations are not trusted, and an exact `permissions.allow` selector opts a
+tool out (a server without `askWrites` never sets `ask`). `bread mcp add` is single-tenant. An `api_key` add prints
+`import { envProvider } from '@breadai/core'` and `const mcpCredentials = envProvider()` before
+the object; the signer calls `mcpCredentials.get`, throws if the secret is missing, and sets
+the pinned header to the pinned scheme plus the secret. An `oauth` add logs that per-user OAuth
+waits on issue #41 as its own line before the object (not inside it) and still sets `askWrites`.
+`--name` is only valid with `--url`. `--url` does not set `askWrites`.
 
 ```bash
 bun add @breadai/protocol-mcp-client   # or: npm i @breadai/protocol-mcp-client

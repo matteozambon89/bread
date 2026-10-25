@@ -127,11 +127,15 @@ export default defineConfig({
 | `bread sessions cleanup` | Bulk delete (`--older-than <days>`, `--tag`) |
 | `bread provider list` | List catalog providers with install/env status for this project |
 | `bread provider add <name>` | Install a catalog provider's peer package and show required env vars |
+| `bread mcp list` | List curated MCP connectors: name, registry namespace, pinned URL, auth, and version |
+| `bread mcp add [name]` | Print a server entry to paste into `bread.config.ts` (`--name` is only valid with `--url`; `--url` is unconstrained and does not set `askWrites`) |
 | `bread init [dir]` | Scaffold a project. On a TTY, a wizard asks the questions below. Without a TTY, runtime, store, transport, agent, and install keep their defaults; `--provider` and `--model` are required |
 | `bread agent add [id]` | Add an agent and insert its id into a plain `entrypoints` list. A TTY asks for a missing id, `--provider`, and `--model` |
 | `bread tool add [agent] [name]` | Write a tool (`--human` for a human tool). Names match `^[a-z][a-z0-9_]*$` |
 | `bread skill add [agent] [id]` | Write `SKILL.md` (`--description` stays a flag) |
 | `bread agent eval [agent] [name]` | Write an eval file (does not run `bread eval`) |
+
+`bread mcp add` does not edit the project. An `api_key` add prints `import { envProvider } from '@breadai/core'` and `const mcpCredentials = envProvider()` before the object. The banner says to paste that import and const into `bread.config.ts` and the object into `mcpClient({ servers })`. The signer calls `mcpCredentials.get`, throws if the secret is missing, and sets the pinned header to the pinned scheme plus the secret. An `oauth` add logs that per-user OAuth waits on issue #41 as its own line before the object (not inside it) and still sets `askWrites`.
 
 On a TTY, `bread init` asks in this order. A passed flag is not asked. An existing `bread.config.ts`, `package.json`, or `agents/` throws `SCAFFOLD_EXISTS` before the first question. Enter accepts the default for runtime, store, transport, agent, and install. Provider and model have no default: a blank answer is asked again. Cancel exits 0 and, before any write, leaves the directory unchanged. Without a TTY, missing `--provider` or `--model` throws and writes nothing. A flag-only init that never asks is unchanged.
 

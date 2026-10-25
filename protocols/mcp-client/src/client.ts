@@ -16,6 +16,10 @@ export interface McpServerConfig {
   url?: string
   /** Signer used to sign outgoing requests (HTTP transport). */
   signer?: BreadSigner
+  // When true, every imported tool is created with `ask: true`. Server
+  // annotations such as `readOnlyHint` are ignored: a server can relabel a tool
+  // on `tools/list_changed`. Absent means this server never sets `ask`.
+  askWrites?: boolean
   /**
    * Opt into probing the server for the 2026-07-28 protocol revision
    * (`{ mode: 'auto' }`), falling back to the 2025-11-25 wire format bread
@@ -90,10 +94,12 @@ async function fetchTools(cfg: McpServerConfig, client: Client): Promise<ToolDef
     }
     seen.set(name, t.name)
     const description = t.description ?? t.name
+    const ask = cfg.askWrites === true
     return {
       name,
       description: name === t.name ? description : `${description} (server tool "${t.name}")`,
       schema: jsonSchemaToZod(t.inputSchema as JSONSchema),
+      ...(ask ? { ask: true as const } : {}),
       async execute(args: unknown) {
         const res = await client.callTool({
           name: t.name,
