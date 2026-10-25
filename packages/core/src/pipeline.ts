@@ -1,3 +1,4 @@
+import { v7 as uuidv7 } from 'uuid'
 import { decisionLabel, resolveDecisionClient, toHostQuestion } from './decision.js'
 import type { BreadCrumb, PipelineCheckpointParent, PipelineStep, Principal, RunOptions } from './types.js'
 import { BreadError } from './types.js'
@@ -22,6 +23,11 @@ export interface PipelineRunOpts {
   decisionLabel?: string
   // Copied onto every nested agent run. Never read from step input or tool args.
   principal?: Principal
+  // One id per pipeline invocation (UUIDv7), minted here when absent. Every
+  // step runId is `${pipelineRunId}:${pipelineId}:${index}`, so two runs of the
+  // same pipeline never share a step id and a step id cannot be guessed from
+  // the pipeline name. Nested arms and resume pass the original one on.
+  pipelineRunId?: string
 }
 
 interface PipelineResult {
@@ -32,6 +38,7 @@ interface PipelineResult {
 
 export async function* runPipeline(opts: PipelineRunOpts): AsyncGenerator<BreadCrumb, PipelineResult> {
   const { pipelineId, steps, input, ctx, baseIndex = 0 } = opts
+  const pipelineRunId = opts.pipelineRunId ?? uuidv7()
   let current: unknown = input
   // Kept off `current` so the next step still sees the pre-decision value.
   // A branch with no `on` reads it, including after HITL and from inside an arm.
@@ -40,7 +47,7 @@ export async function* runPipeline(opts: PipelineRunOpts): AsyncGenerator<BreadC
   for (let i = 0; i < steps.length; i++) {
     const step = steps[i]!
     const index = baseIndex + i
-    const stepRunId = `${pipelineId}:${index}`
+    const stepRunId = stepRunIdOf(pipelineRunId, pipelineId, index)
 
     const startCrumb: BreadCrumb = {
       type: 'pipeline:step:start',
@@ -58,6 +65,7 @@ export async function* runPipeline(opts: PipelineRunOpts): AsyncGenerator<BreadC
     const stepParent = (): PipelineCheckpointParent => ({
       kind: 'pipeline',
       pipelineId,
+      pipelineRunId,
       stepIndex: index,
       stepAgentId: getStepAgentId(step),
       remainingSteps: steps.slice(i + 1),
@@ -80,7 +88,7 @@ export async function* runPipeline(opts: PipelineRunOpts): AsyncGenerator<BreadC
         if (crumb.type === 'human:required') suspended = true
       }
     } else if (step.type === 'parallel') {
-      const res = yield* runParallelSteps(step.steps, current, ctx, pipelineId, index, {
+      const res = yield* runParallelSteps(step.steps, current, ctx, pipelineId, pipelineRunId, index, {
         remainingSteps: steps.slice(i + 1),
         ...(lastDecision !== undefined ? { decisionLabel: lastDecision } : {}),
         ...(opts.outer ? { outer: opts.outer } : {}),
@@ -151,6 +159,7 @@ export async function* runPipeline(opts: PipelineRunOpts): AsyncGenerator<BreadC
         const armOuter: PipelineCheckpointParent = {
           kind: 'pipeline',
           pipelineId,
+          pipelineRunId,
           stepIndex: index,
           stepAgentId: 'branch',
           remainingSteps: steps.slice(i + 1),
@@ -159,6 +168,7 @@ export async function* runPipeline(opts: PipelineRunOpts): AsyncGenerator<BreadC
         }
         const driven = yield* runPipeline({
           pipelineId: `${pipelineId}:${index}:branch`,
+          pipelineRunId,
           steps: taken.arm,
           input: current,
           ctx,
@@ -192,6 +202,12 @@ export async function* runPipeline(opts: PipelineRunOpts): AsyncGenerator<BreadC
   }
 
   return pipelineResult(current, lastDecision, false)
+}
+
+// The step's own runId. Also the key the HTTP transports register a live
+// step under, so it must be unique per invocation.
+function stepRunIdOf(pipelineRunId: string, pipelineId: string, index: number): string {
+  return `${pipelineRunId}:${pipelineId}:${index}`
 }
 
 function getStepAgentId(step: PipelineStep): string {
@@ -321,6 +337,7 @@ async function* runParallelSteps(
   input: unknown,
   ctx: RunnerContext,
   pipelineId: string,
+  pipelineRunId: string,
   stepIndex: number,
   outer: {
     remainingSteps: PipelineStep[]
@@ -363,6 +380,7 @@ async function* runParallelSteps(
     const parallelFrame: PipelineCheckpointParent = {
       kind: 'pipeline',
       pipelineId,
+      pipelineRunId,
       stepIndex,
       stepAgentId: 'parallel',
       remainingSteps: outer.remainingSteps,
@@ -380,6 +398,7 @@ async function* runParallelSteps(
       // it has to join the accumulator before this generator is discarded.
       const gen = runPipeline({
         pipelineId: subId,
+        pipelineRunId,
         steps: [step],
         input,
         ctx,
@@ -569,7 +588,7 @@ export async function* continuePipelineParent(
     pipelineId: parent.pipelineId,
     stepIndex: parent.stepIndex,
     agentId: parent.stepAgentId,
-    runId: `${parent.pipelineId}:${parent.stepIndex}`,
+    runId: stepRunIdOf(parent.pipelineRunId, parent.pipelineId, parent.stepIndex),
     output: stepOutput,
     timestamp: Date.now(),
   }
@@ -577,6 +596,7 @@ export async function* continuePipelineParent(
 
   const driven = yield* runPipeline({
     pipelineId: parent.pipelineId,
+    pipelineRunId: parent.pipelineRunId,
     steps: parent.remainingSteps,
     input: stepOutput,
     ctx,

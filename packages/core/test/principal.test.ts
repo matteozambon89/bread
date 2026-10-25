@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { defineHumanTool, defineTask, defineTool, LOCAL_CLI_PRINCIPAL, principalVisible } from '@breadai/core'
+import { defineHumanTool, defineTask, defineTool, LOCAL_CLI_PRINCIPAL, principalVisible, runVisible } from '@breadai/core'
 import type { CancellableOptions, HumanRequiredCrumb, Principal } from '@breadai/core'
 import {
   collect,
@@ -350,5 +350,47 @@ describe('principal', () => {
     } finally {
       await stop()
     }
+  })
+})
+
+describe('runVisible', () => {
+  const owner = { iss: 'https://idp.example', sub: 'user-1' }
+  const other = { iss: 'https://idp.example', sub: 'user-2' }
+  const logged = (principal?: typeof owner) => ({
+    getCrumbs: async () => [
+      {
+        runId: 'r1',
+        seq: 1,
+        type: 'agent:run:start',
+        sessionId: 's1',
+        crumb: { type: 'agent:run:start', ...(principal ? { principal } : {}) },
+      },
+    ],
+  })
+  const noLog = { getCrumbs: async () => [] }
+
+  test('an unscoped caller sees every run', async () => {
+    expect(await runVisible({}, 'r1', undefined)).toBe(true)
+  })
+
+  test('a live owner decides before the crumb log is read', async () => {
+    expect(await runVisible(noLog, 'r1', owner, { principal: owner })).toBe(true)
+    expect(await runVisible(logged(owner), 'r1', other, { principal: owner })).toBe(false)
+  })
+
+  test('a finished run is visible to the principal on its start crumb only', async () => {
+    expect(await runVisible(logged(owner), 'r1', { ...owner, tenant: 'acme' })).toBe(true)
+    expect(await runVisible(logged(owner), 'r1', other)).toBe(false)
+  })
+
+  test('a run with no owner is visible to the local cli principal only', async () => {
+    expect(await runVisible(logged(), 'r1', LOCAL_CLI_PRINCIPAL)).toBe(true)
+    expect(await runVisible(logged(), 'r1', owner)).toBe(false)
+    expect(await runVisible(noLog, 'r1', LOCAL_CLI_PRINCIPAL, { principal: undefined })).toBe(true)
+  })
+
+  test('a scoped caller is refused with no live owner and no logged start crumb', async () => {
+    expect(await runVisible({}, 'r1', owner)).toBe(false)
+    expect(await runVisible(noLog, 'r1', owner)).toBe(false)
   })
 })

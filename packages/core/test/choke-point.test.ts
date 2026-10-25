@@ -181,9 +181,10 @@ describe('choke point — transport view equals the client-visible stream', () =
       ])
       expect(frames.map((f) => f.crumb.type)).toEqual(crumbs.map((c) => c.type))
       // Step crumbs sequence under the step's own runId, agent crumbs under theirs.
-      expect(frames[0]!.runId).toBe('p:0')
+      // A step runId is `${pipelineRunId}:${pipelineId}:${index}`, unique per invocation.
+      expect(frames[0]!.runId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[0-9a-f]{4}-[0-9a-f]{12}:p:0$/)
       expect(frames[0]!.seq).toBe(1)
-      expect(frames[4]!.runId).toBe('p:0')
+      expect(frames[4]!.runId).toBe(frames[0]!.runId)
       expect(frames[4]!.seq).toBe(2)
     } finally {
       await stop()

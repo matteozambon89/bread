@@ -22,9 +22,10 @@ async function sseRunId(res: Response): Promise<string> {
 function spyCrumbs(bread: BreadInstance): { reads: () => number } {
   const original = bread.store.getCrumbs?.bind(bread.store)
   if (!original) throw new Error('expected a crumb log')
+  // Counts replay reads. The one-row run-owner lookup is not a replay.
   let reads = 0
   bread.store.getCrumbs = async (...args) => {
-    reads += 1
+    if (args[1]?.limit !== 1) reads += 1
     return original(...args)
   }
   return { reads: () => reads }
@@ -118,7 +119,14 @@ describe('@breadai/transport-http-sse — store route gate', () => {
       expect(memberResume.status).toBe(403)
       expect(resumed).toBe(0)
 
-      const hooked = await app.request(`/runs/${runId}/stream`, { headers: { 'x-identity': 'hook-deny' } })
+      // The hook-deny caller owns this run, so only the hook can refuse it.
+      const ownRun = await app.request('/agents/assistant/run', {
+        method: 'POST',
+        headers: { 'x-identity': 'hook-deny' },
+        body: '{}',
+      })
+      const ownRunId = await sseRunId(ownRun)
+      const hooked = await app.request(`/runs/${ownRunId}/stream`, { headers: { 'x-identity': 'hook-deny' } })
       expect(hooked.status).toBe(403)
       expect(await hooked.json()).toEqual({ error: 'Forbidden' })
       expect(crumbs.reads()).toBe(0)
@@ -136,8 +144,9 @@ describe('@breadai/transport-http-sse — store route gate', () => {
         headers: { 'x-identity': 'admin' },
         body: '{}',
       })
-      expect(adminResume.status).toBe(403)
-      expect(await adminResume.json()).toEqual({ error: 'Forbidden' })
+      // The grant allows admin, so the handler answers: an unknown checkpoint is 404.
+      expect(adminResume.status).toBe(404)
+      expect(await adminResume.json()).toEqual({ error: 'Checkpoint not found' })
       expect(resumed).toBe(0)
     } finally {
       await stop()

@@ -121,7 +121,7 @@ describe('http sse principal', () => {
     }
   })
 
-  test('resume is 403 when the caller principal does not match the checkpoint', async () => {
+  test('resume is the same 404 as a missing checkpoint when the caller principal does not match', async () => {
     const seen: Array<Principal | undefined> = []
     const approve = defineHumanTool('approve', z.object({ question: z.string() }))
     const { app, bread, stop } = await makeServer({
@@ -148,8 +148,8 @@ describe('http sse principal', () => {
         headers: headers(spoof),
         body: JSON.stringify({ response: { ok: true }, principal: host }),
       })
-      expect(denied.status).toBe(403)
-      expect(await denied.json()).toEqual({ error: 'Forbidden' })
+      expect(denied.status).toBe(404)
+      expect(await denied.json()).toEqual({ error: 'Checkpoint not found' })
       expect(await bread.store.getCheckpoint(cp.checkpointId)).toBeDefined()
       expect(seen).toEqual([])
     } finally {

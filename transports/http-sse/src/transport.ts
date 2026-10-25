@@ -1,12 +1,15 @@
 import type { Hono } from 'hono'
 import { stream as honoStream } from 'hono/streaming'
-import type { AuthIdentity, BreadCrumb, BreadInstance, BreadTransport, BusFrame } from '@breadai/core'
-import { fromWireCrumb, HTTP_ACTIONS, principalOrLocalCli, principalVisible, registerHttpRoute, streamTransport } from '@breadai/core'
+import type { AuthIdentity, BreadCrumb, BreadInstance, BreadTransport, BusFrame, Principal } from '@breadai/core'
+import { fromWireCrumb, HTTP_ACTIONS, principalOrLocalCli, registerHttpRoute, resumeVisible, runVisible, streamTransport } from '@breadai/core'
 import { type SseEvent, toClientError, toSseEvent, writeSseEvent } from './sse.js'
 
+// The live owner: the principal the run was started or resumed under.
+type CancelRegistry = Map<string, { controller: AbortController; principal: Principal | undefined }>
+
 export interface TransportOptions {
-  // Extra check on the run stream and on cancel, after the HTTP grant.
-  // Identity is whatever auth stored. Absent, the grant stands.
+  // Extra check on the run stream and on cancel, after the HTTP grant and
+  // the run-owner check. Identity is whatever auth stored.
   authorizeStream?(identity: AuthIdentity | undefined, runId: string): Promise<boolean> | boolean
 }
 
@@ -42,7 +45,8 @@ async function* runToSseEvents(makeGen: () => AsyncIterable<BreadCrumb>): AsyncI
 function streamRun(
   c: { header(k: string, v: string): void },
   makeGen: (signal: AbortSignal) => AsyncIterable<BreadCrumb>,
-  cancelRegistry: Map<string, AbortController>,
+  cancelRegistry: CancelRegistry,
+  principal: Principal | undefined,
 ) {
   return honoStream(c as never, async (s) => {
     const controller = new AbortController()
@@ -50,18 +54,23 @@ function streamRun(
     s.onAbort(() => {
       disconnected = true
     })
-    let runId: string | undefined
+    // Every runId this stream carried: a pipeline or supervisor stream
+    // interleaves many. All of them leave the registry when the stream ends,
+    // or a stale entry would keep deciding who owns that id.
+    const registered = new Set<string>()
     try {
       for await (const event of runToSseEvents(() => makeGen(controller.signal))) {
         const eventRunId = (event.payload as { runId?: string } | undefined)?.runId
-        if (eventRunId && eventRunId !== runId) {
-          runId = eventRunId
-          cancelRegistry.set(runId, controller)
+        if (eventRunId && !registered.has(eventRunId)) {
+          registered.add(eventRunId)
+          cancelRegistry.set(eventRunId, { controller, principal })
         }
         if (!disconnected) await writeSseEvent(s, event)
       }
     } finally {
-      if (runId) cancelRegistry.delete(runId)
+      for (const runId of registered) {
+        if (cancelRegistry.get(runId)?.controller === controller) cancelRegistry.delete(runId)
+      }
     }
   })
 }
@@ -83,7 +92,7 @@ export function transport(opts: TransportOptions = {}): BreadTransport {
       // @breadai/protocol-a2a-server's tasks/cancel registry (docs/a2a.md).
       // A cancel routed to a different replica than the one running it 404s;
       // see docs/transports.md's known-gap note.
-      const cancelRegistry = new Map<string, AbortController>()
+      const cancelRegistry: CancelRegistry = new Map()
 
       registerHttpRoute(honoApp, { method: 'POST', path: '/agents/:id/run', action: HTTP_ACTIONS.runStart })
       registerHttpRoute(honoApp, { method: 'POST', path: '/pipelines/:id/run', action: HTTP_ACTIONS.pipelineStart })
@@ -120,6 +129,7 @@ export function transport(opts: TransportOptions = {}): BreadTransport {
               signal,
             }) as AsyncIterable<BreadCrumb>,
           cancelRegistry,
+          principal,
         )
       })
 
@@ -145,17 +155,16 @@ export function transport(opts: TransportOptions = {}): BreadTransport {
               principal,
             }),
           cancelRegistry,
+          principal,
         )
       })
 
       honoApp.post('/resume/:checkpointId', async (c) => {
         const checkpointId = c.req.param('checkpointId')
-        const caller = c.get('identity')?.principal
-        if (caller) {
-          const checkpoint = await bread.store.getCheckpoint(checkpointId)
-          if (!principalVisible(checkpoint?.principal, caller)) {
-            return c.json({ error: 'Forbidden' }, 403)
-          }
+        // Loaded even for an unscoped caller: its principal owns the resumed run's cancel.
+        const checkpoint = await bread.store.getCheckpoint(checkpointId)
+        if (!(await resumeVisible(bread.store, checkpoint, c.get('identity')?.principal, checkpoint ? cancelRegistry.get(checkpoint.runId) : undefined))) {
+          return c.json({ error: 'Checkpoint not found' }, 404)
         }
         let body: Record<string, unknown> = {}
         try {
@@ -172,6 +181,7 @@ export function transport(opts: TransportOptions = {}): BreadTransport {
           c,
           (signal) => bread.resume(checkpointId, (body as { response?: unknown }).response, { signal }),
           cancelRegistry,
+          checkpoint?.principal,
         )
       })
 
@@ -181,6 +191,13 @@ export function transport(opts: TransportOptions = {}): BreadTransport {
       honoApp.post('/runs/:runId/cancel', async (c) => {
         const runId = c.req.param('runId')
 
+        // A run the caller does not own answers like an unknown run, so the
+        // status does not reveal which run ids exist.
+        const entry = cancelRegistry.get(runId)
+        if (!entry || !(await runVisible(bread.store, runId, c.get('identity')?.principal, entry))) {
+          return c.json({ error: 'Run not found or not cancelable' }, 404)
+        }
+
         if (opts.authorizeStream) {
           const identity = c.get('identity')
           if (!(await opts.authorizeStream(identity, runId))) {
@@ -188,10 +205,7 @@ export function transport(opts: TransportOptions = {}): BreadTransport {
           }
         }
 
-        const controller = cancelRegistry.get(runId)
-        if (!controller) return c.json({ error: 'Run not found or not cancelable' }, 404)
-
-        controller.abort()
+        entry.controller.abort()
         cancelRegistry.delete(runId)
         return c.json({ ok: true })
       })
@@ -205,6 +219,12 @@ export function transport(opts: TransportOptions = {}): BreadTransport {
         const after = Number(rawAfter)
         if (!Number.isFinite(after) || after < 0) {
           return c.json({ error: `Invalid Last-Event-ID / after: "${rawAfter}"` }, 400)
+        }
+
+        // Checked before any header is sent. Not found and not yours are one answer.
+        const caller = c.get('identity')?.principal
+        if (!(await runVisible(bread.store, runId, caller, cancelRegistry.get(runId)))) {
+          return c.json({ error: 'Run not found' }, 404)
         }
 
         if (opts.authorizeStream) {

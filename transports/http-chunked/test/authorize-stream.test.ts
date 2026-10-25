@@ -42,10 +42,10 @@ function fixture(): { config: BreadConfig; agents: AgentRegistry } {
   return { config, agents }
 }
 
-async function runAsAlice(url: string): Promise<string> {
+async function runAs(url: string, subject: string): Promise<string> {
   const res = await fetch(`${url}/agents/assistant/run`, {
     method: 'POST',
-    headers: { 'x-identity': 'alice' },
+    headers: { 'x-identity': subject },
     body: '{}',
   })
   const body = await res.text()
@@ -68,10 +68,11 @@ describe('@breadai/transport-http-chunked — GET /runs/:runId/stream authorizeS
     stops.push(server.stop)
     const url = `http://localhost:${port}`
 
-    const runId = await runAsAlice(url)
+    // carol owns the run, so only the hook can deny her.
+    const runId = await runAs(url, 'carol')
     expect(runId).not.toBe('')
 
-    const res = await fetch(`${url}/runs/${runId}/stream`, { headers: { 'x-identity': 'bob' } })
+    const res = await fetch(`${url}/runs/${runId}/stream`, { headers: { 'x-identity': 'carol' } })
     expect(res.status).toBe(403)
     expect(await res.json()).toEqual({ error: 'Forbidden' })
   })
@@ -83,7 +84,7 @@ describe('@breadai/transport-http-chunked — GET /runs/:runId/stream authorizeS
     stops.push(server.stop)
     const url = `http://localhost:${port}`
 
-    const runId = await runAsAlice(url)
+    const runId = await runAs(url, 'alice')
 
     const res = await fetch(`${url}/runs/${runId}/stream`, { headers: { 'x-identity': 'alice' } })
     expect(res.status).toBe(200)

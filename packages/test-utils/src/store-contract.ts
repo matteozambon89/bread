@@ -374,6 +374,7 @@ export function storeContractCases(): StoreCase[] {
         const parent = {
           kind: 'pipeline' as const,
           pipelineId: 'p1',
+          pipelineRunId: '01900000-0000-7000-8000-000000000001',
           stepIndex: 1,
           stepAgentId: 'parallel',
           remainingSteps: [{ type: 'agent' as const, agentId: 'writer' }],

@@ -805,6 +805,9 @@ export type PipelineStep =
 export interface PipelineCheckpointParent {
   kind: 'pipeline'
   pipelineId: string
+  // The invocation id the step runIds were minted from. Resume reuses it, so
+  // the continuation's step ids stay `${pipelineRunId}:${pipelineId}:${index}`.
+  pipelineRunId: string
   // Index of the suspended step; the crumb/runId numbering of the continuation
   // picks up after it.
   stepIndex: number

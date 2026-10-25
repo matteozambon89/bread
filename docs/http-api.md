@@ -39,9 +39,9 @@ Bread does not filter a list and does not apply a row predicate. Denying a route
 | `HTTP_ACTIONS.agentRead` | `GET /agents/:id` | Returns that agent schema. `args.id` is the agent id. |
 | `HTTP_ACTIONS.runStart` | `POST /agents/:id/run` | Starts a run of that agent. `args.id` is the agent id. When auth is configured, a missing `identity.principal` is `403`. |
 | `HTTP_ACTIONS.pipelineStart` | `POST /pipelines/:id/run` | Starts that pipeline. `args.id` is the pipeline id. When auth is configured, a missing `identity.principal` is `403`. |
-| `HTTP_ACTIONS.runResume` | `POST /resume/:checkpointId` | Resumes that checkpoint. `args.checkpointId` is the checkpoint id. Allow does not check who started the run. When auth is configured, a missing `identity.principal` is `403`. When `identity.principal` is set, the handler returns `403` unless the stored principal is visible (`iss` and `sub`). A missing checkpoint is not visible. |
-| `HTTP_ACTIONS.runStream` | `GET /runs/:runId/stream` | Tails that run. `args.runId` is the run id. Allow does not choose which run. `authorizeStream` still runs after the grant. |
-| `HTTP_ACTIONS.runCancel` | `POST /runs/:runId/cancel` | Cancels that run. `args.runId` is the run id. `authorizeStream` still runs after the grant. |
+| `HTTP_ACTIONS.runResume` | `POST /resume/:checkpointId` | Resumes that checkpoint. `args.checkpointId` is the checkpoint id. Allow does not check who started the run. When auth is configured, a missing `identity.principal` is `403`. When `identity.principal` is set, `resumeVisible` from `@breadai/core` runs before anything is registered: the stored principal must be visible (`iss` and `sub`) and `runVisible` must pass for the suspended run. A checkpoint the caller can't see is the same `404` as a missing one. The resumed run's cancel entries carry the stored principal, not the caller's. |
+| `HTTP_ACTIONS.runStream` | `GET /runs/:runId/stream` | Tails that run. `args.runId` is the run id. Allow does not choose which run. When auth is configured, a missing `identity.principal` is `403`. A run started under another principal is the same `404` as an unknown run. `authorizeStream` still runs after that check. |
+| `HTTP_ACTIONS.runCancel` | `POST /runs/:runId/cancel` | Cancels that run. `args.runId` is the run id. When auth is configured, a missing `identity.principal` is `403`. A run started or resumed under another principal is the same `404` as an unknown run. `authorizeStream` still runs after that check. |
 | `HTTP_ACTIONS.sessionList` | `GET /sessions` | Returns visible sessions when `identity.principal` is set, and every session when it is not. `args.tag` is set when the tag query is present. A tag query only narrows. |
 | `HTTP_ACTIONS.sessionRead` | `GET /sessions/:id` | Returns that session. `args.id` is the session id. A missing or hidden session is `404`. |
 | `HTTP_ACTIONS.sessionDelete` | `DELETE /sessions/:id` | Deletes that session. `args.id` is the session id. A hidden session returns `{ "ok": true }` and is not deleted. With a principal, the delete matches the id, a non-null principal, and `iss` and `sub` in one store write. |
@@ -160,13 +160,20 @@ transport. Missed history is replayed from the durable crumb log, then live fram
   [hitl.md](./hitl.md)) and closes after a terminal crumb (`agent:run:end` / `agent:error`).
   Don't reconnect after a terminal crumb.
 - **Degradation**: if the configured store lacks the crumb-log methods, the route serves live
-  frames only (no catch-up) and the server logs a notice at startup. All first-party stores
+  frames only (no catch-up) to an unscoped caller, and the server logs a notice at startup. A
+  caller with `identity.principal` gets `404`, because the run owner cannot be read. All first-party stores
   support the log. Conversely, a `sink`-capability transport (no `subscribe`) has no live frames
   to offer — the route serves the store's replay only, then closes.
-- **Authorization**: [`HTTP_ACTIONS.runStream`](#core-actions).
+- **Authorization**: [`HTTP_ACTIONS.runStream`](#core-actions). When auth is configured, a
+  missing `identity.principal` is `403`. With a principal, `runVisible` from `@breadai/core` picks
+  the run owner before any header is sent: the principal of a run live on this replica, otherwise
+  the principal on the run's first logged crumb, `agent:run:start`. A run the caller can't see, a
+  run with no owner source, and an unknown run id are all the same `404`. A run with no stored
+  principal is visible only to the local CLI principal.
   `transport({ authorizeStream })` on both HTTP transports still runs after that grant.
   `authorizeStream(identity, runId)` receives the `AuthIdentity` `authPlugin()` stashed (`undefined`
-  if no auth ran) and the `runId`; `false` is another `403` before any crumb is read.
+  if no auth ran) and the `runId`; `false` is another `403`, sent before any header and before the run's crumbs
+  are replayed. `runVisible` may already have read the run's first logged crumb to pick the owner.
 
 ## Pipelines
 
@@ -176,6 +183,13 @@ Run a pipeline (`HTTP_ACTIONS.pipelineStart`, [Core actions](#core-actions)) dec
 `pipeline:step:start` / `pipeline:step:end`. An unknown pipeline id is a `PIPELINE_NOT_FOUND`
 `error` event in the stream (see [Errors](#errors)), not a `404` — the response status is `200`.
 
+Each step crumb carries its own `runId`, `<pipelineRunId>:<pipelineId>:<stepIndex>`. `pipelineRunId`
+is a UUIDv7 minted once per pipeline run, so two runs of the same pipeline never share a step id.
+Nested `parallel` and `branch` steps extend the `pipelineId` part, and resume reuses the original
+`pipelineRunId`. A step id is live only while its stream runs. Step crumbs are not logged, so after
+that `GET /runs/:runId/stream` and `POST /runs/:runId/cancel` answer `404` for it. Older releases
+used `<pipelineId>:<stepIndex>`, which is a breaking change for clients that built step ids by hand.
+
 ## HITL
 
 ### `POST /resume/:checkpointId`
@@ -184,6 +198,8 @@ The original `POST /agents/:id/run` stream ends at
 the `human:required` crumb; this endpoint **streams the continuation** as its own `text/event-stream`
 (`human:resumed` → … → `agent:run:end`). Resume replays the run from the store, so it works after a
 restart or on a different instance than the original run. See [hitl.md](./hitl.md).
+With auth configured, a checkpoint the caller can't see is `404 { "error": "Checkpoint not found" }`,
+the same as a missing one, and nothing runs or registers.
 
 ## Sessions
 

@@ -180,6 +180,6 @@ export type {
 } from './types.js'
 
 export { BreadError } from './types.js'
-export { LOCAL_CLI_PRINCIPAL, isLocalCliPrincipal, principalOrLocalCli, principalVisible } from './principal.js'
+export { LOCAL_CLI_PRINCIPAL, isLocalCliPrincipal, principalOrLocalCli, principalVisible, resumeVisible, runVisible } from './principal.js'
 
 export { HTTP_ACTIONS, isLoopbackHostname, matchHttpRoute, registerHttpRoute } from './http-grant.js'
