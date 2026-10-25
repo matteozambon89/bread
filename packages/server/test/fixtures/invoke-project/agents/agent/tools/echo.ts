@@ -5,5 +5,8 @@ export default defineTool({
   name: 'echo',
   description: 'Echo the given text back',
   schema: z.object({ text: z.string() }),
-  execute: async ({ text }) => ({ echoed: text }),
+  execute: async ({ text }, ctx) => {
+    ;(globalThis as { __breadInvokePrincipal?: unknown }).__breadInvokePrincipal = ctx.principal
+    return { echoed: text }
+  },
 })

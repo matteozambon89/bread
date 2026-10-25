@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { describe, expect, test } from 'bun:test'
 import type { Tracer } from '@opentelemetry/api'
 import { defineHumanTool, defineTool } from '@breadai/core'
@@ -69,6 +70,31 @@ describe('otel plugin', () => {
     expect(runSpan).toBeDefined()
     expect(runSpan!.ended).toBe(true)
     expect(runSpan!.attributes['bread.agent_id']).toBe('a')
+    expect(runSpan!.attributes['user.id']).toBeUndefined()
+  })
+
+  test('sets user.id to a hash of iss and sub and ignores tenant', async () => {
+    const { tracer, spans } = fakeTracer()
+    const principal = { iss: 'https://idp.example', sub: 'user-1', tenant: 'acme' }
+    const { bread, stop } = await makeBread({
+      agents: { a: defineTestAgent() },
+      model: mockTextModel('hi'),
+      plugins: [otel({ tracer })],
+    })
+
+    await runCollect(bread, 'a', 'go', { principal })
+    await stop()
+
+    const runSpan = spans.find((s) => s.name === 'agent.run')
+    const userId = createHash('sha256')
+      .update(principal.iss, 'utf8')
+      .update(new Uint8Array([0]))
+      .update(principal.sub, 'utf8')
+      .digest('hex')
+    expect(runSpan!.attributes['user.id']).toBe(userId)
+    expect(Object.keys(runSpan!.attributes).filter((key) => key.startsWith('user.'))).toEqual(['user.id'])
+    expect(runSpan!.attributes['user.id']).not.toContain('acme')
+    expect(runSpan!.attributes['user.id']).not.toContain(principal.sub)
   })
 
   test('opens and closes a tool.call span per tool call', async () => {

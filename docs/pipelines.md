@@ -46,6 +46,12 @@ Step types:
 curl -N -X POST localhost:3000/pipelines/article/run -d '{"input":{"topic":"bread"}}'
 ```
 
+Step crumbs carry the runId `<pipelineRunId>:<pipelineId>:<stepIndex>`. `pipelineRunId` is a
+UUIDv7 minted for each pipeline run, so step ids are unique per run and can't be guessed. Nested
+`parallel` and `branch` steps extend the `pipelineId` part (for example `…:article:1:parallel:0:0`),
+and resuming a paused pipeline reuses the original `pipelineRunId`. Releases before this one used
+`<pipelineId>:<stepIndex>`. See [HTTP API](./http-api.md#post-pipelinesidrun).
+
 ### Branch
 
 ```ts

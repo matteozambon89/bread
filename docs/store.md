@@ -66,10 +66,18 @@ All three implement the same flat `BreadStore`, so swapping is a one-line change
 ## Bring your own store
 
 Implement the `BreadStore` interface and pass it as `store`. Sessions and checkpoint methods are
-required; implement the knowledge/document methods only if your agents use them, and the crumb-log
+required, including `claimSessionPrincipal` and `deleteSessionForPrincipal`; implement the knowledge/document methods only if your agents use them, and the crumb-log
 methods (`appendCrumbs`/`getCrumbs`/`getMaxCrumbSeq`) if you want `Last-Event-ID` catch-up on the
 passive run stream (without them, `GET /runs/:runId/stream` degrades to live-tail-only). All
 first-party stores implement the full interface.
+
+> [!WARNING]
+> Breaking for custom stores: `claimSessionPrincipal(id, principal)` and
+> `deleteSessionForPrincipal(id, principal)` are new required methods, and `createSession`,
+> `getSession`, and checkpoints now carry `principal`. Both new methods are one conditional write:
+> claim only when the row has no principal, delete only when `iss` and `sub` match. Without the
+> crumb-log methods, an authenticated caller cannot open `GET /runs/:runId/stream`, because the
+> run owner is read from that log. See [Sessions: Ownership](./sessions.md#ownership).
 
 ## Semantic (vector) search
 

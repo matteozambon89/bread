@@ -34,6 +34,7 @@ interface SessionRow {
   updated_at: string
   agent_id: string | null
   tags: Record<string, string>
+  principal: unknown
 }
 
 interface MessageRow {
@@ -67,6 +68,7 @@ function rowToSession(r: SessionRow): Session {
     updatedAt: Number(r.updated_at),
     tags: r.tags ?? {},
     ...(r.agent_id ? { agentId: r.agent_id } : {}),
+    ...(r.principal != null ? { principal: r.principal as NonNullable<Session['principal']> } : {}),
   }
 }
 
@@ -245,9 +247,24 @@ export function store(opts: PostgresStoreOptions = {}): BreadStore {
       const id = o?.id ?? uuidv7()
       const now = Date.now()
       const tags = o?.tags ?? {}
-      await sql`INSERT INTO bread_sessions (id, created_at, updated_at, tags)
-                VALUES (${id}, ${now}, ${now}, ${j(tags)})`
-      return { id, createdAt: now, updatedAt: now, tags }
+      await sql`INSERT INTO bread_sessions (id, created_at, updated_at, tags, principal)
+                VALUES (${id}, ${now}, ${now}, ${j(tags)}, ${o?.principal != null ? j(o.principal) : null})`
+      return {
+        id,
+        createdAt: now,
+        updatedAt: now,
+        tags,
+        ...(o?.principal ? { principal: o.principal } : {}),
+      }
+    },
+
+    async claimSessionPrincipal(id, principal) {
+      const rows = await sql<Array<{ id: string }>>`
+        UPDATE bread_sessions
+        SET principal = ${j(principal)}
+        WHERE id = ${id} AND principal IS NULL
+        RETURNING id`
+      return rows.length === 1
     },
 
     async getSession(id) {
@@ -267,12 +284,28 @@ export function store(opts: PostgresStoreOptions = {}): BreadStore {
       await sql`DELETE FROM bread_sessions WHERE id = ${id}`
     },
 
+    async deleteSessionForPrincipal(id, principal) {
+      const rows = await sql<Array<{ id: string }>>`
+        DELETE FROM bread_sessions
+        WHERE id = ${id}
+          AND principal IS NOT NULL
+          AND principal->>'iss' = ${principal.iss}
+          AND principal->>'sub' = ${principal.sub}
+        RETURNING id`
+      return rows.length === 1
+    },
+
     async cleanupSessions(opts?: CleanupOptions) {
       // No olderThanMs: nothing qualifies (tags alone never delete) — matches
       // the JS-filter semantics this replaces, without issuing a DELETE at all.
       if (!opts?.olderThanMs) return 0
       const cutoff = Date.now() - opts.olderThanMs
       const conds = [sql`updated_at < ${cutoff}`, ...(opts.tags ? [sql`tags @> ${j(opts.tags)}`] : [])]
+      if (opts.principal) {
+        // iss and sub only. A null principal does not match, and tenant is not compared.
+        conds.push(sql`principal->>'iss' = ${opts.principal.iss}`)
+        conds.push(sql`principal->>'sub' = ${opts.principal.sub}`)
+      }
       const rows = await sql<Array<{ id: string }>>`
         DELETE FROM bread_sessions ${where(conds)} RETURNING id`
       return rows.length

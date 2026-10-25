@@ -1,4 +1,5 @@
 import { v7 as uuidv7 } from 'uuid'
+import { principalVisible } from '@breadai/core'
 import type {
   BreadStore,
   CheckpointRecord,
@@ -68,6 +69,13 @@ export function store(): BreadStore {
     }
   }
 
+  function removeSession(id: string): void {
+    sessions.delete(id)
+    messages.delete(id)
+    cascadeCrumbs(id)
+    cascadeCheckpoints(id)
+  }
+
   function matchesTags(session: Session, tags?: Record<string, string>): boolean {
     if (!tags) return true
     return Object.entries(tags).every(([k, v]) => session.tags[k] === v)
@@ -86,11 +94,31 @@ export function store(): BreadStore {
     // --- Sessions ------------------------------------------------------------
     async createSession(opts) {
       const id = opts?.id ?? uuidv7()
+      // Same as the SQL primary key: a second insert must not replace the row
+      // or clear messages another run already wrote.
+      if (sessions.has(id)) throw new Error(`Session already exists: ${id}`)
       const now = Date.now()
-      const session: Session = { id, createdAt: now, updatedAt: now, tags: opts?.tags ?? {} }
+      const session: Session = {
+        id,
+        createdAt: now,
+        updatedAt: now,
+        tags: opts?.tags ?? {},
+        ...(opts?.principal ? { principal: opts.principal } : {}),
+      }
       sessions.set(id, session)
       messages.set(id, [])
       return session
+    },
+
+    async claimSessionPrincipal(id, principal) {
+      const session = sessions.get(id)
+      if (!session || session.principal !== undefined) return false
+      session.principal = {
+        iss: principal.iss,
+        sub: principal.sub,
+        ...(principal.tenant !== undefined ? { tenant: principal.tenant } : {}),
+      }
+      return true
     },
 
     async getSession(id) {
@@ -102,10 +130,17 @@ export function store(): BreadStore {
     },
 
     async deleteSession(id) {
-      sessions.delete(id)
-      messages.delete(id)
-      cascadeCrumbs(id)
-      cascadeCheckpoints(id)
+      removeSession(id)
+    },
+
+    async deleteSessionForPrincipal(id, principal) {
+      const session = sessions.get(id)
+      // No await: the predicate and the delete stay one turn, matching the
+      // SQL stores' single DELETE.
+      if (session?.principal === undefined) return false
+      if (session.principal.iss !== principal.iss || session.principal.sub !== principal.sub) return false
+      removeSession(id)
+      return true
     },
 
     async cleanupSessions(opts?: CleanupOptions) {
@@ -113,11 +148,8 @@ export function store(): BreadStore {
       let count = 0
       for (const [id, session] of sessions) {
         const tooOld = opts?.olderThanMs ? now - session.updatedAt > opts.olderThanMs : false
-        if (tooOld && matchesTags(session, opts?.tags)) {
-          sessions.delete(id)
-          messages.delete(id)
-          cascadeCrumbs(id)
-          cascadeCheckpoints(id)
+        if (tooOld && matchesTags(session, opts?.tags) && principalVisible(session.principal, opts?.principal)) {
+          removeSession(id)
           count++
         }
       }

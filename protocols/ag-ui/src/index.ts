@@ -1,4 +1,4 @@
-import { isFileOutput, registerHttpRoute } from '@breadai/core'
+import { isFileOutput, principalOrLocalCli, registerHttpRoute } from '@breadai/core'
 import type { AuthIdentity, BreadCrumb, BreadInstance, BreadInstanceRef, BreadPlugin } from '@breadai/core'
 
 // AG-UI protocol events (https://ag-ui.com), spec field names: `messageId`/
@@ -42,12 +42,12 @@ export interface AgUiOptions {
   // (the spec has no fixed convention; root '/' risks colliding with another
   // plugin's route on the shared Hono app). Only used when agentId is set.
   path?: string
-  // Opt-in authorization binding a client-supplied threadId to the caller's
-  // identity. Absent, `threadId` is used directly as bread's sessionId with
-  // no ownership check at all — any caller who knows or guesses a threadId
-  // can read/write that session's history. Identity comes from whatever
-  // authMiddleware/authPlugin stashed via c.set('identity') — same opt-in
-  // shape as transport-http-chunked's authorizeStream.
+  // Opt-in extra gate on a client-supplied threadId. The run receives
+  // identity.principal when the caller has one. An authenticated caller with
+  // no principal is 403 before bread.run, so the route cannot take the
+  // unscoped path. With no auth, threadId is the session id. Identity comes
+  // from authMiddleware/authPlugin via c.set('identity'). Returning false
+  // responds 403 before any run starts.
   authorizeThread?(identity: AuthIdentity | undefined, threadId: string): Promise<boolean> | boolean
 }
 
@@ -413,6 +413,13 @@ export function agUi(opts: AgUiOptions = {}): BreadPlugin {
       ;(app as MinimalApp).post(path, async (c) => {
         if (!breadRef) return new Response('bread not started', { status: 503 })
 
+        const identity = c.get?.('identity') as AuthIdentity | undefined
+        // principalVisible treats a missing caller as every session. An
+        // authenticated caller with no principal must not take that path.
+        if (identity && !identity.principal) {
+          return Response.json({ error: 'Forbidden' }, { status: 403 })
+        }
+
         let body: unknown
         try {
           body = await c.req.raw.json()
@@ -423,13 +430,13 @@ export function agUi(opts: AgUiOptions = {}): BreadPlugin {
         if (!parsed.ok) return Response.json({ error: parsed.error }, { status: 400 })
 
         if (opts.authorizeThread) {
-          const identity = c.get?.('identity') as AuthIdentity | undefined
           if (!(await opts.authorizeThread(identity, parsed.threadId))) {
             return Response.json({ error: 'Forbidden' }, { status: 403 })
           }
         }
 
         const bread = breadRef
+        const principal = principalOrLocalCli(identity?.principal)
         const stream = new ReadableStream({
           async start(controller) {
             const encoder = new TextEncoder()
@@ -458,6 +465,7 @@ export function agUi(opts: AgUiOptions = {}): BreadPlugin {
               for await (const crumb of bread.run(agentId, parsed.content, {
                 mode: 'stream',
                 session: { id: parsed.threadId },
+                principal,
               }) as AsyncIterable<BreadCrumb>) {
                 if (crumb.type === 'agent:error' || crumb.type === 'agent:run:end') terminalCrumbSeen = true
                 for (const event of requestTransform(crumb)) send(event)

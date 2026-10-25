@@ -1,4 +1,4 @@
-import { BreadError, createBread } from '@breadai/core'
+import { BreadError, createBread, LOCAL_CLI_PRINCIPAL } from '@breadai/core'
 import type { BreadCrumb } from '@breadai/core'
 import { loadAgents, loadConfig, loadTasks } from '../loader.js'
 import { formatToolCall } from './render.js'
@@ -46,6 +46,7 @@ export async function runInvoke(opts: InvokeOptions): Promise<void> {
   try {
     const stream = bread.run(opts.agentId, opts.input, {
       mode: 'stream',
+      principal: LOCAL_CLI_PRINCIPAL,
       ...(opts.skill ? { skill: opts.skill } : {}),
       ...(opts.session ? { session: { id: opts.session } } : {}),
     }) as AsyncIterable<BreadCrumb>

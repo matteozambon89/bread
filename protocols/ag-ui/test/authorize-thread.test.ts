@@ -5,16 +5,16 @@ import { authPlugin } from '@breadai/server'
 import { defineTestAgent, makeServer, mockTextModel } from '@breadai/test-utils'
 import { AG_UI_ACTIONS, agUi } from '@breadai/protocol-ag-ui'
 
-// A client-supplied threadId is used directly as bread's sessionId with no
-// ownership check unless authorizeThread is wired — this proves the opt-in
-// hook actually gates the route, same shape as transport-http-chunked's
+// authorizeThread is an extra gate on threadId. These cases give the caller a
+// principal so the route reaches that hook. Same shape as transport-http-chunked's
 // authorize-stream.test.ts (SEC-03).
 
 const headerStrategy: BreadAuthStrategy = {
   name: 'header',
   authenticate(req: Request): AuthIdentity | null {
     const subject = req.headers.get('x-identity')
-    return subject ? { subject } : null
+    if (!subject) return null
+    return { subject, principal: { iss: 'https://idp.example', sub: subject } }
   },
 }
 

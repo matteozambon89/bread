@@ -24,7 +24,8 @@ const headerStrategy: BreadAuthStrategy = {
   name: 'header',
   authenticate(req: Request): AuthIdentity | null {
     const subject = req.headers.get('x-identity')
-    return subject ? { subject } : null
+    // run.start requires a principal. Stream checks still use subject.
+    return subject ? { subject, principal: { iss: 'https://bread.local/test', sub: subject } } : null
   },
 }
 
@@ -41,10 +42,10 @@ function fixture(): { config: BreadConfig; agents: AgentRegistry } {
   return { config, agents }
 }
 
-async function runAsAlice(url: string): Promise<string> {
+async function runAs(url: string, subject: string): Promise<string> {
   const res = await fetch(`${url}/agents/assistant/run`, {
     method: 'POST',
-    headers: { 'x-identity': 'alice' },
+    headers: { 'x-identity': subject },
     body: '{}',
   })
   const events = await readSse(res)
@@ -67,10 +68,11 @@ describe('@breadai/transport-http-sse — GET /runs/:runId/stream authorizeStrea
     stops.push(server.stop)
     const url = `http://localhost:${port}`
 
-    const runId = await runAsAlice(url)
+    // carol owns the run, so only the hook can deny her.
+    const runId = await runAs(url, 'carol')
     expect(runId).not.toBe('')
 
-    const res = await fetch(`${url}/runs/${runId}/stream`, { headers: { 'x-identity': 'bob' } })
+    const res = await fetch(`${url}/runs/${runId}/stream`, { headers: { 'x-identity': 'carol' } })
     expect(res.status).toBe(403)
     expect(await res.json()).toEqual({ error: 'Forbidden' })
   })
@@ -82,7 +84,7 @@ describe('@breadai/transport-http-sse — GET /runs/:runId/stream authorizeStrea
     stops.push(server.stop)
     const url = `http://localhost:${port}`
 
-    const runId = await runAsAlice(url)
+    const runId = await runAs(url, 'alice')
 
     const res = await fetch(`${url}/runs/${runId}/stream`, { headers: { 'x-identity': 'alice' } })
     expect(res.status).toBe(200)

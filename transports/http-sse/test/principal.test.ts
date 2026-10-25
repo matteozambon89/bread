@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { defineHumanTool, defineTool } from '@breadai/core'
+import { defineHumanTool, defineTool, LOCAL_CLI_PRINCIPAL } from '@breadai/core'
 import type { BreadAuthStrategy, HumanRequiredCrumb, Principal } from '@breadai/core'
 import { authPlugin } from '@breadai/server'
 import { defineTestAgent, makeServer, mockScript, mockToolCallModel, parseSse } from '@breadai/test-utils'
@@ -63,7 +63,7 @@ describe('http sse principal', () => {
     }
   })
 
-  test('a body principal with no verified principal does not reach the tool', async () => {
+  test('an authenticated run with no principal is 403 and does not reach the tool', async () => {
     const seen: Array<Principal | undefined> = []
     const { app, stop } = await makeServer({
       agents: { agent: defineTestAgent({ tools: [probe(seen)] }) },
@@ -77,9 +77,9 @@ describe('http sse principal', () => {
         headers: headers('none'),
         body: JSON.stringify({ input: 'go', principal: spoof }),
       })
-      expect(res.status).toBe(200)
-      await res.text()
-      expect(seen).toEqual([undefined])
+      expect(res.status).toBe(403)
+      expect(await res.json()).toEqual({ error: 'Forbidden' })
+      expect(seen).toEqual([])
     } finally {
       await stop()
     }
@@ -107,14 +107,73 @@ describe('http sse principal', () => {
       const events = parseSse(await run.text())
       const human = events.find((event) => event.type === 'human:required')
       const cp = human?.payload as HumanRequiredCrumb
+      const sameCaller = { iss: host.iss, sub: host.sub }
       const resume = await app.request(`/resume/${cp.checkpointId}`, {
         method: 'POST',
-        headers: headers(spoof),
+        headers: headers(sameCaller),
         body: JSON.stringify({ response: { ok: true }, principal: spoof }),
       })
       expect(resume.status).toBe(200)
       await resume.text()
       expect(seen).toEqual([host])
+    } finally {
+      await stop()
+    }
+  })
+
+  test('resume is the same 404 as a missing checkpoint when the caller principal does not match', async () => {
+    const seen: Array<Principal | undefined> = []
+    const approve = defineHumanTool('approve', z.object({ question: z.string() }))
+    const { app, bread, stop } = await makeServer({
+      agents: { gate: defineTestAgent({ tools: [probe(seen)], humanTools: [approve] }) },
+      model: mockScript([
+        { tool: 'human_approve', args: { question: 'ok?' } },
+        { tool: 'tool_probe', args: { principal: spoof } },
+        { text: 'done' },
+      ]),
+      plugins: [authPlugin([strategy])],
+      config: { transport: transport(), server: { authorize: () => true } },
+    })
+    try {
+      const run = await app.request('/agents/gate/run', {
+        method: 'POST',
+        headers: headers(host),
+        body: JSON.stringify({ input: 'go' }),
+      })
+      const events = parseSse(await run.text())
+      const human = events.find((event) => event.type === 'human:required')
+      const cp = human?.payload as HumanRequiredCrumb
+      const denied = await app.request(`/resume/${cp.checkpointId}`, {
+        method: 'POST',
+        headers: headers(spoof),
+        body: JSON.stringify({ response: { ok: true }, principal: host }),
+      })
+      expect(denied.status).toBe(404)
+      expect(await denied.json()).toEqual({ error: 'Checkpoint not found' })
+      expect(await bread.store.getCheckpoint(cp.checkpointId)).toBeDefined()
+      expect(seen).toEqual([])
+    } finally {
+      await stop()
+    }
+  })
+
+  test('an unauthenticated loopback run stamps the local cli principal and ignores a body principal', async () => {
+    const seen: Array<Principal | undefined> = []
+    const { app, bread, stop } = await makeServer({
+      agents: { agent: defineTestAgent({ tools: [probe(seen)] }) },
+      model: mockToolCallModel({ toolName: 'tool_probe', args: { principal: spoof }, then: 'done' }),
+      config: { transport: transport() },
+    })
+    try {
+      const res = await app.request('http://127.0.0.1/agents/agent/run', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ input: 'go', session: { id: 'loop' }, principal: spoof }),
+      })
+      expect(res.status).toBe(200)
+      await res.text()
+      expect(seen).toEqual([LOCAL_CLI_PRINCIPAL])
+      expect((await bread.store.getSession('loop'))?.principal).toEqual(LOCAL_CLI_PRINCIPAL)
     } finally {
       await stop()
     }

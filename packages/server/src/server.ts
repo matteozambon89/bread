@@ -15,6 +15,7 @@ import {
   HTTP_ACTIONS,
   isLoopbackHostname,
   matchHttpRoute,
+  principalVisible,
   registerHttpRoute,
 } from '@breadai/core'
 import { hasAuthPlugin } from './http-auth.js'
@@ -114,6 +115,18 @@ function httpGrant(config: BreadConfig, app: Hono<AuthEnv>): MiddlewareHandler<A
         ? await authorize(identity, matched.action, routeArgs(url, matched.params))
         : undefined
     if (allowed !== true) return c.json({ error: 'Forbidden' }, 403)
+    // API keys authenticate without a principal. Run actions stay closed, so a
+    // key cannot start, resume, tail, or cancel a run it has no owner for.
+    if (
+      !identity?.principal &&
+      (matched.action === HTTP_ACTIONS.runStart ||
+        matched.action === HTTP_ACTIONS.pipelineStart ||
+        matched.action === HTTP_ACTIONS.runResume ||
+        matched.action === HTTP_ACTIONS.runStream ||
+        matched.action === HTTP_ACTIONS.runCancel)
+    ) {
+      return c.json({ error: 'Forbidden' }, 403)
+    }
     return next()
   }
 }
@@ -227,20 +240,33 @@ export function createServer(
   app.get('/sessions', async (c) => {
     const tag = c.req.query('tag')
     const tags = tag ? Object.fromEntries([tag.split(':')]) : undefined
+    const caller = c.get('identity')?.principal
     const list = await bread.store.listSessions(tags ? { tags } : undefined)
-    return c.json(list)
+    return c.json(list.filter((session) => principalVisible(session.principal, caller)))
   })
 
   register(app, 'GET', '/sessions/:id', HTTP_ACTIONS.sessionRead)
   app.get('/sessions/:id', async (c) => {
     const session = await bread.store.getSession(c.req.param('id'))
-    if (!session) return c.json({ error: 'Session not found' }, 404)
+    const caller = c.get('identity')?.principal
+    if (!session || !principalVisible(session.principal, caller)) {
+      return c.json({ error: 'Session not found' }, 404)
+    }
     return c.json(session)
   })
 
   register(app, 'DELETE', '/sessions/:id', HTTP_ACTIONS.sessionDelete)
   app.delete('/sessions/:id', async (c) => {
-    await bread.store.deleteSession(c.req.param('id'))
+    const id = c.req.param('id')
+    const caller = c.get('identity')?.principal
+    if (caller) {
+      // A hidden row stays, and the response matches a delete of a missing id.
+      // One store predicate: getSession then deleteSession(id) can remove a row
+      // recreated under another principal after this one was cleaned up.
+      await bread.store.deleteSessionForPrincipal(id, caller)
+    } else {
+      await bread.store.deleteSession(id)
+    }
     return c.json({ ok: true })
   })
 
@@ -252,11 +278,13 @@ export function createServer(
     } catch {}
     // The HTTP body speaks days (docs/http-api.md); the store speaks ms.
     // Passing the body through unconverted silently dropped the time filter.
+    const olderThanMs =
+      typeof body.olderThanDays === 'number' ? body.olderThanDays * 24 * 60 * 60 * 1000 : undefined
+    const caller = c.get('identity')?.principal
     const count = await bread.store.cleanupSessions({
-      ...(typeof body.olderThanDays === 'number'
-        ? { olderThanMs: body.olderThanDays * 24 * 60 * 60 * 1000 }
-        : {}),
+      ...(olderThanMs !== undefined ? { olderThanMs } : {}),
       ...(body.tags ? { tags: body.tags } : {}),
+      ...(caller ? { principal: caller } : {}),
     })
     return c.json({ deleted: count })
   })

@@ -99,12 +99,16 @@ What it does and doesn't do:
   when both are configured on the same `agUi(...)` instance.
 - **Authorization**: the route is [`AG_UI_ACTIONS.run`](./http-api.md#plugin-actions) once auth is on.
   `authorizeThread` still runs after that grant.
+  When auth is configured and `identity.principal` is missing, the route responds `403` before
+  any run, the same as `run.start`, so the call cannot take the unscoped path. A present principal
+  is copied onto `bread.run`. With no auth, the route stamps
+  `{ iss: "https://bread.local/cli", sub: "local" }` instead of leaving the run unscoped.
+  `run` then hides another principal's session instead of loading it.
   `authorizeThread(identity, threadId)` receives whatever `authMiddleware`/`authPlugin()` stashed
   as the caller's `AuthIdentity` (`undefined` if no auth ran) and the request's `threadId`;
-  returning/resolving `false` responds `403` before any run starts. No `authorizeThread`
-  configured → `threadId` is used directly as bread's `session.id` with no ownership check — any
-  caller who knows or guesses a `threadId` can read/write that session's history. Same opt-in
-  shape as [`authorizeStream`](./http-api.md#get-runsrunidstream) on the passive run-stream route.
+  returning/resolving `false` responds `403` before any run starts. With no auth and no
+  `authorizeThread`, `threadId` is used directly as bread's `session.id`. Same opt-in shape as
+  [`authorizeStream`](./http-api.md#get-runsrunidstream) on the passive run-stream route.
 
 ## Output-mapper usage
 

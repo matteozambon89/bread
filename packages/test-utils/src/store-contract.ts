@@ -106,10 +106,73 @@ export function storeContractCases(): StoreCase[] {
       },
     },
     {
+      name: 'createSession rejects an id that already exists and keeps the first row',
+      fn: async (store) => {
+        const principal = { iss: 'https://idp.example', sub: 'user-1', tenant: 'acme' }
+        const first = await store.createSession({ id: 'fixed', tags: { env: 'a' }, principal })
+        await store.addMessage(first.id, { role: 'user', content: 'keep', timestamp: 1 })
+        await assert.rejects(
+          store.createSession({
+            id: 'fixed',
+            tags: { env: 'b' },
+            principal: { iss: 'https://idp.example', sub: 'user-2' },
+          }),
+        )
+        const kept = await store.getSession('fixed')
+        assert.equal(kept?.id, 'fixed')
+        assert.equal(kept?.createdAt, first.createdAt)
+        assert.deepEqual(kept?.tags, { env: 'a' })
+        assert.deepEqual(kept?.principal, principal)
+        assert.deepEqual(
+          (await store.getMessages('fixed')).map((message) => message.content),
+          ['keep'],
+        )
+      },
+    },
+    {
       name: 'round-trips a session through getSession',
       fn: async (store) => {
         const s = await store.createSession()
         assert.equal((await store.getSession(s.id))?.id, s.id)
+      },
+    },
+    {
+      name: 'round-trips a session principal and leaves it unset when absent',
+      fn: async (store) => {
+        const principal = { iss: 'https://idp.example', sub: 'user-1', tenant: 'acme' }
+        const stamped = await store.createSession({ id: 'stamped', principal })
+        assert.deepEqual(stamped.principal, principal)
+        assert.deepEqual((await store.getSession('stamped'))?.principal, principal)
+        assert.deepEqual((await store.listSessions()).find((s) => s.id === 'stamped')?.principal, principal)
+
+        const plain = await store.createSession({ id: 'plain' })
+        assert.equal(plain.principal, undefined)
+        assert.equal((await store.getSession('plain'))?.principal, undefined)
+        assert.equal((await store.listSessions()).find((s) => s.id === 'plain')?.principal, undefined)
+      },
+    },
+    {
+      name: 'claimSessionPrincipal stamps only a null principal',
+      fn: async (store) => {
+        const local = { iss: 'https://bread.local/cli', sub: 'local' }
+        const plain = await store.createSession({ id: 'plain' })
+        assert.equal(await store.claimSessionPrincipal(plain.id, local), true)
+        assert.deepEqual((await store.getSession(plain.id))?.principal, local)
+        assert.equal(
+          await store.claimSessionPrincipal(plain.id, { iss: 'https://other.example', sub: 'x' }),
+          false,
+        )
+        assert.deepEqual((await store.getSession(plain.id))?.principal, local)
+        const owned = await store.createSession({
+          id: 'owned',
+          principal: { iss: 'https://idp.example', sub: 'user-1' },
+        })
+        assert.equal(await store.claimSessionPrincipal(owned.id, local), false)
+        assert.deepEqual((await store.getSession(owned.id))?.principal, {
+          iss: 'https://idp.example',
+          sub: 'user-1',
+        })
+        assert.equal(await store.claimSessionPrincipal('missing', local), false)
       },
     },
     {
@@ -173,6 +236,49 @@ export function storeContractCases(): StoreCase[] {
         assert.equal(deleted, 1)
         assert.equal(await store.getSession(doomed.id), undefined)
         assert.ok(await store.getSession(spared.id))
+      },
+    },
+    {
+      name: 'cleanupSessions keeps a session touched inside the window',
+      fn: async (store) => {
+        const stale = await store.createSession()
+        const touched = await store.createSession()
+        await sleep(80)
+        await store.addMessage(touched.id, { role: 'user', content: 'still here', timestamp: Date.now() })
+        const deleted = await store.cleanupSessions({ olderThanMs: 40 })
+        assert.equal(deleted, 1)
+        assert.equal(await store.getSession(stale.id), undefined)
+        assert.ok(await store.getSession(touched.id))
+        assert.deepEqual(
+          (await store.getMessages(touched.id)).map((message) => message.content),
+          ['still here'],
+        )
+      },
+    },
+    {
+      name: "cleanupSessions with a caller deletes only that caller's old sessions",
+      fn: async (store) => {
+        const caller = { iss: 'https://idp.example', sub: 'user-1', tenant: 'acme' }
+        const mine = await store.createSession({ principal: caller })
+        const sameIssSub = await store.createSession({
+          principal: { iss: caller.iss, sub: caller.sub, tenant: 'other' },
+        })
+        const theirs = await store.createSession({
+          principal: { iss: caller.iss, sub: 'user-2', tenant: 'acme' },
+        })
+        const plain = await store.createSession()
+        await sleep(30)
+        const fresh = await store.createSession({ principal: caller })
+        const deleted = await store.cleanupSessions({
+          olderThanMs: 20,
+          principal: { iss: caller.iss, sub: caller.sub },
+        })
+        assert.equal(deleted, 2)
+        assert.equal(await store.getSession(mine.id), undefined)
+        assert.equal(await store.getSession(sameIssSub.id), undefined)
+        assert.ok(await store.getSession(theirs.id))
+        assert.ok(await store.getSession(plain.id))
+        assert.ok(await store.getSession(fresh.id))
       },
     },
     // --- Messages ------------------------------------------------------------
@@ -268,6 +374,7 @@ export function storeContractCases(): StoreCase[] {
         const parent = {
           kind: 'pipeline' as const,
           pipelineId: 'p1',
+          pipelineRunId: '01900000-0000-7000-8000-000000000001',
           stepIndex: 1,
           stepAgentId: 'parallel',
           remainingSteps: [{ type: 'agent' as const, agentId: 'writer' }],
@@ -358,6 +465,60 @@ export function storeContractCases(): StoreCase[] {
         await store.deleteSession('s')
         assert.equal(await store.getCheckpoint('cp-s'), undefined)
         assert.equal((await store.getCheckpoint('cp-other'))?.id, 'cp-other')
+      },
+    },
+    {
+      name: 'deleteSessionForPrincipal deletes only a matching non-null principal',
+      fn: async (store) => {
+        const caller = { iss: 'https://idp.example', sub: 'user-1', tenant: 'acme' }
+        const other = { iss: 'https://idp.example', sub: 'user-2', tenant: 'acme' }
+        await store.createSession({ id: 'mine', principal: caller })
+        await store.addMessage('mine', { role: 'user', content: 'keep-until-delete', timestamp: 1 })
+        await store.saveCheckpoint(checkpoint({ id: 'cp-mine', sessionId: 'mine' }))
+        await store.createSession({
+          id: 'same',
+          principal: { iss: caller.iss, sub: caller.sub, tenant: 'other' },
+        })
+        await store.createSession({ id: 'theirs', principal: other })
+        await store.addMessage('theirs', { role: 'user', content: 'theirs', timestamp: 1 })
+        await store.saveCheckpoint(checkpoint({ id: 'cp-theirs', sessionId: 'theirs' }))
+        await store.createSession({ id: 'plain' })
+        await store.addMessage('plain', { role: 'user', content: 'plain', timestamp: 1 })
+
+        assert.equal(await store.deleteSessionForPrincipal('missing', caller), false)
+        assert.equal(await store.deleteSessionForPrincipal('theirs', caller), false)
+        assert.equal(await store.deleteSessionForPrincipal('plain', caller), false)
+        assert.deepEqual((await store.getSession('theirs'))?.principal, other)
+        assert.deepEqual(
+          (await store.getMessages('theirs')).map((message) => message.content),
+          ['theirs'],
+        )
+        assert.equal((await store.getCheckpoint('cp-theirs'))?.id, 'cp-theirs')
+        assert.equal((await store.getSession('plain'))?.id, 'plain')
+        assert.deepEqual(
+          (await store.getMessages('plain')).map((message) => message.content),
+          ['plain'],
+        )
+
+        assert.equal(
+          await store.deleteSessionForPrincipal('same', { iss: caller.iss, sub: caller.sub }),
+          true,
+        )
+        assert.equal(await store.getSession('same'), undefined)
+
+        assert.equal(await store.deleteSessionForPrincipal('mine', caller), true)
+        assert.equal(await store.getSession('mine'), undefined)
+        assert.deepEqual(await store.getMessages('mine'), [])
+        assert.equal(await store.getCheckpoint('cp-mine'), undefined)
+
+        await store.createSession({ id: 'mine', principal: other })
+        await store.addMessage('mine', { role: 'user', content: 'recreated', timestamp: 2 })
+        assert.equal(await store.deleteSessionForPrincipal('mine', caller), false)
+        assert.deepEqual((await store.getSession('mine'))?.principal, other)
+        assert.deepEqual(
+          (await store.getMessages('mine')).map((message) => message.content),
+          ['recreated'],
+        )
       },
     },
     {
@@ -620,6 +781,25 @@ export function storeContractCases(): StoreCase[] {
           crumbEntry('r2', 1, { sessionId: 'other' }),
         ])
         await store.deleteSession('s')
+        assert.equal((await store.getCrumbs!('r1')).length, 0)
+        assert.equal((await store.getCrumbs!('r2')).length, 1)
+      },
+    },
+    {
+      name: 'crumb log: deleteSessionForPrincipal cascades only a matching session',
+      requires: CRUMB_METHODS,
+      fn: async (store) => {
+        const caller = { iss: 'https://idp.example', sub: 'user-1' }
+        const other = { iss: 'https://idp.example', sub: 'user-2' }
+        await store.createSession({ id: 's', principal: caller })
+        await store.createSession({ id: 'other', principal: other })
+        await store.appendCrumbs!([
+          crumbEntry('r1', 1),
+          crumbEntry('r2', 1, { sessionId: 'other' }),
+        ])
+        assert.equal(await store.deleteSessionForPrincipal('other', caller), false)
+        assert.equal((await store.getCrumbs!('r2')).length, 1)
+        assert.equal(await store.deleteSessionForPrincipal('s', caller), true)
         assert.equal((await store.getCrumbs!('r1')).length, 0)
         assert.equal((await store.getCrumbs!('r2')).length, 1)
       },

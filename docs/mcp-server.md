@@ -77,12 +77,14 @@ place mcp-server takes a real shortcut, worth calling out precisely:
   2025-11-25 or 2026-07-28, and the whole connection speaks whichever era won. Use this when bread
   itself is launched as an MCP child process. There is no meaningful auth layer here by design: stdio
   is a local process pipe, and the OS process boundary *is* the trust boundary, the same as any other
-  local CLI access.
+  local CLI access. Stdio stamps `expose.principal` on `bread.run`, `bread.runTask`, and a direct
+  tool's `ToolContext`. When `expose.principal` is omitted, that principal is
+  `{ iss: "https://bread.local/mcp", sub: "stdio" }`. Tool arguments are not a principal.
 - **`transport: 'http'`** — mounts a **stateless** Streamable HTTP endpoint on bread's own Hono app at
   `path` (default `/mcp`), via `createMcpHandler(..., { legacy: 'stateless' })`: a fresh MCP server
   per request either way, but the same handler answers 2026-07-28 natively and falls back to the
   2025-11-25 wire format bread has always served — one endpoint, both eras, still no session state on
-  either side.
+  either side. HTTP ignores `expose.principal`, including when that field is set.
 
 ### DNS-rebinding protection
 

@@ -20,6 +20,8 @@ export { makeBread, makeServer, collect, stream, runCollect, readSse, parseSse }
 export { missingStoreFeatures, runStoreContract, storeContractCases } from './store-contract.js'
 export { transportContractCases, runTransportContract, waitFor } from './transport-contract.js'
 export type { TransportCase } from './transport-contract.js'
+export { runOwnerContractCases, runRunOwnerContract } from './run-owner-contract.js'
+export type { RunOwnerCase } from './run-owner-contract.js'
 export { blobContractCases, runBlobContract } from './blob-contract.js'
 export type { BlobCase } from './blob-contract.js'
 export { memoryBlobStore } from './blob-store.js'
