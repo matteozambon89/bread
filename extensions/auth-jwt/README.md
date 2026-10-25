@@ -8,7 +8,7 @@
 
 JWT auth for bread — verifies incoming bearer tokens via [`jose`](https://github.com/panva/jose).
 `authStrategy` takes an HS256 symmetric secret or one remote JWKS (RS/PS/ES). `oidcStrategy`
-discovers one or more OpenID Connect issuers and maps a vendor tenant claim onto `principal`.
+discovers one or more OpenID Connect issuers and maps vendor tenant and role claims onto `principal`.
 Verification only — no `signer`.
 
 ```bash
@@ -45,11 +45,19 @@ const oidc = oidcStrategy({
 `sub` are both non-empty strings, `principal: { iss, sub }` with no tenant. A missing `sub` stays
 the subject `jwt` and sets no principal.
 
-`oidcStrategy` resolves `{ subject: sub, claims: payload, principal: { iss, sub, tenant? } }`.
+`oidcStrategy` resolves `{ subject: sub, claims: payload, principal: { iss, sub, tenant?, roles? } }`.
 `sub` must be a non-empty string. Presets copy `tid` (Entra), `custom:tenant` (Cognito), `hd`
 (Google), or `org_id` (Auth0) when that claim is a non-empty string. A missing preset claim still
 authenticates, with `tenant` unset. Okta and Keycloak set no tenant claim unless `tenantClaim` is
-set. An explicit `tenantClaim` that is missing or empty rejects the token. Roles stay on `claims`.
+set. An explicit `tenantClaim` that is missing or empty rejects the token. Role presets copy Entra
+`roles`, Cognito `cognito:groups`, and Keycloak `realm_access.roles` (not `resource_access`) when
+that value is a non-empty array of strings, copied as issued. Google, Auth0, and Okta copy no roles
+unless `roleClaim` is set, so a bare `roles` claim stays on `claims`. A missing, empty, or
+non-string-array preset role claim leaves `roles` unset and still authenticates. `roleClaim`
+overrides the preset, names one top-level claim, and does not walk dotted paths. That claim must be
+a non-empty array of non-empty strings or the token is rejected. A lone string is not wrapped. An
+empty `roleClaim` throws at construction. `roles` is omitted when unset. `claims` stays the full
+payload.
 A `google` preset configured as `https://accounts.google.com` accepts that `iss` and
 `accounts.google.com`; `principal.iss` is the token's `iss`. Discovery does not follow redirects.
 Pass `strategy` to `@breadai/server`'s `authPlugin()` to guard a running server.

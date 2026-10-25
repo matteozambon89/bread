@@ -491,11 +491,12 @@ export interface PluginContext {
   sessionId: string
 }
 
-// iss + sub identify the caller. tenant is optional. No email, name, or roles.
+// iss + sub identify the caller. tenant and roles are optional. No email or name.
 export interface Principal {
   iss: string
   sub: string
   tenant?: string
+  roles?: string[]
 }
 
 // An authenticated caller resolved by a BreadAuthStrategy.
