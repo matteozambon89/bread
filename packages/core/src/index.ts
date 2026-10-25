@@ -182,4 +182,8 @@ export type {
 export { BreadError } from './types.js'
 export { LOCAL_CLI_PRINCIPAL, isLocalCliPrincipal, principalOrLocalCli, principalVisible, resumeVisible, runVisible } from './principal.js'
 
+// @internal — the mTLS listener is the only writer. Not a stable public API.
+export { attachVerifiedPeer, verifiedPeer } from './verified-peer.js'
+export type { VerifiedPeerCertificate } from './verified-peer.js'
+
 export { HTTP_ACTIONS, isLoopbackHostname, matchHttpRoute, registerHttpRoute } from './http-grant.js'

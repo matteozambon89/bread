@@ -135,3 +135,5 @@ function toIdentity(
     principal,
   }
 }
+
+export { mtlsStrategy, type MtlsOptions } from './mtls.js'

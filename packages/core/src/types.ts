@@ -936,6 +936,13 @@ export interface BreadConfig {
     idleTimeout?: number
     maxBodyBytes?: number
     runtime?: 'bun' | 'node'
+    // PEM contents, not paths. When set, both listen adapters require a
+    // verified client certificate. Omit it and they stay on plain HTTP.
+    tls?: {
+      key: string
+      cert: string
+      ca: string
+    }
     // Called only when a plugin named `auth` is registered. `args` is path
     // params plus query params; a path param wins on a duplicate key. Return
     // true to allow. List routes are not filtered.

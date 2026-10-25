@@ -2,7 +2,8 @@ import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
 import { defineTool } from '@breadai/core'
 import type { Principal } from '@breadai/core'
 import { authPlugin } from '@breadai/server'
-import { authStrategy } from '@breadai/auth-trusted'
+import { authStrategy, mtlsStrategy } from '@breadai/auth-trusted'
+import { attachVerifiedPeer } from '@breadai/core'
 import { defineTestAgent, makeServer, mockToolCallModel } from '@breadai/test-utils'
 import { transport } from '@breadai/transport-http-chunked'
 import { SignJWT, type KeyLike, exportJWK, generateKeyPair } from 'jose'
@@ -81,4 +82,51 @@ describe('http chunked trusted identity', () => {
       await stop()
     }
   })
+})
+
+test('an mtls principal reaches the tool and forwarded cert headers do not', async () => {
+  const seen: Array<Principal | undefined> = []
+  const strategy = mtlsStrategy({ issuer: 'gateway-ca', tenantField: 'ou' })
+  const { app, stop } = await makeServer({
+    agents: { agent: defineTestAgent({ tools: [probe(seen)] }) },
+    model: mockToolCallModel({ toolName: 'tool_probe', args: { principal: spoof }, then: 'done' }),
+    plugins: [authPlugin([strategy])],
+    config: { transport: transport(), server: { authorize: () => true } },
+  })
+  try {
+    const body = new ReadableStream({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode(JSON.stringify({ input: 'go', principal: spoof })))
+        controller.close()
+      },
+    })
+    const req = new Request('http://localhost/agents/agent/run', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-user-id': 'spoof',
+        'x-forwarded-user': 'spoof',
+        'x-forwarded-email': 'spoof@evil.example',
+        'ssl-client-cert': 'spoof',
+        'x-forwarded-client-cert': 'spoof',
+      },
+      body,
+      duplex: 'half',
+    })
+    attachVerifiedPeer(req, {
+      subjectCn: 'user-1',
+      issuerCn: 'gateway-ca',
+      fingerprint256: 'AA:BB',
+      organizationalUnits: ['acme'],
+    })
+    const res = await app.request(req)
+    expect(res.status).toBe(200)
+    await res.text()
+    expect(seen).toEqual([{ iss: 'mtls:gateway-ca', sub: 'user-1', tenant: 'acme' }])
+    expect(req.headers.get('x-user-id')).toBe('spoof')
+    expect(req.headers.get('ssl-client-cert')).toBe('spoof')
+    expect(req.headers.get('x-forwarded-client-cert')).toBe('spoof')
+  } finally {
+    await stop()
+  }
 })

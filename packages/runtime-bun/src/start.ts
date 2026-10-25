@@ -1,5 +1,11 @@
 import type { AgentRegistry, BreadConfig, BreadInstance, TaskRegistry } from '@breadai/core'
-import { assertHttpAuth, createServer, httpAuthLoopbackWarning, type ServerOptions } from '@breadai/server'
+import {
+  assertHttpAuth,
+  createServer,
+  httpAuthLoopbackWarning,
+  listenMtls,
+  type ServerOptions,
+} from '@breadai/server'
 
 /**
  * Bun listen adapter for `@breadai/server`.
@@ -9,7 +15,8 @@ import { assertHttpAuth, createServer, httpAuthLoopbackWarning, type ServerOptio
  * falling back to port 3000 / host `localhost`).
  *
  * Do not import `@hono/node-server` from this package — its `serve()` permanently
- * breaks Bun.serve Response handling in the same process.
+ * breaks Bun.serve Response handling in the same process. `config.server.tls`
+ * does not use Bun.serve; the mTLS listener proves the client certificate.
  */
 export async function startServer(
   config: BreadConfig,
@@ -29,6 +36,32 @@ export async function startServer(
 
   const { bread, app } = createServer(config, agents, tasks)
   await bread.start()
+
+  const tls = config.server?.tls
+  if (tls) {
+    try {
+      const listened = await listenMtls({
+        fetch: (request) => app.fetch(request),
+        port,
+        host,
+        ...(idleTimeout !== undefined ? { idleTimeout } : {}),
+        tls,
+      })
+      return {
+        bread,
+        stop: async () => {
+          try {
+            await bread.stop()
+          } finally {
+            await listened.stop()
+          }
+        },
+      }
+    } catch (err) {
+      await bread.stop()
+      throw err
+    }
+  }
 
   const server = Bun.serve({
     port,
