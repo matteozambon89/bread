@@ -78,6 +78,12 @@ export interface LoopRecord {
   status: LoopStatus
   iterations: number // count of completed iterations
   result?: unknown
+  // Post-hook output of the latest finished iteration. The iteration row stays
+  // raw; a rebuilt runtime reads this so core_iterate_loop / core_finish_loop
+  // match the tool result the model already saw. Absent only when no finished
+  // iteration has written it. Present null and present undefined are hook
+  // replacements, not a missing column.
+  lastOutput?: unknown
   startedAt: number
   completedAt?: number | undefined
 }
@@ -202,7 +208,7 @@ export interface BreadStore {
   createLoop(record: LoopRecord): Promise<void>
   updateLoop(
     id: string,
-    patch: Partial<Pick<LoopRecord, 'status' | 'iterations' | 'result' | 'completedAt'>>,
+    patch: Partial<Pick<LoopRecord, 'status' | 'iterations' | 'result' | 'lastOutput' | 'completedAt'>>,
   ): Promise<void>
   addLoopIteration(iteration: LoopIteration): Promise<void>
   getLoop(id: string): Promise<{ loop: LoopRecord; iterations: LoopIteration[] } | undefined>

@@ -25,6 +25,7 @@ export type {
   TaskRunRecord,
   TaskRunFilter,
 } from './storage/store.js'
+export { decodeLastOutput, encodeLastOutput } from './last-output.js'
 
 // Blob storage — a separate, optional seam for binary content (config.blobStore),
 // implemented by e.g. @breadai/store-s3. FileOutput/isFileOutput are the agent-output-side
