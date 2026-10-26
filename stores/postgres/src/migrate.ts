@@ -38,6 +38,7 @@ CREATE TABLE IF NOT EXISTS bread_checkpoints (
   parent JSONB,
   pending JSONB,
   principal JSONB,
+  claimed INTEGER NOT NULL DEFAULT 0,
   created_at BIGINT NOT NULL
 );
 
@@ -145,6 +146,7 @@ ALTER TABLE bread_checkpoints ADD COLUMN IF NOT EXISTS principal JSONB;
 ALTER TABLE bread_checkpoints ADD COLUMN IF NOT EXISTS execution_id TEXT NOT NULL DEFAULT '';
 CREATE INDEX IF NOT EXISTS bread_checkpoints_execution_idx ON bread_checkpoints(execution_id);
 ALTER TABLE bread_sessions ADD COLUMN IF NOT EXISTS principal JSONB;
+ALTER TABLE bread_checkpoints ADD COLUMN IF NOT EXISTS claimed INTEGER NOT NULL DEFAULT 0;
 `
 
 export async function migrate(sql: Sql, withVectors: boolean): Promise<void> {

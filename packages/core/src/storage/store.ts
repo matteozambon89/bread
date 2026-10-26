@@ -178,10 +178,15 @@ export interface BreadStore {
   // --- Checkpoints (HITL) ----------------------------------------------------
   saveCheckpoint(record: CheckpointRecord): Promise<void>
   getCheckpoint(id: string): Promise<CheckpointRecord | undefined>
+  // Claims a loop-worker row without deleting it. Returns the row once; a
+  // second caller gets undefined. getCheckpoint still returns a claimed row,
+  // and saveCheckpoint must not clear the flag. deleteCheckpoint releases it.
+  claimCheckpoint(id: string): Promise<CheckpointRecord | undefined>
   // Atomically deletes and returns the record, or undefined if it was already
-  // gone — the claim primitive resume() uses so a concurrent second resume of
-  // the same checkpoint loses the race instead of double-acting.
-  deleteCheckpoint(id: string): Promise<CheckpointRecord | undefined>
+  // gone — the claim primitive resume() uses for every checkpoint that is not
+  // a loop worker, so a concurrent second resume loses the race. With
+  // unclaimedOnly a claimed row stays and the call returns undefined.
+  deleteCheckpoint(id: string, opts?: { unclaimedOnly?: boolean }): Promise<CheckpointRecord | undefined>
   // executionId narrows to one execution's rows: the scope runner cleanup uses.
   listCheckpoints(filter?: { executionId?: string }): Promise<CheckpointRecord[]>
   // Persists a suspending run's response messages and its checkpoint as one

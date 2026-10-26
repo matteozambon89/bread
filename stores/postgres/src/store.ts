@@ -352,8 +352,16 @@ export function store(opts: PostgresStoreOptions = {}): BreadStore {
       return rows[0] ? rowToCheckpoint(rows[0]) : undefined
     },
 
-    async deleteCheckpoint(id) {
-      const rows = await sql<CheckpointRow[]>`DELETE FROM bread_checkpoints WHERE id = ${id} RETURNING *`
+    async claimCheckpoint(id) {
+      const rows = await sql<CheckpointRow[]>`
+        UPDATE bread_checkpoints SET claimed = 1 WHERE id = ${id} AND claimed = 0 RETURNING *`
+      return rows[0] ? rowToCheckpoint(rows[0]) : undefined
+    },
+
+    async deleteCheckpoint(id, opts) {
+      const rows = opts?.unclaimedOnly
+        ? await sql<CheckpointRow[]>`DELETE FROM bread_checkpoints WHERE id = ${id} AND claimed = 0 RETURNING *`
+        : await sql<CheckpointRow[]>`DELETE FROM bread_checkpoints WHERE id = ${id} RETURNING *`
       return rows[0] ? rowToCheckpoint(rows[0]) : undefined
     },
 

@@ -55,6 +55,7 @@ CREATE TABLE IF NOT EXISTS checkpoints (
   parent TEXT,
   pending TEXT,
   principal TEXT,
+  claimed INTEGER NOT NULL DEFAULT 0,
   created_at INTEGER NOT NULL
 );
 
@@ -340,7 +341,10 @@ export function store(opts: SqliteStoreOptions = {}): BreadStore {
   db.exec(SCHEMA)
   // Additive column for tables that predate it — SQLite has no ADD COLUMN IF
   // NOT EXISTS, so guard with a duplicate-column catch instead.
-  for (const column of ['skill TEXT', 'parent TEXT', 'pending TEXT', 'principal TEXT', "execution_id TEXT NOT NULL DEFAULT ''"]) {
+  for (const column of [
+    'skill TEXT', 'parent TEXT', 'pending TEXT', 'principal TEXT', 'claimed INTEGER NOT NULL DEFAULT 0',
+    "execution_id TEXT NOT NULL DEFAULT ''",
+  ]) {
     try {
       db.exec(`ALTER TABLE checkpoints ADD COLUMN ${column}`)
     } catch (err) {
@@ -461,9 +465,15 @@ export function store(opts: SqliteStoreOptions = {}): BreadStore {
     async saveCheckpoint(record) {
       requireExecutionId(record.executionId, 'saveCheckpoint')
       db.prepare(
-        `INSERT OR REPLACE INTO checkpoints
+        `INSERT INTO checkpoints
          (id, agent_id, run_id, session_id, execution_id, tool_name, tool_call_id, schema, prompt, skill, parent, pending, principal, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT(id) DO UPDATE SET
+           agent_id = excluded.agent_id, run_id = excluded.run_id, session_id = excluded.session_id, execution_id = excluded.execution_id,
+           tool_name = excluded.tool_name, tool_call_id = excluded.tool_call_id,
+           schema = excluded.schema, prompt = excluded.prompt, skill = excluded.skill,
+           parent = excluded.parent, pending = excluded.pending, principal = excluded.principal,
+           created_at = excluded.created_at`,
       ).run(
         record.id,
         record.agentId,
@@ -489,8 +499,16 @@ export function store(opts: SqliteStoreOptions = {}): BreadStore {
       return row ? rowToCheckpoint(row) : undefined
     },
 
-    async deleteCheckpoint(id) {
-      const row = db.prepare('DELETE FROM checkpoints WHERE id = ? RETURNING *').get(id) as
+    async claimCheckpoint(id) {
+      const row = db
+        .prepare('UPDATE checkpoints SET claimed = 1 WHERE id = ? AND claimed = 0 RETURNING *')
+        .get(id) as CheckpointRow | undefined
+      return row ? rowToCheckpoint(row) : undefined
+    },
+
+    async deleteCheckpoint(id, opts) {
+      const where = opts?.unclaimedOnly ? 'id = ? AND claimed = 0' : 'id = ?'
+      const row = db.prepare(`DELETE FROM checkpoints WHERE ${where} RETURNING *`).get(id) as
         | CheckpointRow
         | undefined
       return row ? rowToCheckpoint(row) : undefined
@@ -521,9 +539,15 @@ export function store(opts: SqliteStoreOptions = {}): BreadStore {
         }
         db.prepare('UPDATE sessions SET updated_at = ? WHERE id = ?').run(last, sessionId)
         db.prepare(
-          `INSERT OR REPLACE INTO checkpoints
+          `INSERT INTO checkpoints
            (id, agent_id, run_id, session_id, execution_id, tool_name, tool_call_id, schema, prompt, skill, parent, pending, principal, created_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+           ON CONFLICT(id) DO UPDATE SET
+             agent_id = excluded.agent_id, run_id = excluded.run_id, session_id = excluded.session_id, execution_id = excluded.execution_id,
+             tool_name = excluded.tool_name, tool_call_id = excluded.tool_call_id,
+             schema = excluded.schema, prompt = excluded.prompt, skill = excluded.skill,
+             parent = excluded.parent, pending = excluded.pending, principal = excluded.principal,
+             created_at = excluded.created_at`,
         ).run(
           checkpoint.id,
           checkpoint.agentId,

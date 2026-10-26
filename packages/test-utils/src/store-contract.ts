@@ -369,6 +369,34 @@ export function storeContractCases(): StoreCase[] {
       },
     },
     {
+      name: 'claimCheckpoint claims once and saveCheckpoint keeps the claim',
+      fn: async (store) => {
+        await store.createSession({ id: 's' })
+        await store.saveCheckpoint(checkpoint())
+        const first = await store.claimCheckpoint('cp-1')
+        assert.equal(first?.id, 'cp-1')
+        assert.equal((await store.getCheckpoint('cp-1'))?.id, 'cp-1')
+        assert.equal(await store.claimCheckpoint('cp-1'), undefined)
+        await store.saveCheckpoint(checkpoint({ prompt: 'still' }))
+        assert.equal(await store.claimCheckpoint('cp-1'), undefined)
+        assert.equal((await store.getCheckpoint('cp-1'))?.prompt, 'still')
+        assert.equal((await store.deleteCheckpoint('cp-1'))?.id, 'cp-1')
+        assert.equal(await store.getCheckpoint('cp-1'), undefined)
+      },
+    },
+    {
+      name: 'deleteCheckpoint with unclaimedOnly keeps a claimed row',
+      fn: async (store) => {
+        await store.createSession({ id: 's' })
+        await store.saveCheckpoint(checkpoint())
+        await store.claimCheckpoint('cp-1')
+        assert.equal(await store.deleteCheckpoint('cp-1', { unclaimedOnly: true }), undefined)
+        assert.equal((await store.getCheckpoint('cp-1'))?.id, 'cp-1')
+        await store.saveCheckpoint(checkpoint({ id: 'cp-2' }))
+        assert.equal((await store.deleteCheckpoint('cp-2', { unclaimedOnly: true }))?.id, 'cp-2')
+      },
+    },
+    {
       name: 'round-trips the composition parent linkage on a checkpoint',
       fn: async (store) => {
         await store.createSession({ id: 's' })
