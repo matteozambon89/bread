@@ -133,6 +133,8 @@ jobs:
           PLAN: ${{ runner.temp }}/bump-plan.json
           TAG: ${{ steps.tag.outputs.value }}
         run: |
+          # Shows the report in this log and on the run's Summary page.
+          set -o pipefail # a jq failure still fails the step
           {
             echo "🔍 Dry run — would tag **${TAG}**. Build/test passed, nothing committed, tagged, released, or published."
             echo
@@ -153,4 +155,4 @@ jobs:
               echo
             fi
             echo "Re-run with \`dry_run: false\` to actually release."
-          } >> "$GITHUB_STEP_SUMMARY"
+          } | tee -a "$GITHUB_STEP_SUMMARY"
