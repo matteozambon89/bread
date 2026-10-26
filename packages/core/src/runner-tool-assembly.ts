@@ -158,7 +158,7 @@ export async function assembleTools(
   // core_finish_loop and tell the model about its agent pool.
   let loopRuntime: LoopRuntime | null = null
   if (cfg.loop) {
-    loopRuntime = buildLoopTools({
+    loopRuntime = await buildLoopTools({
       loopCfg: cfg.loop,
       agentId,
       runId,
@@ -166,6 +166,7 @@ export async function assembleTools(
       ctx,
       onCrumb,
       ...(opts.principal ? { principal: opts.principal } : {}),
+      ...(opts._loopLastOutput ? { restoredLastOutput: opts._loopLastOutput } : {}),
     })
     for (const def of loopRuntime.tools) sources.push({ origin: coreOrigin(def.name), def })
     system = system ? `${system}\n\n${loopSummary(cfg.loop)}` : loopSummary(cfg.loop)

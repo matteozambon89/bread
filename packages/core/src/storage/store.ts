@@ -46,11 +46,12 @@ export interface CheckpointRecord {
   // pipeline or a supervisor delegation. Resume runs the rest of the
   // composition after the sub-run completes. See CheckpointParent.
   parent?: CheckpointParent | undefined
-  // Set only on a supervisor checkpoint chain-suspended by delegations: the
-  // delegate tool calls whose child runs are suspended. Entries resolve (and
-  // are removed) as each child's resume completes; the last one continues the
-  // supervisor run. Such a checkpoint is not directly resumable — resume the
-  // child checkpoints instead.
+  // Set on a checkpoint that is waiting on a suspended child and is not
+  // directly resumable. A supervisor lists dangling core_delegate calls
+  // (entries resolve as each child completes; the last one continues the
+  // run). A loop host lists the live human checkpoint for its open iteration
+  // — resume that checkpoint, not the host. A later suspension in the same
+  // iteration updates the child id; the previous worker checkpoint is gone.
   pending?: PendingDelegation[] | undefined
   createdAt: number
 }

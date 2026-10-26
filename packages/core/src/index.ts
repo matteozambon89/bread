@@ -141,6 +141,7 @@ export type {
   PipelineBranchTakenCrumb,
   PipelineCheckpointParent,
   PipelineStep,
+  LoopHostLink,
   SupervisorCheckpointParent,
   PipelineStepEndCrumb,
   PipelineStepStartCrumb,
