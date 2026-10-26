@@ -1,6 +1,6 @@
 import { Database } from 'bun:sqlite'
 import { v7 as uuidv7 } from 'uuid'
-import { principalVisible } from '@breadai/core'
+import { principalVisible, requireExecutionId } from '@breadai/core'
 import type {
   BreadStore,
   CheckpointRecord,
@@ -46,6 +46,7 @@ CREATE TABLE IF NOT EXISTS checkpoints (
   agent_id TEXT NOT NULL,
   run_id TEXT NOT NULL,
   session_id TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+  execution_id TEXT NOT NULL DEFAULT '',
   tool_name TEXT NOT NULL,
   tool_call_id TEXT NOT NULL,
   schema TEXT NOT NULL,
@@ -166,6 +167,7 @@ interface CheckpointRow {
   agent_id: string
   run_id: string
   session_id: string
+  execution_id: string
   tool_name: string
   tool_call_id: string
   schema: string
@@ -204,6 +206,7 @@ function rowToCheckpoint(r: CheckpointRow): CheckpointRecord {
     agentId: r.agent_id,
     runId: r.run_id,
     sessionId: r.session_id,
+    executionId: r.execution_id,
     toolName: r.tool_name,
     toolCallId: r.tool_call_id,
     schema: JSON.parse(r.schema) as unknown,
@@ -337,13 +340,14 @@ export function store(opts: SqliteStoreOptions = {}): BreadStore {
   db.exec(SCHEMA)
   // Additive column for tables that predate it — SQLite has no ADD COLUMN IF
   // NOT EXISTS, so guard with a duplicate-column catch instead.
-  for (const column of ['skill TEXT', 'parent TEXT', 'pending TEXT', 'principal TEXT']) {
+  for (const column of ['skill TEXT', 'parent TEXT', 'pending TEXT', 'principal TEXT', "execution_id TEXT NOT NULL DEFAULT ''"]) {
     try {
       db.exec(`ALTER TABLE checkpoints ADD COLUMN ${column}`)
     } catch (err) {
       if (!(err instanceof Error) || !err.message.includes('duplicate column name')) throw err
     }
   }
+  db.exec('CREATE INDEX IF NOT EXISTS idx_checkpoints_execution ON checkpoints(execution_id)')
   try {
     db.exec('ALTER TABLE sessions ADD COLUMN principal TEXT')
   } catch (err) {
@@ -455,15 +459,17 @@ export function store(opts: SqliteStoreOptions = {}): BreadStore {
 
     // --- Checkpoints ---------------------------------------------------------
     async saveCheckpoint(record) {
+      requireExecutionId(record.executionId, 'saveCheckpoint')
       db.prepare(
         `INSERT OR REPLACE INTO checkpoints
-         (id, agent_id, run_id, session_id, tool_name, tool_call_id, schema, prompt, skill, parent, pending, principal, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         (id, agent_id, run_id, session_id, execution_id, tool_name, tool_call_id, schema, prompt, skill, parent, pending, principal, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       ).run(
         record.id,
         record.agentId,
         record.runId,
         record.sessionId,
+        record.executionId,
         record.toolName,
         record.toolCallId,
         JSON.stringify(record.schema ?? null),
@@ -490,12 +496,20 @@ export function store(opts: SqliteStoreOptions = {}): BreadStore {
       return row ? rowToCheckpoint(row) : undefined
     },
 
-    async listCheckpoints() {
-      const rows = db.prepare('SELECT * FROM checkpoints ORDER BY created_at ASC').all() as CheckpointRow[]
+    async listCheckpoints(filter) {
+      const executionId = filter && requireExecutionId(filter.executionId, 'listCheckpoints')
+      const rows = (
+        executionId === undefined
+          ? db.prepare('SELECT * FROM checkpoints ORDER BY created_at ASC').all()
+          : db
+              .prepare('SELECT * FROM checkpoints WHERE execution_id = ? ORDER BY created_at ASC')
+              .all(executionId)
+      ) as CheckpointRow[]
       return rows.map(rowToCheckpoint)
     },
 
     async suspendRun(sessionId, msgs, checkpoint) {
+      requireExecutionId(checkpoint.executionId, 'suspendRun')
       const tx = db.transaction(() => {
         let last = checkpoint.createdAt
         for (const m of msgs) {
@@ -508,13 +522,14 @@ export function store(opts: SqliteStoreOptions = {}): BreadStore {
         db.prepare('UPDATE sessions SET updated_at = ? WHERE id = ?').run(last, sessionId)
         db.prepare(
           `INSERT OR REPLACE INTO checkpoints
-           (id, agent_id, run_id, session_id, tool_name, tool_call_id, schema, prompt, skill, parent, pending, principal, created_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           (id, agent_id, run_id, session_id, execution_id, tool_name, tool_call_id, schema, prompt, skill, parent, pending, principal, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         ).run(
           checkpoint.id,
           checkpoint.agentId,
           checkpoint.runId,
           checkpoint.sessionId,
+          checkpoint.executionId,
           checkpoint.toolName,
           checkpoint.toolCallId,
           JSON.stringify(checkpoint.schema ?? null),

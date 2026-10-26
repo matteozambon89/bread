@@ -26,9 +26,9 @@ import { BreadError } from './types.js'
 export async function* resumeRun(
   checkpointId: string,
   response: unknown,
-  ctx: RunnerContext,
+  baseCtx: Omit<RunnerContext, 'executionId'>,
 ): AsyncGenerator<BreadCrumb> {
-  const cp = await ctx.store.getCheckpoint(checkpointId)
+  const cp = await baseCtx.store.getCheckpoint(checkpointId)
   if (!cp) {
     throw new BreadError(
       `Checkpoint not found or already resumed: ${checkpointId}`,
@@ -36,6 +36,17 @@ export async function* resumeRun(
       { checkpointId },
     )
   }
+  // The stored row, not the caller, decides which execution this resume continues.
+  // A row without one (written before execution ids existed) is refused rather
+  // than continued under the shared '' id every legacy row backfilled to.
+  if (!cp.executionId) {
+    throw new BreadError(
+      `Checkpoint ${checkpointId} has no execution id and cannot be resumed; it predates execution ids`,
+      'CHECKPOINT_NOT_RESUMABLE',
+      { checkpointId },
+    )
+  }
+  const ctx: RunnerContext = { ...baseCtx, executionId: cp.executionId }
   // A supervisor checkpoint chain-suspended by delegations is not directly
   // resumable — its dangling core_delegate call(s) resolve from the child
   // runs' outputs, never from a human response. Resume the children instead.

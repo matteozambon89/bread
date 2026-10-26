@@ -188,6 +188,7 @@ export type {
 } from './types.js'
 
 export { BreadError } from './types.js'
+export { requireExecutionId } from './storage/execution-id.js'
 export { LOCAL_CLI_PRINCIPAL, isLocalCliPrincipal, principalOrLocalCli, principalVisible, resumeVisible, runVisible } from './principal.js'
 
 // @internal — the mTLS listener is the only writer. Not a stable public API.

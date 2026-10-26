@@ -97,3 +97,19 @@ In both shapes the client-facing contract is unchanged: the stream ends at `huma
 one continuation stream that runs as deep as the composition goes. Concurrent resumes of *sibling*
 suspensions (two parallel branches, two delegations) are supported sequentially; resuming them
 simultaneously from different processes may race their merge bookkeeping.
+
+### One id for the whole execution
+
+Every checkpoint carries an `executionId`. `run()` and `runPipeline()` mint it once, and every
+nested pipeline step, parallel branch and supervisor delegation shares it. A resume takes it from the
+stored checkpoint, so the continuation and any later suspensions keep the same id. It is never read
+from the request, API, CLI or tool input.
+
+Use `store.listCheckpoints({ executionId })` to list every pending suspension of one execution, for
+example the two parallel branches a parent is waiting on. The id only scopes the listing: resuming a
+checkpoint still checks that the caller's principal owns it.
+
+The id fails closed. Every store throws `INVALID_EXECUTION_ID` when a checkpoint is written with an
+empty id, or when `listCheckpoints` gets a filter whose `executionId` is missing or empty, instead of
+returning every row. Checkpoints stored before execution ids existed were backfilled to `''`; resuming
+one throws `CHECKPOINT_NOT_RESUMABLE`, so no new work joins that shared bucket.

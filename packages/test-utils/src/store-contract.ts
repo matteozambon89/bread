@@ -30,6 +30,7 @@ function checkpoint(over: Partial<CheckpointRecord> = {}): CheckpointRecord {
     agentId: 'a',
     runId: 'r',
     sessionId: 's',
+    executionId: 'exec-1',
     toolName: 'ask',
     toolCallId: 'tc-1',
     schema: { type: 'object' },
@@ -438,6 +439,52 @@ export function storeContractCases(): StoreCase[] {
           listed.map((c) => c.id),
           ['cp-old', 'cp-new'],
         )
+      },
+    },
+    {
+      name: 'round-trips a checkpoint executionId',
+      fn: async (store) => {
+        await store.createSession({ id: 's' })
+        await store.saveCheckpoint(checkpoint({ executionId: 'exec-a' }))
+        assert.equal((await store.getCheckpoint('cp-1'))?.executionId, 'exec-a')
+      },
+    },
+    {
+      name: 'listCheckpoints with an executionId returns only that execution in creation order',
+      fn: async (store) => {
+        await store.createSession({ id: 's' })
+        await store.saveCheckpoint(checkpoint({ id: 'a-new', executionId: 'exec-a', createdAt: 3 }))
+        await store.saveCheckpoint(checkpoint({ id: 'b-1', executionId: 'exec-b', createdAt: 2 }))
+        await store.saveCheckpoint(checkpoint({ id: 'a-old', executionId: 'exec-a', createdAt: 1 }))
+        assert.deepEqual(
+          (await store.listCheckpoints({ executionId: 'exec-a' })).map((c) => c.id),
+          ['a-old', 'a-new'],
+        )
+        assert.deepEqual((await store.listCheckpoints({ executionId: 'exec-none' })).length, 0)
+        assert.equal((await store.listCheckpoints()).length, 3)
+      },
+    },
+    {
+      name: 'listCheckpoints refuses a filter whose executionId is missing or empty',
+      fn: async (store) => {
+        await store.createSession({ id: 's' })
+        await store.saveCheckpoint(checkpoint())
+        for (const executionId of [undefined, '']) {
+          await assert.rejects(() => store.listCheckpoints({ executionId: executionId as string }), { code: 'INVALID_EXECUTION_ID' })
+        }
+      },
+    },
+    {
+      name: 'saveCheckpoint and suspendRun refuse a checkpoint with an empty executionId',
+      fn: async (store) => {
+        const s = await store.createSession({ id: 's' })
+        await assert.rejects(() => store.saveCheckpoint(checkpoint({ executionId: '' })), {
+          code: 'INVALID_EXECUTION_ID',
+        })
+        await assert.rejects(() => store.suspendRun(s.id, [], checkpoint({ executionId: '' })), {
+          code: 'INVALID_EXECUTION_ID',
+        })
+        assert.equal((await store.listCheckpoints()).length, 0)
       },
     },
     {

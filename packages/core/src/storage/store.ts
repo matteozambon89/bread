@@ -24,6 +24,10 @@ export interface CheckpointRecord {
   agentId: string
   runId: string
   sessionId: string
+  // One id per top-level run(), runPipeline() or resume chain, shared by every
+  // nested step, loop iteration and delegation. The runner sets it from its
+  // own context or the stored row, never from caller input.
+  executionId: string
   toolName: string
   // The model's tool-call id for the pending human tool. Resume appends a
   // tool-result message keyed to it, so the replayed run continues from exactly
@@ -178,7 +182,8 @@ export interface BreadStore {
   // gone — the claim primitive resume() uses so a concurrent second resume of
   // the same checkpoint loses the race instead of double-acting.
   deleteCheckpoint(id: string): Promise<CheckpointRecord | undefined>
-  listCheckpoints(): Promise<CheckpointRecord[]>
+  // executionId narrows to one execution's rows: the scope runner cleanup uses.
+  listCheckpoints(filter?: { executionId?: string }): Promise<CheckpointRecord[]>
   // Persists a suspending run's response messages and its checkpoint as one
   // atomic unit, so a crash between the two can never leave a dangling
   // tool-call message with no checkpoint to resume it.
