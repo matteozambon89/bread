@@ -29,6 +29,7 @@ CREATE TABLE IF NOT EXISTS bread_checkpoints (
   agent_id TEXT NOT NULL,
   run_id TEXT NOT NULL,
   session_id TEXT NOT NULL REFERENCES bread_sessions(id) ON DELETE CASCADE,
+  execution_id TEXT NOT NULL DEFAULT '',
   tool_name TEXT NOT NULL,
   tool_call_id TEXT NOT NULL,
   schema JSONB NOT NULL,
@@ -141,6 +142,8 @@ ALTER TABLE bread_checkpoints ADD COLUMN IF NOT EXISTS skill TEXT;
 ALTER TABLE bread_checkpoints ADD COLUMN IF NOT EXISTS parent JSONB;
 ALTER TABLE bread_checkpoints ADD COLUMN IF NOT EXISTS pending JSONB;
 ALTER TABLE bread_checkpoints ADD COLUMN IF NOT EXISTS principal JSONB;
+ALTER TABLE bread_checkpoints ADD COLUMN IF NOT EXISTS execution_id TEXT NOT NULL DEFAULT '';
+CREATE INDEX IF NOT EXISTS bread_checkpoints_execution_idx ON bread_checkpoints(execution_id);
 ALTER TABLE bread_sessions ADD COLUMN IF NOT EXISTS principal JSONB;
 `
 

@@ -1,5 +1,5 @@
 import { v7 as uuidv7 } from 'uuid'
-import { principalVisible } from '@breadai/core'
+import { principalVisible, requireExecutionId } from '@breadai/core'
 import type {
   BreadStore,
   CheckpointRecord,
@@ -166,6 +166,7 @@ export function store(): BreadStore {
 
     // --- Checkpoints ---------------------------------------------------------
     async saveCheckpoint(record) {
+      requireExecutionId(record.executionId, 'saveCheckpoint')
       checkpoints.set(record.id, { ...record, schema: record.schema ?? null })
     },
 
@@ -179,11 +180,15 @@ export function store(): BreadStore {
       return record
     },
 
-    async listCheckpoints() {
-      return [...checkpoints.values()].sort((a, b) => a.createdAt - b.createdAt)
+    async listCheckpoints(filter) {
+      const executionId = filter && requireExecutionId(filter.executionId, 'listCheckpoints')
+      return [...checkpoints.values()]
+        .filter((cp) => executionId === undefined || cp.executionId === executionId)
+        .sort((a, b) => a.createdAt - b.createdAt)
     },
 
     async suspendRun(sessionId, msgs, checkpoint) {
+      requireExecutionId(checkpoint.executionId, 'suspendRun')
       for (const m of msgs) addMessageSync(sessionId, m)
       checkpoints.set(checkpoint.id, { ...checkpoint, schema: checkpoint.schema ?? null })
     },

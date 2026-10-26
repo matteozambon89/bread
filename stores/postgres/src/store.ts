@@ -15,6 +15,7 @@ import type {
   TaskRunRecord,
   TaskRunStatus,
 } from '@breadai/core'
+import { requireExecutionId } from '@breadai/core'
 import { migrate } from './migrate.js'
 
 export type EmbedFn = (text: string) => Promise<number[]>
@@ -50,6 +51,7 @@ interface CheckpointRow {
   agent_id: string
   run_id: string
   session_id: string
+  execution_id: string
   tool_name: string
   tool_call_id: string
   schema: unknown
@@ -88,6 +90,7 @@ function rowToCheckpoint(r: CheckpointRow): CheckpointRecord {
     agentId: r.agent_id,
     runId: r.run_id,
     sessionId: r.session_id,
+    executionId: r.execution_id,
     toolName: r.tool_name,
     toolCallId: r.tool_call_id,
     schema: r.schema,
@@ -329,15 +332,16 @@ export function store(opts: PostgresStoreOptions = {}): BreadStore {
 
     // --- Checkpoints ---------------------------------------------------------
     async saveCheckpoint(r) {
+      requireExecutionId(r.executionId, 'saveCheckpoint')
       await sql`
-        INSERT INTO bread_checkpoints (id, agent_id, run_id, session_id, tool_name, tool_call_id, schema, prompt, skill, parent, pending, principal, created_at)
-        VALUES (${r.id}, ${r.agentId}, ${r.runId}, ${r.sessionId}, ${r.toolName}, ${r.toolCallId}, ${j(
+        INSERT INTO bread_checkpoints (id, agent_id, run_id, session_id, execution_id, tool_name, tool_call_id, schema, prompt, skill, parent, pending, principal, created_at)
+        VALUES (${r.id}, ${r.agentId}, ${r.runId}, ${r.sessionId}, ${r.executionId}, ${r.toolName}, ${r.toolCallId}, ${j(
           r.schema ?? null,
         )}, ${r.prompt ?? null}, ${r.skill ?? null}, ${r.parent != null ? j(r.parent) : null}, ${
           r.pending != null ? j(r.pending) : null
         }, ${r.principal != null ? j(r.principal) : null}, ${r.createdAt})
         ON CONFLICT (id) DO UPDATE SET
-          agent_id = EXCLUDED.agent_id, run_id = EXCLUDED.run_id, session_id = EXCLUDED.session_id,
+          agent_id = EXCLUDED.agent_id, run_id = EXCLUDED.run_id, session_id = EXCLUDED.session_id, execution_id = EXCLUDED.execution_id,
           tool_name = EXCLUDED.tool_name, tool_call_id = EXCLUDED.tool_call_id,
           schema = EXCLUDED.schema, prompt = EXCLUDED.prompt, skill = EXCLUDED.skill,
           parent = EXCLUDED.parent, pending = EXCLUDED.pending, principal = EXCLUDED.principal, created_at = EXCLUDED.created_at`
@@ -353,12 +357,18 @@ export function store(opts: PostgresStoreOptions = {}): BreadStore {
       return rows[0] ? rowToCheckpoint(rows[0]) : undefined
     },
 
-    async listCheckpoints() {
-      const rows = await sql<CheckpointRow[]>`SELECT * FROM bread_checkpoints ORDER BY created_at ASC`
+    async listCheckpoints(filter) {
+      const executionId = filter && requireExecutionId(filter.executionId, 'listCheckpoints')
+      const rows =
+        executionId === undefined
+          ? await sql<CheckpointRow[]>`SELECT * FROM bread_checkpoints ORDER BY created_at ASC`
+          : await sql<CheckpointRow[]>`
+              SELECT * FROM bread_checkpoints WHERE execution_id = ${executionId} ORDER BY created_at ASC`
       return rows.map(rowToCheckpoint)
     },
 
     async suspendRun(sessionId, msgs, checkpoint) {
+      requireExecutionId(checkpoint.executionId, 'suspendRun')
       // Transactional: a crash between persisting the response messages and the
       // checkpoint must not leave a dangling tool-call with nothing to resume it.
       await sql.begin(async (tx) => {
@@ -371,15 +381,15 @@ export function store(opts: PostgresStoreOptions = {}): BreadStore {
         }
         await tx`UPDATE bread_sessions SET updated_at = ${last} WHERE id = ${sessionId}`
         await tx`
-          INSERT INTO bread_checkpoints (id, agent_id, run_id, session_id, tool_name, tool_call_id, schema, prompt, skill, parent, pending, principal, created_at)
-          VALUES (${checkpoint.id}, ${checkpoint.agentId}, ${checkpoint.runId}, ${checkpoint.sessionId},
+          INSERT INTO bread_checkpoints (id, agent_id, run_id, session_id, execution_id, tool_name, tool_call_id, schema, prompt, skill, parent, pending, principal, created_at)
+          VALUES (${checkpoint.id}, ${checkpoint.agentId}, ${checkpoint.runId}, ${checkpoint.sessionId}, ${checkpoint.executionId},
             ${checkpoint.toolName}, ${checkpoint.toolCallId}, ${j(checkpoint.schema ?? null)},
             ${checkpoint.prompt ?? null}, ${checkpoint.skill ?? null},
             ${checkpoint.parent != null ? j(checkpoint.parent) : null},
             ${checkpoint.pending != null ? j(checkpoint.pending) : null},
             ${checkpoint.principal != null ? j(checkpoint.principal) : null}, ${checkpoint.createdAt})
           ON CONFLICT (id) DO UPDATE SET
-            agent_id = EXCLUDED.agent_id, run_id = EXCLUDED.run_id, session_id = EXCLUDED.session_id,
+            agent_id = EXCLUDED.agent_id, run_id = EXCLUDED.run_id, session_id = EXCLUDED.session_id, execution_id = EXCLUDED.execution_id,
             tool_name = EXCLUDED.tool_name, tool_call_id = EXCLUDED.tool_call_id,
             schema = EXCLUDED.schema, prompt = EXCLUDED.prompt, skill = EXCLUDED.skill,
             parent = EXCLUDED.parent, pending = EXCLUDED.pending, principal = EXCLUDED.principal, created_at = EXCLUDED.created_at`

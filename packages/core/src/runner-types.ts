@@ -24,6 +24,10 @@ export type AgentRegistry = Map<string, AgentDefinition<unknown, unknown>>
 // so the bus view always equals the client-visible stream.
 export interface RunnerContext {
   store: BreadStore
+  // One id for the whole execution, minted by run()/runPipeline() and taken
+  // from the checkpoint on resume. Every nested run shares this context, so
+  // every checkpoint it writes carries the same id. Never caller input.
+  executionId: string
   agents: AgentRegistry
   tasks?: TaskRegistry | undefined
   onHumanRequired?: HumanRequiredHandler | undefined

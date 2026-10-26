@@ -190,6 +190,7 @@ export function createBread(
       const max = config.concurrency?.max ?? Number.POSITIVE_INFINITY
 
       const runCtx = {
+        executionId: uuidv7(),
         store: s,
         agents,
         tasks,
@@ -306,6 +307,7 @@ export function createBread(
       const max = config.concurrency?.max ?? Number.POSITIVE_INFINITY
 
       const runCtx = {
+        executionId: uuidv7(),
         store: s,
         agents,
         tasks,
