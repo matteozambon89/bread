@@ -78,6 +78,11 @@ first-party stores implement the full interface.
 > claim only when the row has no principal, delete only when `iss` and `sub` match. Without the
 > crumb-log methods, an authenticated caller cannot open `GET /runs/:runId/stream`, because the
 > run owner is read from that log. See [Sessions: Ownership](./sessions.md#ownership).
+>
+> Checkpoints also carry `executionId`. A custom store must save it in `saveCheckpoint` and
+> `suspendRun`, filter `listCheckpoints({ executionId })` by it, and refuse an empty id in all three
+> with `requireExecutionId` (exported from `@breadai/core`), so a missing id never matches every row.
+> See [HITL: one id for the whole execution](./hitl.md#one-id-for-the-whole-execution).
 
 ## Semantic (vector) search
 
