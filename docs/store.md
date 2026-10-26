@@ -83,6 +83,11 @@ first-party stores implement the full interface.
 > `suspendRun`, filter `listCheckpoints({ executionId })` by it, and refuse an empty id in all three
 > with `requireExecutionId` (exported from `@breadai/core`), so a missing id never matches every row.
 > See [HITL: one id for the whole execution](./hitl.md#one-id-for-the-whole-execution).
+>
+> Loop HITL adds `claimCheckpoint(id)`: return the row once and mark it claimed without deleting
+> it, so a second call gets `undefined`. `getCheckpoint` still returns a claimed row,
+> `saveCheckpoint` must not clear the flag, and only `deleteCheckpoint` removes it. See
+> [Loops](./loops.md).
 
 ## Semantic (vector) search
 

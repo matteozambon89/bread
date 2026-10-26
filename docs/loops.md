@@ -46,7 +46,25 @@ order, each step's output feeding the next — the same engine as [pipelines](./
 - **Cap reached** → `core_iterate_loop` past `maxIterations` closes the loop as `exhausted` (the last output
   is recorded as the result); no further `core_finish_loop` is needed.
 - **Run ends / errors with a loop still open** → the runner closes it as `completed` (last output) or
-  `failed`.
+  `failed`. A run that stopped for HITL inside an iteration is not this case — the loop stays `running`.
+- **Iteration suspends for HITL** → the host run stops at `human:required`. That iteration stays open:
+  no iteration row, no `loop:iteration:end`, no `loop:end`, and `core_start_loop` / `core_iterate_loop`
+  does not return a tool result. Resume continues the **same** iteration and finalizes it only after
+  the pipeline frame finishes. A pool agent that delegates, or that runs its own loop, still suspends
+  this host; the link is written on this loop's frame, not over the inner one. See [hitl.md](./hitl.md#hitl-inside-a-composition).
+  Resuming a loop worker claims its checkpoint row instead of deleting it, so a second resume of
+  the same worker gets `CHECKPOINT_NOT_FOUND`. A claim is never released back to unclaimed, since
+  that would let the same answer run its tools twice. If the resume throws, or the caller stops
+  reading its stream early (`break`, `return()`, a dropped connection), the worker row is deleted
+  and the loop is marked `failed` once no other child of the host is still pending. If the process
+  crashes mid-resume, the row stays claimed and nothing resets it: that iteration can no longer be
+  resumed and the loop stays `running` until you delete the checkpoint or its session. Failure
+  cleanup only touches checkpoints of the same execution (see
+  [hitl.md](./hitl.md#one-id-for-the-whole-execution)).
+- **Host model attempt retried after an iteration suspended** → the host's `errorHandling.retry`
+  throws that attempt away. Its suspended worker checkpoints are deleted, a loop the attempt
+  started is closed as `failed`, and the retry can call the loop tools again. A loop restored from
+  an earlier resume keeps running and its open iteration is re-run.
 
 ## Lifecycle
 
@@ -70,9 +88,15 @@ sequenceDiagram
     Runner-->>Host: loop:end (completed)
 ```
 
+A pipeline step that suspends for human input does not emit `loop:iteration:end`. The host stops
+with the iteration still open; resume emits `loop:iteration:end` only once that iteration's pipeline
+finishes.
+
 ## Crumbs
 
-Loop activity streams live on the agent run's SSE stream alongside the usual crumbs:
+Loop activity streams live on the agent run's SSE stream alongside the usual crumbs. One
+exception: after a human resume, the crumbs of the iteration's remaining steps arrive once those
+steps finish, so an `onError` retry can drop the failed attempt's crumbs instead of replaying them.
 
 | Crumb | Fields |
 |-------|--------|
@@ -94,8 +118,8 @@ Partial<LoopHooks>` uses its own methods instead, one per lifecycle point above:
 |--------|-------|-------|
 | `onInit(ctx)` | Right after `loop:start`, once. | `{ loopId, pipeline, maxIterations }` |
 | `onIterationStart(ctx)` | Right after `loop:iteration:start`, once per iteration (not re-fired on retry). | `{ loopId, iteration, input }` |
-| `onIterationEnd(ctx)` | Before `loop:iteration:end`. May return `{ output }` to replace that iteration's result — the replacement becomes `lastOutput` and what the tool caller sees; the persisted iteration row and crumb still show the raw pipeline output. | `{ loopId, iteration, output }` |
-| `onError(ctx)` | On a thrown error from the iteration's pipeline. Same `recover` / `retry` / `fail` / `void` resolution as every other scope's `onError`, bounded by `LoopConfig.errorHandling.retry` — `recover` substitutes that iteration's output and the loop continues, `retry` re-runs just that iteration. | `{ loopId, iteration, error }` |
+| `onIterationEnd(ctx)` | Before the iteration row is written and before `loop:iteration:end`; a hook reading the loop from the store does not see this iteration yet, and a hook that throws leaves no iteration row. May return `{ output }` to replace that iteration's result — the replacement becomes `lastOutput` (stored on the loop row) and what the tool caller sees; the persisted iteration row and crumb still show the raw pipeline output. A later resume reads the stored value, not the raw row. Null and an explicit `undefined` replacement are stored values, not a missing column. | `{ loopId, iteration, output }` |
+| `onError(ctx)` | On a thrown error from the iteration's pipeline, including a step that runs after a human resume. Same `recover` / `retry` / `fail` / `void` resolution as every other scope's `onError`, bounded by `LoopConfig.errorHandling.retry` — `recover` substitutes that iteration's output and the loop continues, `retry` re-runs just that iteration. After a human resume, retry re-runs only the remaining steps and does not emit another `loop:iteration:start`. | `{ loopId, iteration, error }` |
 | `onFinish(ctx)` | Alongside every `loop:end` (satisfied, cap reached, or run ends/errors with a loop still open). | `{ loopId, status, iterations }` |
 
 Unlike Agent/Task/Tool, `LoopHooks` is **not** part of the scoped → plugin → global chain — it's a

@@ -78,12 +78,34 @@ Suspension is durable through [pipelines and supervisors](./pipelines.md) too �
 restart-safe guarantee, extended by **checkpoint linkage** (`CheckpointRecord.parent`):
 
 - **Pipeline**: a step's agent suspending stops the pipeline; the checkpoint carries the remaining
-  steps (self-contained — this also covers dynamically composed pipelines, e.g.
-  [loop](./loops.md) iterations). Resuming the agent closes the suspended step and runs the rest
-  of the pipeline in the same continuation stream. A suspended `parallel` branch surfaces its
-  `human:required` only after every sibling settles (so the linkage is complete before anyone can
-  resume); each branch's resume fills its slot, and the **last** one carries the merged output into
-  the remaining steps.
+  steps (self-contained — pipelines can be composed at runtime, not only from config). Resuming the
+  agent closes the suspended step and runs the rest of the pipeline in the same continuation stream.
+  A suspended `parallel` branch surfaces its `human:required` only after every sibling settles (so
+  the linkage is complete before anyone can resume); each branch's resume fills its slot, and the
+  **last** one carries the merged output into the remaining steps.
+- **Loop iteration**: a human tool inside a [loop](./loops.md) iteration chain-suspends the host.
+  The iteration stays open — no iteration row and no `loop:iteration:end` — and the host turn
+  persists with `core_start_loop` / `core_iterate_loop` left dangling (no tool result, no tool
+  error). The host link is stored on **this loop's** pipeline frame (an ancestor of the human
+  checkpoint when the pool agent delegated, or is itself a loop host) and does not replace an
+  inner host link. The host checkpoint is not directly resumable
+  (`LOOP_CHECKPOINT_NOT_RESUMABLE`); its pending list names every live human checkpoint for that
+  iteration, and a later suspension replaces a checkpoint that is gone. Resuming one delegated
+  leaf while a sibling is still pending retargets that list at a checkpoint that still exists and
+  ends the stream on that sibling's `human:required`. If every pending child is already gone,
+  resuming the host marks the loop failed and deletes the host. Resuming a live child continues
+  the same iteration: the suspended step closes, remaining steps run, and only when that frame
+  finishes unsuspended is the iteration row written and `loop:iteration:end` emitted. The worker
+  checkpoint stays until a replacement checkpoint is saved, or that row commits and no host
+  checkpoint still names the worker. An inner iteration end does not drop a worker an outer host
+  still has pending. That output is
+  then the host's tool result and the host run continues. A later suspension in the same iteration
+  still does not finalize the iteration or continue the host. A pipeline step that finishes without
+  `human:required` still finalizes immediately. One loop suspension is not an agent error: the
+  client still sees `human:required`, and the loop stays `running`. A loop suspension in the same
+  turn as a host human tool, an ask-gated tool, another loop suspension, or a host delegation is
+  `MIXED_SUSPENSION_UNSUPPORTED`: the turn fails, the loop is marked failed, and the worker
+  checkpoint is deleted instead of yielding `human:required`.
 - **Supervisor delegation**: a delegated run suspending chain-suspends the supervisor — its turn
   persists with the `core_delegate` call left dangling, and a supervisor checkpoint lists the
   pending delegation(s). Resuming the **child** cascades: the child completes, its output lands as
@@ -101,7 +123,7 @@ simultaneously from different processes may race their merge bookkeeping.
 ### One id for the whole execution
 
 Every checkpoint carries an `executionId`. `run()` and `runPipeline()` mint it once, and every
-nested pipeline step, parallel branch and supervisor delegation shares it. A resume takes it from the
+nested pipeline step, parallel branch, loop iteration and supervisor delegation shares it. A resume takes it from the
 stored checkpoint, so the continuation and any later suspensions keep the same id. It is never read
 from the request, API, CLI or tool input.
 
