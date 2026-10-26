@@ -1,19 +1,21 @@
 import postgres from 'postgres'
 import { v7 as uuidv7 } from 'uuid'
-import type {
-  BreadStore,
-  CheckpointRecord,
-  CleanupOptions,
-  CrumbLogEntry,
-  DocumentRecord,
-  KnowledgeNode,
-  LoopIteration,
-  LoopRecord,
-  LoopStatus,
-  Session,
-  SessionMessage,
-  TaskRunRecord,
-  TaskRunStatus,
+import {
+  decodeLastOutput,
+  type BreadStore,
+  type CheckpointRecord,
+  type CleanupOptions,
+  type CrumbLogEntry,
+  type DocumentRecord,
+  type KnowledgeNode,
+  type LoopIteration,
+  type LoopRecord,
+  type LoopStatus,
+  type Session,
+  type SessionMessage,
+  type TaskRunRecord,
+  type TaskRunStatus,
+  encodeLastOutput,
 } from '@breadai/core'
 import { requireExecutionId } from '@breadai/core'
 import { migrate } from './migrate.js'
@@ -114,6 +116,7 @@ interface LoopRow {
   status: string
   iterations: number
   result: unknown
+  last_output: unknown
   started_at: string
   completed_at: string | null
 }
@@ -140,9 +143,15 @@ function rowToLoop(r: LoopRow): LoopRecord {
     status: r.status as LoopStatus,
     iterations: Number(r.iterations),
     ...(r.result != null ? { result: r.result } : {}),
+    ...readLastOutput(r.last_output),
     startedAt: Number(r.started_at),
     ...(r.completed_at != null ? { completedAt: Number(r.completed_at) } : {}),
   }
+}
+
+function readLastOutput(raw: unknown): { lastOutput: unknown } | Record<string, never> {
+  const decoded = decodeLastOutput(raw)
+  return decoded.present ? { lastOutput: decoded.value } : {}
 }
 
 function rowToLoopIteration(r: LoopIterationRow): LoopIteration {
@@ -352,8 +361,16 @@ export function store(opts: PostgresStoreOptions = {}): BreadStore {
       return rows[0] ? rowToCheckpoint(rows[0]) : undefined
     },
 
-    async deleteCheckpoint(id) {
-      const rows = await sql<CheckpointRow[]>`DELETE FROM bread_checkpoints WHERE id = ${id} RETURNING *`
+    async claimCheckpoint(id) {
+      const rows = await sql<CheckpointRow[]>`
+        UPDATE bread_checkpoints SET claimed = 1 WHERE id = ${id} AND claimed = 0 RETURNING *`
+      return rows[0] ? rowToCheckpoint(rows[0]) : undefined
+    },
+
+    async deleteCheckpoint(id, opts) {
+      const rows = opts?.unclaimedOnly
+        ? await sql<CheckpointRow[]>`DELETE FROM bread_checkpoints WHERE id = ${id} AND claimed = 0 RETURNING *`
+        : await sql<CheckpointRow[]>`DELETE FROM bread_checkpoints WHERE id = ${id} RETURNING *`
       return rows[0] ? rowToCheckpoint(rows[0]) : undefined
     },
 
@@ -414,6 +431,8 @@ export function store(opts: PostgresStoreOptions = {}): BreadStore {
         await sql`UPDATE bread_loops SET iterations = ${patch.iterations} WHERE id = ${id}`
       if (patch.result !== undefined)
         await sql`UPDATE bread_loops SET result = ${j(patch.result)} WHERE id = ${id}`
+      if (Object.prototype.hasOwnProperty.call(patch, 'lastOutput'))
+        await sql`UPDATE bread_loops SET last_output = ${j(encodeLastOutput(patch.lastOutput))} WHERE id = ${id}`
       if (patch.completedAt !== undefined)
         await sql`UPDATE bread_loops SET completed_at = ${patch.completedAt} WHERE id = ${id}`
     },

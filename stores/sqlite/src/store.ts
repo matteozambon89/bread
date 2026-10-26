@@ -1,20 +1,23 @@
 import { Database } from 'bun:sqlite'
 import { v7 as uuidv7 } from 'uuid'
-import { principalVisible, requireExecutionId } from '@breadai/core'
-import type {
-  BreadStore,
-  CheckpointRecord,
-  CleanupOptions,
-  CrumbLogEntry,
-  DocumentRecord,
-  KnowledgeNode,
-  LoopIteration,
-  LoopRecord,
-  LoopStatus,
-  Session,
-  SessionMessage,
-  TaskRunRecord,
-  TaskRunStatus,
+import {
+  decodeLastOutput,
+  principalVisible,
+  requireExecutionId,
+  type BreadStore,
+  type CheckpointRecord,
+  type CleanupOptions,
+  type CrumbLogEntry,
+  type DocumentRecord,
+  type KnowledgeNode,
+  type LoopIteration,
+  type LoopRecord,
+  type LoopStatus,
+  type Session,
+  type SessionMessage,
+  type TaskRunRecord,
+  type TaskRunStatus,
+  encodeLastOutput,
 } from '@breadai/core'
 
 export interface SqliteStoreOptions {
@@ -55,6 +58,7 @@ CREATE TABLE IF NOT EXISTS checkpoints (
   parent TEXT,
   pending TEXT,
   principal TEXT,
+  claimed INTEGER NOT NULL DEFAULT 0,
   created_at INTEGER NOT NULL
 );
 
@@ -69,6 +73,7 @@ CREATE TABLE IF NOT EXISTS loops (
   status TEXT NOT NULL,
   iterations INTEGER NOT NULL DEFAULT 0,
   result TEXT,
+  last_output TEXT,
   started_at INTEGER NOT NULL,
   completed_at INTEGER
 );
@@ -230,6 +235,7 @@ interface LoopRow {
   status: string
   iterations: number
   result: string | null
+  last_output: string | null
   started_at: number
   completed_at: number | null
 }
@@ -256,9 +262,19 @@ function rowToLoop(r: LoopRow): LoopRecord {
     status: r.status as LoopStatus,
     iterations: r.iterations,
     ...(r.result != null ? { result: JSON.parse(r.result) as unknown } : {}),
+    ...readLastOutput(r.last_output),
     startedAt: r.started_at,
     ...(r.completed_at != null ? { completedAt: r.completed_at } : {}),
   }
+}
+
+function readLastOutput(raw: string | null): { lastOutput: unknown } | Record<string, never> {
+  if (raw == null) return {}
+  const parsed = JSON.parse(raw) as unknown
+  // Legacy rows stored JSON null as the text "null", which is not SQL NULL.
+  if (parsed === null) return { lastOutput: null }
+  const decoded = decodeLastOutput(parsed)
+  return decoded.present ? { lastOutput: decoded.value } : {}
 }
 
 function rowToLoopIteration(r: LoopIterationRow): LoopIteration {
@@ -340,7 +356,10 @@ export function store(opts: SqliteStoreOptions = {}): BreadStore {
   db.exec(SCHEMA)
   // Additive column for tables that predate it — SQLite has no ADD COLUMN IF
   // NOT EXISTS, so guard with a duplicate-column catch instead.
-  for (const column of ['skill TEXT', 'parent TEXT', 'pending TEXT', 'principal TEXT', "execution_id TEXT NOT NULL DEFAULT ''"]) {
+  for (const column of [
+    'skill TEXT', 'parent TEXT', 'pending TEXT', 'principal TEXT', 'claimed INTEGER NOT NULL DEFAULT 0',
+    "execution_id TEXT NOT NULL DEFAULT ''",
+  ]) {
     try {
       db.exec(`ALTER TABLE checkpoints ADD COLUMN ${column}`)
     } catch (err) {
@@ -350,6 +369,11 @@ export function store(opts: SqliteStoreOptions = {}): BreadStore {
   db.exec('CREATE INDEX IF NOT EXISTS idx_checkpoints_execution ON checkpoints(execution_id)')
   try {
     db.exec('ALTER TABLE sessions ADD COLUMN principal TEXT')
+  } catch (err) {
+    if (!(err instanceof Error) || !err.message.includes('duplicate column name')) throw err
+  }
+  try {
+    db.exec('ALTER TABLE loops ADD COLUMN last_output TEXT')
   } catch (err) {
     if (!(err instanceof Error) || !err.message.includes('duplicate column name')) throw err
   }
@@ -461,9 +485,15 @@ export function store(opts: SqliteStoreOptions = {}): BreadStore {
     async saveCheckpoint(record) {
       requireExecutionId(record.executionId, 'saveCheckpoint')
       db.prepare(
-        `INSERT OR REPLACE INTO checkpoints
+        `INSERT INTO checkpoints
          (id, agent_id, run_id, session_id, execution_id, tool_name, tool_call_id, schema, prompt, skill, parent, pending, principal, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT(id) DO UPDATE SET
+           agent_id = excluded.agent_id, run_id = excluded.run_id, session_id = excluded.session_id, execution_id = excluded.execution_id,
+           tool_name = excluded.tool_name, tool_call_id = excluded.tool_call_id,
+           schema = excluded.schema, prompt = excluded.prompt, skill = excluded.skill,
+           parent = excluded.parent, pending = excluded.pending, principal = excluded.principal,
+           created_at = excluded.created_at`,
       ).run(
         record.id,
         record.agentId,
@@ -489,8 +519,16 @@ export function store(opts: SqliteStoreOptions = {}): BreadStore {
       return row ? rowToCheckpoint(row) : undefined
     },
 
-    async deleteCheckpoint(id) {
-      const row = db.prepare('DELETE FROM checkpoints WHERE id = ? RETURNING *').get(id) as
+    async claimCheckpoint(id) {
+      const row = db
+        .prepare('UPDATE checkpoints SET claimed = 1 WHERE id = ? AND claimed = 0 RETURNING *')
+        .get(id) as CheckpointRow | undefined
+      return row ? rowToCheckpoint(row) : undefined
+    },
+
+    async deleteCheckpoint(id, opts) {
+      const where = opts?.unclaimedOnly ? 'id = ? AND claimed = 0' : 'id = ?'
+      const row = db.prepare(`DELETE FROM checkpoints WHERE ${where} RETURNING *`).get(id) as
         | CheckpointRow
         | undefined
       return row ? rowToCheckpoint(row) : undefined
@@ -521,9 +559,15 @@ export function store(opts: SqliteStoreOptions = {}): BreadStore {
         }
         db.prepare('UPDATE sessions SET updated_at = ? WHERE id = ?').run(last, sessionId)
         db.prepare(
-          `INSERT OR REPLACE INTO checkpoints
+          `INSERT INTO checkpoints
            (id, agent_id, run_id, session_id, execution_id, tool_name, tool_call_id, schema, prompt, skill, parent, pending, principal, created_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+           ON CONFLICT(id) DO UPDATE SET
+             agent_id = excluded.agent_id, run_id = excluded.run_id, session_id = excluded.session_id, execution_id = excluded.execution_id,
+             tool_name = excluded.tool_name, tool_call_id = excluded.tool_call_id,
+             schema = excluded.schema, prompt = excluded.prompt, skill = excluded.skill,
+             parent = excluded.parent, pending = excluded.pending, principal = excluded.principal,
+             created_at = excluded.created_at`,
         ).run(
           checkpoint.id,
           checkpoint.agentId,
@@ -573,6 +617,11 @@ export function store(opts: SqliteStoreOptions = {}): BreadStore {
         db.prepare('UPDATE loops SET iterations = ? WHERE id = ?').run(patch.iterations, id)
       if (patch.result !== undefined)
         db.prepare('UPDATE loops SET result = ? WHERE id = ?').run(JSON.stringify(patch.result), id)
+      if (Object.prototype.hasOwnProperty.call(patch, 'lastOutput'))
+        db.prepare('UPDATE loops SET last_output = ? WHERE id = ?').run(
+          JSON.stringify(encodeLastOutput(patch.lastOutput)),
+          id,
+        )
       if (patch.completedAt !== undefined)
         db.prepare('UPDATE loops SET completed_at = ? WHERE id = ?').run(patch.completedAt, id)
     },

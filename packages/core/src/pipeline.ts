@@ -1,9 +1,11 @@
 import { v7 as uuidv7 } from 'uuid'
 import { decisionLabel, resolveDecisionClient, toHostQuestion } from './decision.js'
-import type { BreadCrumb, PipelineCheckpointParent, PipelineStep, Principal, RunOptions } from './types.js'
+import { runWithOnErrorRetry } from './hooks.js'
+import type { BreadCrumb, LoopHostLink, PipelineCheckpointParent, PipelineStep, Principal, RunOptions, SupervisorCheckpointParent } from './types.js'
 import { BreadError } from './types.js'
 import { runAgent } from './runner.js'
 import type { RunnerContext } from './runner.js'
+import type { CheckpointRecord } from './storage/store.js'
 
 export interface PipelineRunOpts {
   pipelineId: string
@@ -28,6 +30,26 @@ export interface PipelineRunOpts {
   // same pipeline never share a step id and a step id cannot be guessed from
   // the pipeline name. Nested arms and resume pass the original one on.
   pipelineRunId?: string
+  // Copied onto every frame this run creates. Set while continuing a loop
+  // iteration whose host is chain-suspended, so a later suspension keeps the link.
+  hostLoop?: LoopHostLink
+}
+
+// Returned when a loop iteration's outermost frame finishes unsuspended.
+// The caller writes the iteration row and continues the host.
+export interface FinishedLoopFrame {
+  hostLoop: LoopHostLink
+  output: unknown
+  // Present when the finished frame also carries a delegation link. The host
+  // run is continued first; the supervisor runs only if the host has no parent.
+  supervisor?: SupervisorCheckpointParent
+}
+
+// The pipeline frame finished and its only continuation is a delegation that
+// was stored beside the frame instead of replacing it.
+export interface FinishedSupervisorFrame {
+  output: unknown
+  supervisor: SupervisorCheckpointParent
 }
 
 interface PipelineResult {
@@ -71,6 +93,7 @@ export async function* runPipeline(opts: PipelineRunOpts): AsyncGenerator<BreadC
       remainingSteps: steps.slice(i + 1),
       ...(lastDecision !== undefined ? { decisionLabel: lastDecision } : {}),
       ...(opts.outer ? { outer: opts.outer } : {}),
+      ...(opts.hostLoop ? { hostLoop: opts.hostLoop } : {}),
     })
 
     let output: unknown
@@ -92,6 +115,7 @@ export async function* runPipeline(opts: PipelineRunOpts): AsyncGenerator<BreadC
         remainingSteps: steps.slice(i + 1),
         ...(lastDecision !== undefined ? { decisionLabel: lastDecision } : {}),
         ...(opts.outer ? { outer: opts.outer } : {}),
+        ...(opts.hostLoop ? { hostLoop: opts.hostLoop } : {}),
         ...(opts.principal ? { principal: opts.principal } : {}),
       })
       output = res.output
@@ -165,6 +189,7 @@ export async function* runPipeline(opts: PipelineRunOpts): AsyncGenerator<BreadC
           remainingSteps: steps.slice(i + 1),
           ...(lastDecision !== undefined ? { decisionLabel: lastDecision } : {}),
           ...(opts.outer ? { outer: opts.outer } : {}),
+          ...(opts.hostLoop ? { hostLoop: opts.hostLoop } : {}),
         }
         const driven = yield* runPipeline({
           pipelineId: `${pipelineId}:${index}:branch`,
@@ -173,6 +198,7 @@ export async function* runPipeline(opts: PipelineRunOpts): AsyncGenerator<BreadC
           input: current,
           ctx,
           ...(lastDecision !== undefined ? { decisionLabel: lastDecision } : {}),
+          ...(opts.hostLoop ? { hostLoop: opts.hostLoop } : {}),
           ...(opts.principal ? { principal: opts.principal } : {}),
           outer: armOuter,
         })
@@ -277,15 +303,38 @@ function pipelineResult(
 
 // The parallel slot for this step sits on its own frame. Nested arms push
 // frames in front of it, so the checkpoint parent is not always that frame.
-function findParallelFrame(
-  parent: PipelineCheckpointParent,
+// A loop worker's parent is the iteration frame; the parallel frame is on the
+// loop host. Walk outer first, then that host, and return the checkpoint that
+// owns the frame so the caller saves that row.
+async function findParallelFrame(
+  ctx: RunnerContext,
+  checkpoint: CheckpointRecord,
   pipelineId: string,
   stepIndex: number,
-): PipelineCheckpointParent | undefined {
-  let frame: PipelineCheckpointParent | undefined = parent
+  seen = new Set<string>(),
+): Promise<{ checkpoint: CheckpointRecord; frame: PipelineCheckpointParent } | undefined> {
+  if (seen.has(checkpoint.id)) return undefined
+  seen.add(checkpoint.id)
+  if (checkpoint.parent?.kind !== 'pipeline') return undefined
+  let frame: PipelineCheckpointParent | undefined = checkpoint.parent
   while (frame) {
-    if (frame.parallel && frame.pipelineId === pipelineId && frame.stepIndex === stepIndex) return frame
+    if (frame.parallel && frame.pipelineId === pipelineId && frame.stepIndex === stepIndex) {
+      return { checkpoint, frame }
+    }
     frame = frame.outer
+  }
+  const links: LoopHostLink[] = []
+  frame = checkpoint.parent
+  while (frame) {
+    if (frame.hostLoop) links.push(frame.hostLoop)
+    frame = frame.outer
+  }
+  for (const link of links) {
+    if (seen.has(link.checkpointId)) continue
+    const host = await ctx.store.getCheckpoint(link.checkpointId)
+    if (!host) continue
+    const found = await findParallelFrame(ctx, host, pipelineId, stepIndex, seen)
+    if (found) return found
   }
   return undefined
 }
@@ -344,6 +393,7 @@ async function* runParallelSteps(
     decisionLabel?: string
     outer?: PipelineCheckpointParent
     principal?: Principal
+    hostLoop?: LoopHostLink
   },
 ): AsyncGenerator<BreadCrumb, ParallelResult> {
   type QueueItem = BreadCrumb | null
@@ -392,6 +442,7 @@ async function* runParallelSteps(
       },
       ...(outer.decisionLabel !== undefined ? { decisionLabel: outer.decisionLabel } : {}),
       ...(outer.outer ? { outer: outer.outer } : {}),
+      ...(outer.hostLoop ? { hostLoop: outer.hostLoop } : {}),
     }
     try {
       // for-await drops the return value. That value is the slot's label, and
@@ -403,6 +454,7 @@ async function* runParallelSteps(
         input,
         ctx,
         ...(outer.decisionLabel !== undefined ? { decisionLabel: outer.decisionLabel } : {}),
+        ...(outer.hostLoop ? { hostLoop: outer.hostLoop } : {}),
         ...(outer.principal ? { principal: outer.principal } : {}),
         outer: parallelFrame,
       })
@@ -467,13 +519,13 @@ async function* runParallelSteps(
     // durable do the held human:required crumbs surface to the client.
     for (const checkpointId of suspendedCheckpoints) {
       const cp = await ctx.store.getCheckpoint(checkpointId)
-      if (cp?.parent?.kind !== 'pipeline') continue
-      const frame = findParallelFrame(cp.parent, pipelineId, stepIndex)
-      if (!frame?.parallel) continue
-      frame.parallel.settledOutputs = outputs.slice()
-      frame.parallel.pendingCheckpointIds = suspendedCheckpoints.slice()
-      writeDecisionLabel(frame, joined)
-      await ctx.store.saveCheckpoint(cp)
+      if (!cp) continue
+      const hit = await findParallelFrame(ctx, cp, pipelineId, stepIndex)
+      if (!hit?.frame.parallel) continue
+      hit.frame.parallel.settledOutputs = outputs.slice()
+      hit.frame.parallel.pendingCheckpointIds = suspendedCheckpoints.slice()
+      writeDecisionLabel(hit.frame, joined)
+      await ctx.store.saveCheckpoint(hit.checkpoint)
     }
     for (const crumb of heldHumanRequired) yield crumb
     return { suspended: true }
@@ -497,7 +549,7 @@ export async function* continuePipelineParent(
   ctx: RunnerContext,
   slotLabel?: string,
   principal?: Principal,
-): AsyncGenerator<BreadCrumb> {
+): AsyncGenerator<BreadCrumb, FinishedLoopFrame | FinishedSupervisorFrame | undefined> {
   if (slotLabel !== undefined) adoptSlotLabel(parent, slotLabel)
   let stepOutput: unknown = resumedOutput
   let carriedLabel = parent.decisionLabel
@@ -564,18 +616,18 @@ export async function* continuePipelineParent(
       // into a store-side atomic update if concurrent resumes ever matter.
       for (const id of stillPending) {
         const cp = await ctx.store.getCheckpoint(id)
-        if (cp?.parent?.kind !== 'pipeline') continue
-        const frame = findParallelFrame(cp.parent, parent.pipelineId, parent.stepIndex)
-        if (!frame?.parallel) continue
-        frame.parallel.settledOutputs[branchIndex] = stepOutput
+        if (!cp) continue
+        const hit = await findParallelFrame(ctx, cp, parent.pipelineId, parent.stepIndex)
+        if (!hit?.frame.parallel) continue
+        hit.frame.parallel.settledOutputs[branchIndex] = stepOutput
         writeDecisionLabel(
-          frame,
-          joinSlotLabel(frame.parallel.incomingLabel, frame.decisionLabel, parent.decisionLabel, {
-            pipelineId: frame.pipelineId,
-            stepIndex: frame.stepIndex,
+          hit.frame,
+          joinSlotLabel(hit.frame.parallel.incomingLabel, hit.frame.decisionLabel, parent.decisionLabel, {
+            pipelineId: hit.frame.pipelineId,
+            stepIndex: hit.frame.stepIndex,
           }),
         )
-        await ctx.store.saveCheckpoint(cp)
+        await ctx.store.saveCheckpoint(hit.checkpoint)
       }
       return // pipeline stays suspended on the remaining branches
     }
@@ -594,17 +646,120 @@ export async function* continuePipelineParent(
   }
   yield endCrumb
 
-  const driven = yield* runPipeline({
-    pipelineId: parent.pipelineId,
-    pipelineRunId: parent.pipelineRunId,
-    steps: parent.remainingSteps,
-    input: stepOutput,
-    ctx,
-    baseIndex: parent.stepIndex + 1,
-    ...(carriedLabel !== undefined ? { decisionLabel: carriedLabel } : {}),
-    ...(parent.outer ? { outer: parent.outer } : {}),
-    ...(principal ? { principal } : {}),
-  })
-  if (driven.suspended || !parent.outer) return
-  yield* continuePipelineParent(parent.outer, driven.output, ctx, driven.decisionLabel, principal)
+  const hostLoop = hostLoopOf(parent)
+  const driven = hostLoop
+    ? yield* runRemainingWithLoopError(parent, stepOutput, ctx, carriedLabel, principal, hostLoop)
+    : yield* runPipeline({
+        pipelineId: parent.pipelineId,
+        pipelineRunId: parent.pipelineRunId,
+        steps: parent.remainingSteps,
+        input: stepOutput,
+        ctx,
+        baseIndex: parent.stepIndex + 1,
+        ...(carriedLabel !== undefined ? { decisionLabel: carriedLabel } : {}),
+        ...(parent.outer ? { outer: parent.outer } : {}),
+        ...(principal ? { principal } : {}),
+      })
+  // A later step suspended in this same iteration: its new checkpoint carries
+  // hostLoop. Do not write the iteration row or continue the host.
+  if (driven.suspended) return
+  if (parent.outer) {
+    return yield* continuePipelineParent(parent.outer, driven.output, ctx, driven.decisionLabel, principal)
+  }
+  if (parent.hostLoop) {
+    return {
+      hostLoop: parent.hostLoop,
+      output: driven.output,
+      ...(parent.supervisor ? { supervisor: parent.supervisor } : {}),
+    }
+  }
+  if (parent.supervisor) return { output: driven.output, supervisor: parent.supervisor }
+}
+
+type RemainingBoxed =
+  | { kind: 'done'; crumbs: BreadCrumb[]; result: PipelineResult }
+  | { kind: 'recover'; output: unknown }
+
+// Remaining steps of a resumed loop iteration. Recover substitutes the
+// iteration output. Retry re-runs only these steps. LOOP_SUSPENDED and a
+// human suspend skip onError and leave the iteration open.
+async function* runRemainingWithLoopError(
+  parent: PipelineCheckpointParent,
+  stepOutput: unknown,
+  ctx: RunnerContext,
+  carriedLabel: string | undefined,
+  principal: Principal | undefined,
+  hostLoop: LoopHostLink,
+): AsyncGenerator<BreadCrumb, PipelineResult> {
+  const detail = await ctx.store.getLoop(hostLoop.loopId)
+  const loopCfg = detail ? ctx.agents.get(detail.loop.agentId)?.config.loop : undefined
+  const hooks = loopCfg?.hooks ?? {}
+  const released: BreadCrumb[] = []
+  let outcome: RemainingBoxed
+  try {
+    outcome = await runWithOnErrorRetry<RemainingBoxed>(
+      async () => {
+        const crumbs: BreadCrumb[] = []
+        const gen = runPipeline({
+          pipelineId: parent.pipelineId,
+          pipelineRunId: parent.pipelineRunId,
+          steps: parent.remainingSteps,
+          input: stepOutput,
+          ctx,
+          baseIndex: parent.stepIndex + 1,
+          ...(carriedLabel !== undefined ? { decisionLabel: carriedLabel } : {}),
+          ...(parent.outer ? { outer: parent.outer } : {}),
+          hostLoop,
+          ...(principal ? { principal } : {}),
+        })
+        try {
+          let next = await gen.next()
+          while (!next.done) {
+            crumbs.push(next.value)
+            next = await gen.next()
+          }
+          return { kind: 'done', crumbs, result: next.value }
+        } catch (err) {
+          if (err instanceof BreadError && err.code === 'LOOP_SUSPENDED') released.push(...crumbs)
+          throw err
+        }
+      },
+      async (error) => {
+        const resolution = await Promise.resolve(
+          hooks.onError?.({ loopId: hostLoop.loopId, iteration: hostLoop.iteration, error }),
+        )
+        if (resolution?.action === 'recover') {
+          return { action: 'recover', output: { kind: 'recover', output: resolution.output } }
+        }
+        if (resolution?.action === 'fail' || resolution?.action === 'retry') return resolution
+        return undefined
+      },
+      (err) =>
+        err instanceof BreadError
+          ? err
+          : new BreadError(
+              err instanceof Error ? err.message : String(err),
+              'LOOP_ERROR',
+              { loopId: hostLoop.loopId },
+              err,
+            ),
+      loopCfg?.errorHandling?.retry,
+    )
+  } catch (err) {
+    for (const crumb of released) yield crumb
+    throw err
+  }
+  if (outcome.kind === 'recover') return { output: outcome.output, suspended: false }
+  for (const crumb of outcome.crumbs) yield crumb
+  return outcome.result
+}
+
+function hostLoopOf(parent: PipelineCheckpointParent): LoopHostLink | undefined {
+  let frame: PipelineCheckpointParent | undefined = parent
+  let link: LoopHostLink | undefined
+  while (frame) {
+    if (frame.hostLoop) link = frame.hostLoop
+    frame = frame.outer
+  }
+  return link
 }

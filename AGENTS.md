@@ -181,11 +181,15 @@ The CLI loader (`packages/server/src/loader.ts`) attaches private fields to each
   `human:required`.
 - **Composition HITL linkage** — `CheckpointRecord.parent` (`pipeline` | `supervisor` kinds) makes
   suspension durable through compositions: a pipeline checkpoint persists its remaining steps
-  (self-contained — covers loop-composed pipelines), and a delegated run's suspension chain-suspends
-  the supervisor (checkpoint `pending` lists the dangling `core_delegate` calls; the SDK's synthetic
-  `DELEGATION_SUSPENDED` tool error is stripped from persisted rows, and that error code bypasses
-  onError/retry — it's a suspension, not a failure). `resumeRun`'s `continueParent` cascade resumes
-  the whole chain; supervisor checkpoints themselves are not directly resumable.
+  (self-contained — covers dynamically composed pipelines), and a delegated run's suspension
+  chain-suspends the supervisor (checkpoint `pending` lists the dangling `core_delegate` calls; the
+  SDK's synthetic `DELEGATION_SUSPENDED` tool error is stripped from persisted rows, and that error
+  code bypasses onError/retry — it's a suspension, not a failure). A loop iteration's suspension
+  chain-suspends the host the same way (`LOOP_SUSPENDED`): the worker checkpoint stays a pipeline
+  parent (`pipelineId` is the loop id) with `hostLoop` recording the dangling `core_start_loop` /
+  `core_iterate_loop` call, the iteration stays open until that frame finishes unsuspended, and the
+  host checkpoint is not directly resumable. `resumeRun`'s `continueParent` cascade resumes the
+  whole chain; supervisor and loop-host checkpoints themselves are not directly resumable.
 - **Tasks (one-shot)** — a `defineTask` (`{ name, description, model, instructions, schema,
   outputSchema, hooks }`) compiles to an LLM-callable tool via `createTaskTool` (`packages/core/src/task.ts`):
   `pre(args) → generateObject → post(output)`. The runner resolves each id in `cfg.tasks` from

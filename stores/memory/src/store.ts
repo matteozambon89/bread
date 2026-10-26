@@ -45,6 +45,7 @@ export function store(): BreadStore {
   const sessions = new Map<string, Session>()
   const messages = new Map<string, SessionMessage[]>()
   const checkpoints = new Map<string, CheckpointRecord>()
+  const claimedCheckpointIds = new Set<string>()
   const loops = new Map<string, LoopRecord>()
   const loopIterations = new Map<string, LoopIteration[]>()
   const taskRuns = new Map<string, TaskRunRecord>()
@@ -65,7 +66,9 @@ export function store(): BreadStore {
   // Mirrors the SQL stores' session_id ON DELETE CASCADE for checkpoints.
   function cascadeCheckpoints(sessionId: string): void {
     for (const [id, cp] of checkpoints) {
-      if (cp.sessionId === sessionId) checkpoints.delete(id)
+      if (cp.sessionId !== sessionId) continue
+      checkpoints.delete(id)
+      claimedCheckpointIds.delete(id)
     }
   }
 
@@ -174,9 +177,18 @@ export function store(): BreadStore {
       return checkpoints.get(id)
     },
 
-    async deleteCheckpoint(id) {
+    async claimCheckpoint(id) {
       const record = checkpoints.get(id)
+      if (!record || claimedCheckpointIds.has(id)) return undefined
+      claimedCheckpointIds.add(id)
+      return record
+    },
+
+    async deleteCheckpoint(id, opts) {
+      const record = checkpoints.get(id)
+      if (opts?.unclaimedOnly && claimedCheckpointIds.has(id)) return undefined
       checkpoints.delete(id)
+      claimedCheckpointIds.delete(id)
       return record
     },
 

@@ -186,10 +186,11 @@ export async function executeToolWithHooks(
   } catch (err) {
     // Unresolved by onError: emit tool:error (the AI SDK's own `tool-error`
     // stream part isn't otherwise surfaced — see ToolErrorCrumb) and rethrow.
-    // A chain-suspension escaping through core_delegate is not an error — no
-    // crumb; the rethrow carries it to the runner's suspend path.
+    // A chain-suspension escaping through core_delegate / core_start_loop /
+    // core_iterate_loop is not an error — no crumb; the rethrow carries it to
+    // the runner's suspend path.
     const finalErr = toToolError(err, leaf)
-    if (finalErr.code !== 'DELEGATION_SUSPENDED') {
+    if (finalErr.code !== 'DELEGATION_SUSPENDED' && finalErr.code !== 'LOOP_SUSPENDED') {
       const errorCrumb: ToolErrorCrumb = {
         type: 'tool:error',
         ...crumbBase(agentId, runId, sessionId),

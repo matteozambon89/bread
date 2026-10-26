@@ -46,11 +46,12 @@ export interface CheckpointRecord {
   // pipeline or a supervisor delegation. Resume runs the rest of the
   // composition after the sub-run completes. See CheckpointParent.
   parent?: CheckpointParent | undefined
-  // Set only on a supervisor checkpoint chain-suspended by delegations: the
-  // delegate tool calls whose child runs are suspended. Entries resolve (and
-  // are removed) as each child's resume completes; the last one continues the
-  // supervisor run. Such a checkpoint is not directly resumable — resume the
-  // child checkpoints instead.
+  // Set on a checkpoint that is waiting on a suspended child and is not
+  // directly resumable. A supervisor lists dangling core_delegate calls
+  // (entries resolve as each child completes; the last one continues the
+  // run). A loop host lists the live human checkpoint for its open iteration
+  // — resume that checkpoint, not the host. A later suspension in the same
+  // iteration updates the child id; the previous worker checkpoint is gone.
   pending?: PendingDelegation[] | undefined
   createdAt: number
 }
@@ -78,6 +79,12 @@ export interface LoopRecord {
   status: LoopStatus
   iterations: number // count of completed iterations
   result?: unknown
+  // Post-hook output of the latest finished iteration. The iteration row stays
+  // raw; a rebuilt runtime reads this so core_iterate_loop / core_finish_loop
+  // match the tool result the model already saw. Absent only when no finished
+  // iteration has written it. Present null and present undefined are hook
+  // replacements, not a missing column.
+  lastOutput?: unknown
   startedAt: number
   completedAt?: number | undefined
 }
@@ -178,10 +185,15 @@ export interface BreadStore {
   // --- Checkpoints (HITL) ----------------------------------------------------
   saveCheckpoint(record: CheckpointRecord): Promise<void>
   getCheckpoint(id: string): Promise<CheckpointRecord | undefined>
+  // Claims a loop-worker row without deleting it. Returns the row once; a
+  // second caller gets undefined. getCheckpoint still returns a claimed row,
+  // and saveCheckpoint must not clear the flag. deleteCheckpoint releases it.
+  claimCheckpoint(id: string): Promise<CheckpointRecord | undefined>
   // Atomically deletes and returns the record, or undefined if it was already
-  // gone — the claim primitive resume() uses so a concurrent second resume of
-  // the same checkpoint loses the race instead of double-acting.
-  deleteCheckpoint(id: string): Promise<CheckpointRecord | undefined>
+  // gone — the claim primitive resume() uses for every checkpoint that is not
+  // a loop worker, so a concurrent second resume loses the race. With
+  // unclaimedOnly a claimed row stays and the call returns undefined.
+  deleteCheckpoint(id: string, opts?: { unclaimedOnly?: boolean }): Promise<CheckpointRecord | undefined>
   // executionId narrows to one execution's rows: the scope runner cleanup uses.
   listCheckpoints(filter?: { executionId?: string }): Promise<CheckpointRecord[]>
   // Persists a suspending run's response messages and its checkpoint as one
@@ -197,7 +209,7 @@ export interface BreadStore {
   createLoop(record: LoopRecord): Promise<void>
   updateLoop(
     id: string,
-    patch: Partial<Pick<LoopRecord, 'status' | 'iterations' | 'result' | 'completedAt'>>,
+    patch: Partial<Pick<LoopRecord, 'status' | 'iterations' | 'result' | 'lastOutput' | 'completedAt'>>,
   ): Promise<void>
   addLoopIteration(iteration: LoopIteration): Promise<void>
   getLoop(id: string): Promise<{ loop: LoopRecord; iterations: LoopIteration[] } | undefined>
