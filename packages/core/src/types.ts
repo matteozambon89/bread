@@ -787,6 +787,7 @@ export type PipelineStep =
   | { type: 'parallel'; steps: PipelineStep[] }
   | { type: 'map'; agentId: string }
   | { type: 'decision'; provider: string; model: string; question: DecisionQuestion }
+  | { type: 'video'; provider: string; model: string }
   | {
       type: 'branch'
       // Dot path into the current value. Omit to use the latest decision label.
@@ -919,11 +920,10 @@ export interface BreadConfig {
   // interactive fallback. Optional here only so a partial config can be built
   // up before `bread.start()`/`createServer()` validate it.
   store?: BreadStore
-  // Optional binary-content storage (e.g. @breadai/store-s3), consumed by
-  // features that need to persist file bytes — currently A2A's inline
-  // FilePart handling. Unlike `store`, unset is not an error; a feature that
-  // needs it and finds it missing fails with its own clear, feature-specific
-  // message instead of a startup-time throw.
+  // Optional binary-content storage (e.g. @breadai/store-s3). Unlike `store`,
+  // unset is not a startup error. A video pipeline step requires it and throws
+  // BLOB_STORE_NOT_CONFIGURED when it is missing; A2A inline FilePart handling
+  // and a model file part do the same when they actually need bytes.
   blobStore?: BlobStore
   // Named model-provider instances, keyed by the name `model.provider` refers
   // to (e.g. `{ anthropic, 'anthropic-eu': createAnthropic({ baseURL }) }`).
