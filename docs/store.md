@@ -140,10 +140,16 @@ degrade gracefully rather than crashing at startup. Current consumers:
   model) is stored automatically via `blobStore.put()`; a run with none configured throws a runtime
   `BreadError('BLOB_STORE_NOT_CONFIGURED', ...)` the moment the model actually produces a file, not
   at startup.
+- A `speech` pipeline step stores `generateSpeech` audio with `blobStore.put()` and emits
+  `file:generated`. No `blobStore` throws `BLOB_STORE_NOT_CONFIGURED` before the speech model is
+  called. See [pipelines.md](./pipelines.md#speech).
 - `ToolContext.blobStore` — a tool's own `execute()` can call `ctx.blobStore.put()` directly to
   store a file it generates or fetches; see [tools.md](./tools.md#toolcontext).
 
 `BlobStore.put()` generates its own key (like `ingestDocument` generates its own document id) and
 returns a retrievable `url` — for `@breadai/store-s3`, a presigned GET URL. There's no
 `@breadai/store-*` in-memory blob implementation published (unlike `BreadStore`'s
-`@breadai/store-memory`) since nothing besides tests currently needs one.
+`@breadai/store-memory`).
+[`examples/support-triage`](https://github.com/matteozambon89/bread/tree/HEAD/examples/support-triage)
+keeps speak-pipeline audio in a process-local `BlobStore`; swap that for `@breadai/store-s3` when
+the bytes must outlive the process.

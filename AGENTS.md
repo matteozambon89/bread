@@ -64,6 +64,7 @@ Server runners do not read stdin for init or add.
 | `@breadai/provider-llm` | `providers/llm` | The 21 language-model providers as a `ProviderRegistry` (`providerLlm`) |
 | `@breadai/provider-catalog` | `providers/catalog` | Re-exports `providerLlm` and `providerEntries` from `@breadai/provider-llm` |
 | `@breadai/provider-decisions` | `providers/decisions` | System One hosts as a `DecisionRegistry` (`providerDecisions`) for `config.decisions` |
+| `@breadai/provider-speech` | `providers/speech` | Speech providers as a `SpeechRegistry` (`providerSpeech`) for `config.speech` |
 | `@breadai/protocol-ag-ui` | `protocols/ag-ui` | AG-UI protocol |
 | `@breadai/protocol-a2a-server` | `protocols/a2a-server` | Agent-to-agent (A2A) protocol |
 | `@breadai/protocol-mcp-client` | `protocols/mcp-client` | Consume MCP servers (config-level + per-agent `cfg.plugins.mcp_client`) |
@@ -155,6 +156,14 @@ The CLI loader (`packages/server/src/loader.ts`) attaches private fields to each
   (`packages/core/src/decision.ts`). A `decision` pipeline step calls `systemOne` and records
   `{ label, answer }` on the step-end crumb without replacing the value passed onward.
   `@breadai/provider-decisions` fills the registry. Core does not import that package.
+- **Speech** — `BreadConfig.speech` is a `SpeechRegistry` defined in core
+  (`packages/core/src/speech.ts`), separate from `ProviderRegistry` (that one returns a
+  `LanguageModel`). A `speech` pipeline step calls `generateSpeech` on the current string, stores
+  the audio with `config.blobStore`, emits `file:generated` on that step's run id and on a session
+  created for the step, and passes the `FileOutput` on. The session principal is what `runVisible`
+  uses to replay that run: the step does not log `agent:run:start`. `@breadai/provider-speech` fills the registry. Core does not import
+  that package. The catalog is openai, azure, google, google-vertex, mistral, xai, elevenlabs,
+  deepgram, cartesia, hume, fish-audio, and fal. `openai-compatible` is not a speech provider.
 - **Lifecycle unification** — `BreadPlugin.close` (renamed from `destroy`) runs on `bread.stop()`;
   stores keep `migrate?`/`close?`; transports use `init?`/`close?`. `RemoteAgent` (the remote-agent
   seam) was aligned the same way in Chunk 5 (`destroy` → `close`), so every lifecycle-holding seam now

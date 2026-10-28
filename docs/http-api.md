@@ -169,9 +169,11 @@ transport. Missed history is replayed from the durable crumb log, then live fram
 - **Authorization**: [`HTTP_ACTIONS.runStream`](#core-actions). When auth is configured, a
   missing `identity.principal` is `403`. With a principal, `runVisible` from `@breadai/core` picks
   the run owner before any header is sent: the principal of a run live on this replica, otherwise
-  the principal on the run's first logged crumb, `agent:run:start`. A run the caller can't see, a
-  run with no owner source, and an unknown run id are all the same `404`. A run with no stored
-  principal is visible only to the local CLI principal.
+  the principal on the run's first logged crumb. For an agent run that crumb is `agent:run:start`.
+  A speech step logs only `file:generated` on its step run id, and the owner is the principal on
+  the session that crumb names. A run the caller can't see, a run with no owner source, and an
+  unknown run id are all the same `404`. A run with no stored principal is visible only to the
+  local CLI principal.
   `transport({ authorizeStream })` on both HTTP transports still runs after that grant.
   `authorizeStream(identity, runId)` receives the `AuthIdentity` `authPlugin()` stashed (`undefined`
   if no auth ran) and the `runId`; `false` is another `403`, sent before any header and before the run's crumbs
@@ -188,8 +190,10 @@ Run a pipeline (`HTTP_ACTIONS.pipelineStart`, [Core actions](#core-actions)) dec
 Each step crumb carries its own `runId`, `<pipelineRunId>:<pipelineId>:<stepIndex>`. `pipelineRunId`
 is a UUIDv7 minted once per pipeline run, so two runs of the same pipeline never share a step id.
 Nested `parallel` and `branch` steps extend the `pipelineId` part, and resume reuses the original
-`pipelineRunId`. A step id is live only while its stream runs. Step crumbs are not logged, so after
-that `GET /runs/:runId/stream` and `POST /runs/:runId/cancel` answer `404` for it. Older releases
+`pipelineRunId`. A step id is live only while its stream runs. `pipeline:step:*` and
+`pipeline:branch:taken` are not logged, so once the response ends `POST /runs/:runId/cancel`
+answers `404` for that id, and `GET /runs/:runId/stream` does too — except a speech step, whose
+`file:generated` crumb stays on that id and replays for the session principal. Older releases
 used `<pipelineId>:<stepIndex>`, which is a breaking change for clients that built step ids by hand.
 
 ## HITL
