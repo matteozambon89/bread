@@ -93,3 +93,47 @@ missing catalog import fails loudly at run time rather than silently picking the
 
 See [agents.md](./agents.md#providers) for where `model`/`providers` sit in `AgentConfig`.
 Decision hosts are a separate registry, `config.decisions` — see [decisions.md](./decisions.md).
+Video models are a separate registry, `config.video` — see [Video models](#video-models).
+
+## Video models
+
+`config.providers` returns a `LanguageModel`. A video model is not one of those. `config.video` is a
+`VideoRegistry`: a map of provider name to `(modelId) => VideoModel | Promise<VideoModel>`, where
+`VideoModel` is the AI SDK experimental video model (`Experimental_VideoModelV3` or `V4`), not a
+gateway model id. Core has no built-in video providers. Unset throws `VIDEO_NOT_CONFIGURED`. An
+unknown name throws `UNKNOWN_VIDEO_PROVIDER`.
+
+Install [`@breadai/provider-video`](https://github.com/matteozambon89/bread/tree/HEAD/providers/video)
+for the 13 catalog entries. Each factory lazy-imports an optional peer and returns
+`instance.video(modelId)`. There is no `openai-compatible` video factory, and no LiveKit or AI
+Gateway entry. Keys that already exist on the language-model catalog keep that key (`google`,
+`google-vertex`, `xai`).
+
+```ts
+import { defineConfig } from '@breadai/core'
+import { providerVideo } from '@breadai/provider-video'
+
+export default defineConfig({
+  entrypoints: ['writer'],
+  video: providerVideo,
+})
+```
+
+| Key | Package | Instance | Auth |
+| --- | --- | --- | --- |
+| `google` | `@ai-sdk/google` | `google` | `GOOGLE_GENERATIVE_AI_API_KEY` |
+| `google-vertex` | `@ai-sdk/google-vertex` | `vertex` | `GOOGLE_VERTEX_PROJECT`, `GOOGLE_VERTEX_LOCATION`. Optional `GOOGLE_VERTEX_API_KEY` (express mode). |
+| `xai` | `@ai-sdk/xai` | `xai` | `XAI_API_KEY` |
+| `alibaba` | `@ai-sdk/alibaba` | `alibaba` | `ALIBABA_API_KEY` |
+| `fal` | `@ai-sdk/fal` | `fal` | `FAL_API_KEY`, or `FAL_KEY` when that is unset |
+| `replicate` | `@ai-sdk/replicate` | `replicate` | `REPLICATE_API_TOKEN` |
+| `black-forest-labs` | `@ai-sdk/black-forest-labs` | `blackForestLabs` | `BFL_API_KEY` |
+| `bytedance` | `@ai-sdk/bytedance` | `byteDance` | `ARK_API_KEY` |
+| `klingai` | `@ai-sdk/klingai` | `klingai` | `KLINGAI_API_KEY`. Legacy pair: `KLINGAI_ACCESS_KEY` and `KLINGAI_SECRET_KEY`. |
+| `minimax` | `@ai-sdk/minimax` | `minimax` | `MINIMAX_API_KEY` |
+| `prodia` | `@ai-sdk/prodia` | `prodia` | `PRODIA_TOKEN` |
+| `topaz` | `@ai-sdk/topaz` | `topaz` | `TOPAZ_API_KEY` |
+| `heygen` | `@ai-sdk/heygen` | `heygen` | `HEYGEN_API_KEY` |
+
+A pipeline step names one of these keys. See [pipelines.md](./pipelines.md#video). Spread
+`providerVideo` and add your own factory under another name the same way as `providerLlm`.

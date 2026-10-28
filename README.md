@@ -75,6 +75,25 @@ export default defineConfig({
 })
 ```
 
+`@breadai/provider-video` is a separate registry for `config.video` — 13 lazily-imported video
+models, each an optional peer that returns the AI SDK experimental video model. A pipeline
+`{ type: 'video', provider, model }` reads a string prompt. See
+[providers](./docs/providers.md#video-models) and [pipelines](./docs/pipelines.md#video).
+
+```bash
+bun add @breadai/provider-video
+bun add @ai-sdk/fal       # provider: 'fal'
+```
+
+```ts
+import { providerVideo } from '@breadai/provider-video'
+
+export default defineConfig({
+  entrypoints: ['echo'],
+  video: providerVideo,
+})
+```
+
 ### Runtime
 
 `bread` runs on **Bun** — the `@breadai/store-sqlite` store (`bun:sqlite`) works out of the box.

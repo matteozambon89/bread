@@ -40,6 +40,7 @@ Step types:
 | `parallel` | Run nested steps concurrently, merge crumb streams. The step's output is the **ordered array of branch outputs**. |
 | `map` | Fan the input array out across `agentId` — each element runs through the agent; output is the array of per-element outputs. |
 | `decision` | Ask one System One question. The step-end output is `{ label, answer }`. The next step still receives the pre-decision value. See [decisions.md](./decisions.md). |
+| `video` | Read the current string as the prompt, resolve `config.video`, and pass that string on. Requires `blobStore`. See [Video](#video). |
 | `branch` | Run exactly one arm. `cases` match `eq` with strict string equality, first hit. See [Branch](#branch). |
 
 ```bash
@@ -89,6 +90,29 @@ crumbs. `pipeline:step:start` and `pipeline:step:end` still fire for the branch 
 A human pause inside the arm stores the rest of that arm, then the steps after the
 branch, as checkpoint frames. Resume finishes the arm and then those steps. It does
 not evaluate the predicate again.
+
+### Video
+
+```ts
+{ type: 'video', provider: 'fal', model: 'luma-dream-machine/ray-2' }
+```
+
+The current value is the prompt, and it must be a string. Anything else throws `VIDEO_PROMPT`
+before the model is resolved. The step requires `config.blobStore`; unset throws
+`BLOB_STORE_NOT_CONFIGURED` even when the value is not a string (see
+[store.md](./store.md#blob-storage)). It then resolves `provider` and `model` on
+[`config.video`](./providers.md#video-models). No registry throws `VIDEO_NOT_CONFIGURED`. An
+unknown name throws `UNKNOWN_VIDEO_PROVIDER`.
+
+The step output, and the next step's input, is that same string. `pipeline:step:start` and
+`pipeline:step:end` use `agentId: 'video'`. The step does not call `experimental_generateVideo` or
+`experimental_startVideo`, does not suspend, and does not store bytes. A vendor job id on a
+checkpoint, resume polling, `BlobStore.put`, `file:generated`, and `FileOutput` are not part of
+this step yet.
+
+Put it after an agent step that returns a string, the same shape as
+[`examples/pipeline`](https://github.com/matteozambon89/bread/tree/HEAD/examples/pipeline) (an
+agent, then a later step). That example is unchanged.
 
 ### HITL inside a pipeline
 

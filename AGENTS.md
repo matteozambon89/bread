@@ -64,6 +64,7 @@ Server runners do not read stdin for init or add.
 | `@breadai/provider-llm` | `providers/llm` | The 21 language-model providers as a `ProviderRegistry` (`providerLlm`) |
 | `@breadai/provider-catalog` | `providers/catalog` | Re-exports `providerLlm` and `providerEntries` from `@breadai/provider-llm` |
 | `@breadai/provider-decisions` | `providers/decisions` | System One hosts as a `DecisionRegistry` (`providerDecisions`) for `config.decisions` |
+| `@breadai/provider-video` | `providers/video` | 13 video-model providers as a `VideoRegistry` (`providerVideo`) for `config.video` |
 | `@breadai/protocol-ag-ui` | `protocols/ag-ui` | AG-UI protocol |
 | `@breadai/protocol-a2a-server` | `protocols/a2a-server` | Agent-to-agent (A2A) protocol |
 | `@breadai/protocol-mcp-client` | `protocols/mcp-client` | Consume MCP servers (config-level + per-agent `cfg.plugins.mcp_client`) |
@@ -155,6 +156,14 @@ The CLI loader (`packages/server/src/loader.ts`) attaches private fields to each
   (`packages/core/src/decision.ts`). A `decision` pipeline step calls `systemOne` and records
   `{ label, answer }` on the step-end crumb without replacing the value passed onward.
   `@breadai/provider-decisions` fills the registry. Core does not import that package.
+- **Video** — `BreadConfig.video` is a `VideoRegistry` (`packages/core/src/video.ts`), separate
+  from `ProviderRegistry`. `resolveVideoModel` throws `VIDEO_NOT_CONFIGURED` or
+  `UNKNOWN_VIDEO_PROVIDER`. A pipeline `{ type: 'video', provider, model }` requires
+  `config.blobStore` (`BLOB_STORE_NOT_CONFIGURED`), requires a string current value
+  (`VIDEO_PROMPT`, before resolve), resolves the model, and passes that string on. It does not
+  call `experimental_generateVideo` or `experimental_startVideo`, and it does not store bytes.
+  `@breadai/provider-video` supplies the 13 lazy `instance.video(modelId)` factories. Core does
+  not import that package. See [`docs/pipelines.md`](./docs/pipelines.md#video).
 - **Lifecycle unification** — `BreadPlugin.close` (renamed from `destroy`) runs on `bread.stop()`;
   stores keep `migrate?`/`close?`; transports use `init?`/`close?`. `RemoteAgent` (the remote-agent
   seam) was aligned the same way in Chunk 5 (`destroy` → `close`), so every lifecycle-holding seam now
