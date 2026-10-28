@@ -1,0 +1,85 @@
+{
+  "name": "@breadai/provider-transcription",
+  "version": "0.1.0",
+  "description": "Transcription providers for bread — 15 lazily-imported AI SDK transcription models as a TranscriptionRegistry for config.transcription.",
+  "license": "MIT",
+  "author": "Matteo Zambon <matteo@yeeti.co>",
+  "keywords": [
+    "ai",
+    "agents",
+    "bread",
+    "provider",
+    "transcription",
+    "ai-sdk"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/matteozambon89/bread.git",
+    "directory": "providers/transcription"
+  },
+  "homepage": "https://github.com/matteozambon89/bread",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "bread-source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "bun build ./src/index.ts --outdir dist --target node --format esm --packages external && tsc --emitDeclarationOnly --outDir dist"
+  },
+  "dependencies": {
+    "@breadai/core": "workspace:>=0.1.6 <1.0.0"
+  },
+  "peerDependencies": {
+    "@ai-sdk/assemblyai": ">=3.0",
+    "@ai-sdk/azure": ">=4.0",
+    "@ai-sdk/cartesia": ">=3.0",
+    "@ai-sdk/deepgram": ">=3.0",
+    "@ai-sdk/elevenlabs": ">=3.0",
+    "@ai-sdk/fal": ">=3.0",
+    "@ai-sdk/fish-audio": ">=3.0",
+    "@ai-sdk/gladia": ">=3.0",
+    "@ai-sdk/google": ">=4.0.54",
+    "@ai-sdk/google-vertex": ">=5.0",
+    "@ai-sdk/groq": ">=4.0",
+    "@ai-sdk/mistral": ">=4.0.17",
+    "@ai-sdk/openai": ">=4.0",
+    "@ai-sdk/revai": ">=3.0",
+    "@ai-sdk/xai": ">=5.0.15"
+  },
+  "peerDependenciesMeta": {
+    "@ai-sdk/assemblyai": { "optional": true },
+    "@ai-sdk/azure": { "optional": true },
+    "@ai-sdk/cartesia": { "optional": true },
+    "@ai-sdk/deepgram": { "optional": true },
+    "@ai-sdk/elevenlabs": { "optional": true },
+    "@ai-sdk/fal": { "optional": true },
+    "@ai-sdk/fish-audio": { "optional": true },
+    "@ai-sdk/gladia": { "optional": true },
+    "@ai-sdk/google": { "optional": true },
+    "@ai-sdk/google-vertex": { "optional": true },
+    "@ai-sdk/groq": { "optional": true },
+    "@ai-sdk/mistral": { "optional": true },
+    "@ai-sdk/openai": { "optional": true },
+    "@ai-sdk/revai": { "optional": true },
+    "@ai-sdk/xai": { "optional": true }
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "ai": "^7.0.93",
+    "typescript": "^5.8.3"
+  }
+}
