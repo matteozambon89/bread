@@ -194,10 +194,12 @@
       "dependencies": {
         "@breadai/cli": "workspace:*",
         "@breadai/core": "workspace:*",
+        "@breadai/provider-image": "workspace:*",
         "@breadai/provider-llm": "workspace:*",
         "@breadai/store-sqlite": "workspace:*",
         "@breadai/transport-http-chunked": "workspace:*",
         "ollama-ai-provider-v2": "^4",
+        "uuid": "^11.1.0",
         "zod": "^4.4.3",
       },
     },
