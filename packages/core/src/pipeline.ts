@@ -1,6 +1,9 @@
+import { generateImage } from 'ai'
 import { v7 as uuidv7 } from 'uuid'
 import { decisionLabel, resolveDecisionClient, toHostQuestion } from './decision.js'
 import { runWithOnErrorRetry } from './hooks.js'
+import { resolveImageModel } from './image.js'
+import type { FileOutput } from './storage/blob-store.js'
 import type { BreadCrumb, LoopHostLink, PipelineCheckpointParent, PipelineStep, Principal, RunOptions, SupervisorCheckpointParent } from './types.js'
 import { BreadError } from './types.js'
 import { runAgent } from './runner.js'
@@ -156,6 +159,53 @@ export async function* runPipeline(opts: PipelineRunOpts): AsyncGenerator<BreadC
       const decided = decisionLabel(step.question, response.answers)
       output = { label: decided.label, answer: decided.answer }
       lastDecision = decided.label
+    } else if (step.type === 'image') {
+      // A string is a text prompt. The object is the AI SDK GenerateImagePrompt,
+      // so an editor such as Topaz can receive prompt.images (it ignores text).
+      const prompt = imagePromptFrom(current)
+      if (!prompt) {
+        throw new BreadError(
+          `Pipeline "${pipelineId}" step ${index} image prompt must be a string or { text?, images, mask? }.`,
+          'IMAGE_PROMPT',
+          { pipelineId, stepIndex: index },
+        )
+      }
+      if (!ctx.blobStore) {
+        throw new BreadError(
+          `Pipeline "${pipelineId}" step ${index} is an image step but no blobStore is configured — see docs/store.md#blob-storage`,
+          'BLOB_STORE_NOT_CONFIGURED',
+          { pipelineId, stepIndex: index },
+        )
+      }
+      const model = await resolveImageModel(ctx.image, step.provider, step.model)
+      let image: Awaited<ReturnType<typeof generateImage>>['image']
+      try {
+        const generated = await generateImage({
+          model,
+          prompt,
+          n: 1,
+          maxRetries: 0,
+          ...(ctx.signal ? { abortSignal: ctx.signal } : {}),
+        })
+        image = generated.image
+      } catch (err) {
+        // Same shape as toBreadError: the provider message must survive the
+        // chunked transport, which hides anything that is not a BreadError.
+        throw imageStepError(err, pipelineId, index)
+      }
+      const { url } = await ctx.blobStore.put(image.uint8Array, { mimeType: image.mediaType })
+      const sessionId = await invocationSession(ctx, pipelineRunId, opts.principal)
+      const file: FileOutput = { kind: 'file', uri: url, mimeType: image.mediaType }
+      yield {
+        type: 'file:generated',
+        agentId: 'image',
+        runId: stepRunId,
+        sessionId,
+        uri: url,
+        mimeType: image.mediaType,
+        timestamp: Date.now(),
+      }
+      output = file
     } else if (step.type === 'branch') {
       if (step.default === undefined) {
         throw new BreadError(
@@ -236,9 +286,67 @@ function stepRunIdOf(pipelineRunId: string, pipelineId: string, index: number): 
   return `${pipelineRunId}:${pipelineId}:${index}`
 }
 
+function imageStepError(err: unknown, pipelineId: string, stepIndex: number): BreadError {
+  if (err instanceof BreadError) return err
+  return new BreadError(
+    err instanceof Error ? err.message : String(err),
+    'AGENT_ERROR',
+    { pipelineId, stepIndex },
+    err,
+  )
+}
+
+// One session per invocation, keyed by pipelineRunId, so every file:generated
+// row from this run cascades together. Parallel image steps can race the insert.
+async function invocationSession(
+  ctx: RunnerContext,
+  pipelineRunId: string,
+  principal: Principal | undefined,
+): Promise<string> {
+  const existing = await ctx.store.getSession(pipelineRunId)
+  if (existing) return existing.id
+  try {
+    const created = await ctx.store.createSession({
+      id: pipelineRunId,
+      ...(principal ? { principal } : {}),
+    })
+    return created.id
+  } catch (err) {
+    const raced = await ctx.store.getSession(pipelineRunId)
+    if (raced) return raced.id
+    throw err
+  }
+}
+
+type ImagePrompt = Parameters<typeof generateImage>[0]['prompt']
+type ImageData = string | Uint8Array | ArrayBuffer
+
+function isImageData(value: unknown): value is ImageData {
+  return typeof value === 'string' || value instanceof Uint8Array || value instanceof ArrayBuffer
+}
+
+// String, or exactly the GenerateImagePrompt object. Extra keys stay IMAGE_PROMPT
+// so a plain agent object is not mistaken for a source image.
+function imagePromptFrom(value: unknown): ImagePrompt | undefined {
+  if (typeof value === 'string') return value
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return undefined
+  const record = value as Record<string, unknown>
+  for (const key of Object.keys(record)) {
+    if (key !== 'text' && key !== 'images' && key !== 'mask') return undefined
+  }
+  if (!Array.isArray(record.images) || !record.images.every(isImageData)) return undefined
+  if ('text' in record && typeof record.text !== 'string') return undefined
+  if ('mask' in record && !isImageData(record.mask)) return undefined
+  const prompt: Exclude<ImagePrompt, string> = { images: record.images }
+  if (typeof record.text === 'string') prompt.text = record.text
+  if ('mask' in record && isImageData(record.mask)) prompt.mask = record.mask
+  return prompt
+}
+
 function getStepAgentId(step: PipelineStep): string {
   if (step.type === 'agent' || step.type === 'map') return step.agentId
   if (step.type === 'decision') return 'decision'
+  if (step.type === 'image') return 'image'
   if (step.type === 'branch') return 'branch'
   return 'parallel'
 }
