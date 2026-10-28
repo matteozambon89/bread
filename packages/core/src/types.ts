@@ -1,5 +1,6 @@
 import type { z } from 'zod'
 import type { DecisionQuestion, DecisionRegistry } from './decision.js'
+import type { ImageRegistry } from './image.js'
 import type { ModelRef, ProviderRegistry } from './model-provider.js'
 import type { BlobStore, FileOutput } from './storage/blob-store.js'
 import type { BreadStore } from './storage/store.js'
@@ -934,6 +935,11 @@ export interface BreadConfig {
   // built-ins — install @breadai/provider-decisions. Unset throws
   // DECISION_NOT_CONFIGURED; an unknown name throws UNKNOWN_DECISION_PROVIDER.
   decisions?: DecisionRegistry
+  // Image models keyed by the image step's `provider`. Not a ProviderRegistry:
+  // those factories return a LanguageModel. Core has no built-ins — install
+  // @breadai/provider-image. Unset throws IMAGE_NOT_CONFIGURED; an unknown
+  // name throws UNKNOWN_IMAGE_PROVIDER.
+  image?: ImageRegistry
   // The crumb fabric between replicas of this app. Defaults to the embedded
   // Stream transport (single container); set a distributed implementation
   // (e.g. @breadai/transport-redis) so passive subscribers on other replicas
