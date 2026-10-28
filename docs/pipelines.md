@@ -37,9 +37,10 @@ Step types:
 | Type | Behaviour |
 |------|-----------|
 | `agent` | Run one agent. Optional `skill` activates a caller-driven skill. |
-| `parallel` | Run nested steps concurrently, merge crumb streams. The step's output is the **ordered array of branch outputs**. |
+| `parallel` | Run nested steps concurrently, merge crumb streams. The step's output is the **ordered array of branch outputs**. When every failed slot is `RUN_CANCELLED`, the step throws that first error instead of an `AggregateError`. |
 | `map` | Fan the input array out across `agentId` — each element runs through the agent; output is the array of per-element outputs. |
 | `decision` | Ask one System One question. The step-end output is `{ label, answer }`. The next step still receives the pre-decision value. See [decisions.md](./decisions.md). |
+| `image` | Read the current value as a string or `{ text?, images?, mask? }`. A text-only object is a text prompt. A present `images` array must be non-empty bytes. Call `generateImage` once (`n: 1`, `maxRetries: 0`). Store the bytes with `config.blobStore`, log `agent:run:start` and `agent:run:end` around `file:generated`, and pass the `FileOutput` on. See [Image](#image). |
 | `branch` | Run exactly one arm. `cases` match `eq` with strict string equality, first hit. See [Branch](#branch). |
 
 ```bash
@@ -51,6 +52,24 @@ UUIDv7 minted for each pipeline run, so step ids are unique per run and can't be
 `parallel` and `branch` steps extend the `pipelineId` part (for example `…:article:1:parallel:0:0`),
 and resuming a paused pipeline reuses the original `pipelineRunId`. Releases before this one used
 `<pipelineId>:<stepIndex>`. See [HTTP API](./http-api.md#post-pipelinesidrun).
+
+### Image
+
+```ts
+{
+  type: 'image',
+  provider: 'openai',
+  model: 'gpt-image-1',
+}
+```
+
+The current value is a string, or `{ text?, images?, mask? }`. A string is the text prompt. An object with only `text` is that text prompt. `images`, when present, must be a non-empty array of `Uint8Array` or `ArrayBuffer`, and an optional `mask` is those same bytes, so a model that enhances a source image can receive bytes. An empty `images` array, a `mask` without `images`, or any string there — including an `http`, `https`, or `file` URL or base64 text — throws `IMAGE_PROMPT` before a model call. The step does not fetch it. Topaz ignores text and fails unless `images` is set. Any other shape throws `IMAGE_PROMPT` before a model call. The step calls the image registry (`config.image`, not `config.providers`) once, stores `image.uint8Array` with `config.blobStore`, and passes the `FileOutput` on. The step-end `output` is the `FileOutput` (`{ kind: 'file', uri, mimeType }`), and that object is the next step's input. Unlike `decision`, this step replaces the value.
+
+On the step `runId` the log is `agent:run:start`, `file:generated`, then `agent:run:end` (`agentId: 'image'`). `agent:run:start` carries the invocation `sessionId` and the text prompt only, not the image or mask bytes, and — when a principal is present — `iss` and `sub` only. When the prompt object has no `text`, `input` is omitted. `agent:run:end` carries the `FileOutput`, `durationMs`, and `files`. The invocation session is created before those crumbs and before `blobStore.put`, so the log has a session row and a failed session insert does not orphan bytes. `deleteSession` cascades the rows. Bytes still live in the blob store — see [store.md](./store.md#blob-storage).
+
+No `blobStore` throws `BLOB_STORE_NOT_CONFIGURED`. No `image` registry throws `IMAGE_NOT_CONFIGURED`. An unknown `provider` throws `UNKNOWN_IMAGE_PROVIDER`. A rejected `generateImage` (bad key, content policy, empty image) is rethrown as `BreadError` `AGENT_ERROR` with the provider message, `pipelineId`, and `stepIndex`. Aborting the signal during `generateImage`, or after it resolves, is `RUN_CANCELLED`: the step yields one `agent:error` crumb and throws `BreadError` `run cancelled` with `pipelineId` and `stepIndex`. An abort after `generateImage` resolves does not call `blobStore.put` and does not yield `file:generated` or `agent:run:end`. A parallel abort stays `RUN_CANCELLED`: when every failed slot is that code, the step throws that first `BreadError` instead of an `AggregateError`. Mixed failures still throw `AggregateError`. A `blobStore.put` failure while the signal is aborted is `RUN_CANCELLED`, not `AGENT_ERROR`. Any other `blobStore.put` or session failure is `BreadError` `AGENT_ERROR` with the underlying message, and a failed `put` does not yield `file:generated`. After `agent:run:start`, a later failure yields `agent:error` and does not yield `agent:run:end`. The catalog is [`@breadai/provider-image`](https://github.com/matteozambon89/bread/tree/HEAD/providers/image) — see [providers.md](./providers.md#image-models).
+
+[`examples/pipeline`](https://github.com/matteozambon89/bread/tree/HEAD/examples/pipeline) pipeline `cover` runs the writer, then this step, so the writer's paragraph is the prompt.
 
 ### Branch
 
