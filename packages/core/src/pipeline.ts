@@ -1,5 +1,7 @@
+import { transcribe } from 'ai'
 import { v7 as uuidv7 } from 'uuid'
 import { decisionLabel, resolveDecisionClient, toHostQuestion } from './decision.js'
+import { resolveTranscriptionModel, transcriptionAudioUrl } from './transcription.js'
 import { runWithOnErrorRetry } from './hooks.js'
 import type { BreadCrumb, LoopHostLink, PipelineCheckpointParent, PipelineStep, Principal, RunOptions, SupervisorCheckpointParent } from './types.js'
 import { BreadError } from './types.js'
@@ -156,6 +158,24 @@ export async function* runPipeline(opts: PipelineRunOpts): AsyncGenerator<BreadC
       const decided = decisionLabel(step.question, response.answers)
       output = { label: decided.label, answer: decided.answer }
       lastDecision = decided.label
+    } else if (step.type === 'transcription') {
+      if (!ctx.blobStore) {
+        throw new BreadError(
+          `Pipeline "${pipelineId}" step ${index} transcribes audio but no blobStore is configured — see docs/store.md#blob-storage`,
+          'BLOB_STORE_NOT_CONFIGURED',
+          { pipelineId, stepIndex: index },
+        )
+      }
+      // FileOutput keeps the url, not the blob key. A presigned S3 url cannot
+      // be loaded with BlobStore.get, so transcribe fetches the http(s) uri.
+      const audio = transcriptionAudioUrl(current, { pipelineId, stepIndex: index })
+      const model = await resolveTranscriptionModel(ctx.transcription, step.provider, step.model)
+      const result = await transcribe({
+        model,
+        audio,
+        ...(ctx.signal ? { abortSignal: ctx.signal } : {}),
+      })
+      output = result.text
     } else if (step.type === 'branch') {
       if (step.default === undefined) {
         throw new BreadError(
@@ -240,6 +260,7 @@ function getStepAgentId(step: PipelineStep): string {
   if (step.type === 'agent' || step.type === 'map') return step.agentId
   if (step.type === 'decision') return 'decision'
   if (step.type === 'branch') return 'branch'
+  if (step.type === 'transcription') return 'transcription'
   return 'parallel'
 }
 
