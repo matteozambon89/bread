@@ -93,3 +93,40 @@ missing catalog import fails loudly at run time rather than silently picking the
 
 See [agents.md](./agents.md#providers) for where `model`/`providers` sit in `AgentConfig`.
 Decision hosts are a separate registry, `config.decisions` — see [decisions.md](./decisions.md).
+
+## Image models
+
+Image models are not language models. `config.image` is an `ImageRegistry`: each factory returns an AI SDK `ImageModel`, not a `LanguageModel`. A pipeline [`image` step](./pipelines.md#image) reads the current value as a string or `{ text?, images, mask? }` and calls `generateImage` once. Topaz enhances a source image passed on `images`; a text-only prompt does not reach `blobStore.put`.
+
+Install [`@breadai/provider-image`](https://github.com/matteozambon89/bread/tree/HEAD/providers/image). Importing it does not load every SDK. The first resolve of a key lazy-imports that optional peer and throws `MISSING_PROVIDER` (naming `bun add <pkg>`) when it is absent.
+
+```ts
+import { providerImage } from '@breadai/provider-image'
+
+export default defineConfig({
+  image: providerImage,
+})
+```
+
+| Key | Package | Image call | Auth |
+| --- | --- | --- | --- |
+| `openai` | `@ai-sdk/openai` | `openai.image(modelId)` | `OPENAI_API_KEY` |
+| `azure` | `@ai-sdk/azure` | `azure.image(modelId)` | `AZURE_API_KEY`, `AZURE_RESOURCE_NAME` |
+| `google` | `@ai-sdk/google` | `google.image(modelId)` | `GOOGLE_GENERATIVE_AI_API_KEY` |
+| `google-vertex` | `@ai-sdk/google-vertex` | `vertex.image(modelId)` | `GOOGLE_VERTEX_PROJECT`, `GOOGLE_VERTEX_LOCATION`, `GOOGLE_APPLICATION_CREDENTIALS` |
+| `amazon-bedrock` | `@ai-sdk/amazon-bedrock` | `bedrock.image(modelId)` | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION` |
+| `xai` | `@ai-sdk/xai` | `xai.image(modelId)` | `XAI_API_KEY` |
+| `togetherai` | `@ai-sdk/togetherai` | `togetherai.image(modelId)` | `TOGETHER_AI_API_KEY` (also `TOGETHER_API_KEY`) |
+| `fireworks` | `@ai-sdk/fireworks` | `fireworks.image(modelId)` | `FIREWORKS_API_KEY` |
+| `deepinfra` | `@ai-sdk/deepinfra` | `deepinfra.image(modelId)` | `DEEPINFRA_API_KEY` |
+| `fal` | `@ai-sdk/fal` | `fal.image(modelId)` | `FAL_API_KEY` (also `FAL_KEY`) |
+| `luma` | `@ai-sdk/luma` | `luma.image(modelId)` | `LUMA_API_KEY` |
+| `replicate` | `@ai-sdk/replicate` | `replicate.image(modelId)` | `REPLICATE_API_TOKEN` |
+| `black-forest-labs` | `@ai-sdk/black-forest-labs` | `blackForestLabs.image(modelId)` | `BFL_API_KEY` |
+| `bytedance` | `@ai-sdk/bytedance` | `byteDance.image(modelId)` | `ARK_API_KEY` |
+| `prodia` | `@ai-sdk/prodia` | `prodia.image(modelId)` | `PRODIA_TOKEN` |
+| `topaz` | `@ai-sdk/topaz` | `topaz.image(modelId)` | `TOPAZ_API_KEY` |
+| `quiverai` | `@ai-sdk/quiverai` | `quiverai.image(modelId)` | `QUIVERAI_API_KEY` |
+| `openai-compatible` | `@ai-sdk/openai-compatible` | `createOpenAICompatible(fromEnv()).imageModel(modelId)` | `OPENAI_COMPATIBLE_BASE_URL`, optional `OPENAI_COMPATIBLE_API_KEY` |
+
+Keys that already exist on `providerLlm` keep that name. `openai-compatible` is the escape hatch for a server that speaks the image API. It has no `.image` method, so the factory calls `.imageModel`. A missing `OPENAI_COMPATIBLE_BASE_URL` throws `PROVIDER_NOT_CONFIGURED` once the package is installed. Spread `providerImage` and add your own key the same way as `providerLlm`.

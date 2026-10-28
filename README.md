@@ -59,7 +59,9 @@ bun add -d @breadai/cli    # dev server + `bread` CLI
 Core has no built-in model providers — register them explicitly via `providers` in
 `bread.config.ts`. `@breadai/provider-llm` packages 21 lazily-imported providers (each
 still an optional peer dep, installed only if you use it). `@breadai/provider-catalog`
-re-exports `providerLlm` and `providerEntries` from that package.
+re-exports `providerLlm` and `providerEntries` from that package. Image models are a
+separate registry: `@breadai/provider-image` exports `providerImage` for `config.image`,
+used by a pipeline `{ type: 'image', provider, model }` step.
 
 ```bash
 bun add @breadai/provider-llm
