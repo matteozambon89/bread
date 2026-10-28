@@ -1,13 +1,29 @@
-import { store } from '@breadai/store-sqlite'
+import { embed } from 'ai'
+import { store } from '@breadai/store-postgres'
 import { transport } from '@breadai/transport-http-chunked'
-import { defineConfig } from '@breadai/core'
+import { defineConfig, resolveEmbeddingModel, type BreadConfig } from '@breadai/core'
+import { providerEmbeddings } from '@breadai/provider-embeddings'
 import { providerLlm } from '@breadai/provider-llm'
 
-// Self-contained: a local SQLite file, no external service. Swap for
-// the Postgres store() (with DATABASE_URL) in production.
-export default defineConfig({
+// Each write reads this object. Replacing `config.embeddings` changes the
+// model; the factory is not called when the module loads. Postgres
+// (DATABASE_URL) stores the vectors — SQLite cannot.
+const live: { config?: BreadConfig } = {}
+
+const config = defineConfig({
   entrypoints: ['memory'],
-  store: store({ path: './bread.db' }),
+  embeddings: providerEmbeddings,
   transport: transport(),
   providers: providerLlm,
+  store: store({
+    embed: async (text) => {
+      const model = await resolveEmbeddingModel(live.config?.embeddings, 'ollama', 'nomic-embed-text')
+      const { embedding } = await embed({ model, value: text, maxRetries: 0 })
+      return embedding
+    },
+  }),
 })
+
+live.config = config
+
+export default config
