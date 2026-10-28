@@ -27,12 +27,15 @@ export function principalVisible(stored: Principal | undefined, caller: Principa
 }
 
 // Who may see a run: its live owner when this replica runs it, otherwise the
-// principal on the run's first logged crumb, agent:run:start. Resumed runs
-// extend the same log, so the original start crumb still decides. A run with
-// no owner follows the session rule: only the local CLI principal sees it. A
-// scoped caller is refused when neither owner source exists.
+// principal on the run's first logged crumb. An agent run stamps that on
+// agent:run:start. A speech step logs only file:generated on its own step run
+// id, so the owner is the session that crumb names — not a synthetic
+// agent:run:start. Resumed runs extend the same log, so the original start
+// crumb still decides. A run with no owner follows the session rule: only the
+// local CLI principal sees it. A scoped caller is refused when neither owner
+// source exists.
 export async function runVisible(
-  store: Pick<BreadStore, 'getCrumbs'>,
+  store: Pick<BreadStore, 'getCrumbs' | 'getSession'>,
   runId: string,
   caller: Principal | undefined,
   live?: { principal: Principal | undefined },
@@ -41,8 +44,17 @@ export async function runVisible(
   if (live) return ownerVisible(live.principal, caller)
   if (!store.getCrumbs) return false
   const [first] = await store.getCrumbs(runId, { afterSeq: 0, limit: 1 })
-  if (first?.type !== 'agent:run:start') return false
-  return ownerVisible((first.crumb as { principal?: Principal }).principal, caller)
+  if (first?.type === 'agent:run:start') {
+    return ownerVisible((first.crumb as { principal?: Principal }).principal, caller)
+  }
+  // Speech audio is the only durable crumb on that step id. The session row
+  // created for the foreign key is the ownership record.
+  if (first?.type === 'file:generated' && first.sessionId) {
+    const session = await store.getSession(first.sessionId)
+    if (!session) return false
+    return ownerVisible(session.principal, caller)
+  }
+  return false
 }
 
 // Who may resume a checkpoint: the caller must see both the checkpoint and
@@ -52,7 +64,7 @@ export async function runVisible(
 // the checkpoint's principal, the original owner, never the resumer's. A
 // missing checkpoint is not visible to a scoped caller.
 export async function resumeVisible(
-  store: Pick<BreadStore, 'getCrumbs'>,
+  store: Pick<BreadStore, 'getCrumbs' | 'getSession'>,
   checkpoint: Pick<CheckpointRecord, 'runId' | 'principal'> | null | undefined,
   caller: Principal | undefined,
   live?: { principal: Principal | undefined },

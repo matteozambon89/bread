@@ -15,8 +15,9 @@ export interface BlobStore {
 
 // A pointer to a blob an agent hands back as (part of) its own output — either a tool
 // that called BlobStore.put() itself and echoed the reference through the agent's
-// structured output, or a model-generated file the runner stored automatically (see
-// FileGeneratedCrumb). Matches a2a-server's own existing canonical FilePart shape 1:1.
+// structured output, a model-generated file the runner stored automatically, or
+// audio from a speech pipeline step (see FileGeneratedCrumb). Matches a2a-server's
+// own existing canonical FilePart shape 1:1.
 export interface FileOutput {
   kind: 'file'
   uri: string

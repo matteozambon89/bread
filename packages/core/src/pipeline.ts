@@ -1,6 +1,8 @@
+import { generateSpeech } from 'ai'
 import { v7 as uuidv7 } from 'uuid'
 import { decisionLabel, resolveDecisionClient, toHostQuestion } from './decision.js'
 import { runWithOnErrorRetry } from './hooks.js'
+import { resolveSpeechModel } from './speech.js'
 import type { BreadCrumb, LoopHostLink, PipelineCheckpointParent, PipelineStep, Principal, RunOptions, SupervisorCheckpointParent } from './types.js'
 import { BreadError } from './types.js'
 import { runAgent } from './runner.js'
@@ -156,6 +158,45 @@ export async function* runPipeline(opts: PipelineRunOpts): AsyncGenerator<BreadC
       const decided = decisionLabel(step.question, response.answers)
       output = { label: decided.label, answer: decided.answer }
       lastDecision = decided.label
+    } else if (step.type === 'speech') {
+      if (typeof current !== 'string') {
+        throw new BreadError(
+          `Pipeline "${pipelineId}" step ${index} is speech but the current value is not a string.`,
+          'SPEECH_INPUT',
+          { pipelineId, stepIndex: index },
+        )
+      }
+      if (!ctx.blobStore) {
+        throw new BreadError(
+          `Pipeline "${pipelineId}" step ${index} speaks audio but no blobStore is configured — see docs/store.md#blob-storage`,
+          'BLOB_STORE_NOT_CONFIGURED',
+          { pipelineId, stepIndex: index },
+        )
+      }
+      const model = await resolveSpeechModel(ctx.speech, step.provider, step.model)
+      const spoken = await generateSpeech({
+        model,
+        text: current,
+        ...(ctx.signal ? { abortSignal: ctx.signal } : {}),
+      })
+      const mimeType = spoken.audio.mediaType
+      const { url } = await ctx.blobStore.put(spoken.audio.uint8Array, { mimeType })
+      // The log's session foreign key needs a real row. That row's principal is
+      // the owner of this step run id: file:generated is its only durable crumb,
+      // and it stays on stepRunId so its seq does not join an earlier agent run.
+      const session = await ctx.store.createSession({
+        ...(opts.principal ? { principal: opts.principal } : {}),
+      })
+      yield {
+        type: 'file:generated',
+        agentId: getStepAgentId(step),
+        runId: stepRunId,
+        sessionId: session.id,
+        timestamp: Date.now(),
+        uri: url,
+        mimeType,
+      }
+      output = { kind: 'file', uri: url, mimeType }
     } else if (step.type === 'branch') {
       if (step.default === undefined) {
         throw new BreadError(
@@ -239,6 +280,7 @@ function stepRunIdOf(pipelineRunId: string, pipelineId: string, index: number): 
 function getStepAgentId(step: PipelineStep): string {
   if (step.type === 'agent' || step.type === 'map') return step.agentId
   if (step.type === 'decision') return 'decision'
+  if (step.type === 'speech') return 'speech'
   if (step.type === 'branch') return 'branch'
   return 'parallel'
 }

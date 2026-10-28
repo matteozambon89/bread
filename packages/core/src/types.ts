@@ -68,10 +68,9 @@ export interface ReasoningDeltaCrumb extends BaseCrumb {
   delta: string
 }
 
-// A file the model generated directly as part of its own generation (e.g. an
-// image-generation-capable model) — sourced from the AI SDK's stream 'file'
-// part, independent of any tool call. Emitted the instant the file is stored via
-// BlobStore.put(); see AgentRunEndCrumb.files for the run's full accumulated list.
+// A stored file: a language-model stream 'file' part, or audio from a speech
+// pipeline step. Emitted once BlobStore.put() returns. See AgentRunEndCrumb.files
+// for files accumulated during an agent run.
 export interface FileGeneratedCrumb extends BaseCrumb {
   type: 'file:generated'
   uri: string
@@ -787,6 +786,7 @@ export type PipelineStep =
   | { type: 'parallel'; steps: PipelineStep[] }
   | { type: 'map'; agentId: string }
   | { type: 'decision'; provider: string; model: string; question: DecisionQuestion }
+  | { type: 'speech'; provider: string; model: string }
   | {
       type: 'branch'
       // Dot path into the current value. Omit to use the latest decision label.
