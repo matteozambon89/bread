@@ -93,3 +93,32 @@ missing catalog import fails loudly at run time rather than silently picking the
 
 See [agents.md](./agents.md#providers) for where `model`/`providers` sit in `AgentConfig`.
 Decision hosts are a separate registry, `config.decisions` — see [decisions.md](./decisions.md).
+Transcription models are another registry, `config.transcription` — see [Transcription](#transcription).
+
+## Transcription
+
+`BreadConfig.transcription` is a `TranscriptionRegistry`:
+`Record<string, (modelId: string) => TranscriptionModel | Promise<TranscriptionModel>>`.
+It is not `config.providers`. Those factories return a `LanguageModel`. Core has no built-in
+transcription providers.
+
+Install
+[`@breadai/provider-transcription`](https://github.com/matteozambon89/bread/tree/HEAD/providers/transcription)
+for the 15 catalog entries (`openai`, `azure`, `google`, `google-vertex`, `mistral`, `groq`,
+`xai`, `elevenlabs`, `deepgram`, `cartesia`, `fish-audio`, `assemblyai`, `gladia`, `revai`,
+`fal`). Each lazy-imports its optional peer and returns `.transcription(modelId)`. There is no
+`openai-compatible` transcription factory, and no LiveKit or AI Gateway entry. Gladia's SDK
+method takes no model id; the step still requires `model`, and Gladia uses its single model.
+
+```ts
+import { providerTranscription } from '@breadai/provider-transcription'
+
+export default defineConfig({
+  transcription: providerTranscription,
+})
+```
+
+A pipeline step `{ type: 'transcription', provider, model }` resolves that registry, passes an
+http(s) `FileOutput` URL to `transcribe`, and hands the transcript text to the next step. See
+[pipelines.md](./pipelines.md#transcription). Unset throws `TRANSCRIPTION_NOT_CONFIGURED`. An
+unknown name throws `UNKNOWN_TRANSCRIPTION_PROVIDER`. A missing peer throws `MISSING_PROVIDER`.
