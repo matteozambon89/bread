@@ -1,6 +1,7 @@
 import type { z } from 'zod'
 import type { DecisionQuestion, DecisionRegistry } from './decision.js'
 import type { ModelRef, ProviderRegistry } from './model-provider.js'
+import type { RerankingRegistry } from './reranking.js'
 import type { BlobStore, FileOutput } from './storage/blob-store.js'
 import type { BreadStore } from './storage/store.js'
 import type { BreadTransport } from './transport.js'
@@ -930,6 +931,12 @@ export interface BreadConfig {
   // common @ai-sdk/* set, or hand-write factories. An agent's own `providers`
   // (AgentConfig.providers) is checked first and wins on a name collision.
   providers?: ProviderRegistry
+  // Reranking models keyed by provider name. Core has no built-ins — install
+  // @breadai/provider-reranking. Not `providers`: that registry returns a
+  // LanguageModel. bread.start() binds this onto the store. Postgres search
+  // calls resolveReranking when the store's `rerank` ref is set; with no ref,
+  // order is unchanged. SQLite and memory do not bind it.
+  reranking?: RerankingRegistry
   // System One hosts keyed by the decision step's `provider`. Core has no
   // built-ins — install @breadai/provider-decisions. Unset throws
   // DECISION_NOT_CONFIGURED; an unknown name throws UNKNOWN_DECISION_PROVIDER.
