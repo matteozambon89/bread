@@ -64,6 +64,7 @@ Server runners do not read stdin for init or add.
 | `@breadai/provider-llm` | `providers/llm` | The 21 language-model providers as a `ProviderRegistry` (`providerLlm`) |
 | `@breadai/provider-catalog` | `providers/catalog` | Re-exports `providerLlm` and `providerEntries` from `@breadai/provider-llm` |
 | `@breadai/provider-decisions` | `providers/decisions` | System One hosts as a `DecisionRegistry` (`providerDecisions`) for `config.decisions` |
+| `@breadai/provider-reranking` | `providers/reranking` | Cohere, Bedrock, Together, and Voyage rerankers as a `RerankingRegistry` (`providerReranking`) for `config.reranking` |
 | `@breadai/protocol-ag-ui` | `protocols/ag-ui` | AG-UI protocol |
 | `@breadai/protocol-a2a-server` | `protocols/a2a-server` | Agent-to-agent (A2A) protocol |
 | `@breadai/protocol-mcp-client` | `protocols/mcp-client` | Consume MCP servers (config-level + per-agent `cfg.plugins.mcp_client`) |
@@ -155,6 +156,15 @@ The CLI loader (`packages/server/src/loader.ts`) attaches private fields to each
   (`packages/core/src/decision.ts`). A `decision` pipeline step calls `systemOne` and records
   `{ label, answer }` on the step-end crumb without replacing the value passed onward.
   `@breadai/provider-decisions` fills the registry. Core does not import that package.
+- **Reranking** — `BreadConfig.reranking` is a `RerankingRegistry` (`packages/core/src/reranking.ts`).
+  Factories return an AI SDK `RerankingModel`, so they do not go on `config.providers`.
+  `@breadai/provider-reranking` fills the registry with lazy optional peers (`cohere`,
+  `amazon-bedrock`, `togetherai`, `voyage`). Core does not import that package.
+  `bread.start()` binds the registry onto a store that implements `bindReranking`. Postgres
+  `searchDocuments` / `queryKnowledge` load candidate text (document content, knowledge label),
+  call `resolveReranking` when the store's `rerank` ref is set, reorder those hits, then apply
+  `limit`. With no ref, order is unchanged. SQLite and memory stay keyword-only, including
+  [`examples/knowledge-graph`](./examples/knowledge-graph).
 - **Lifecycle unification** — `BreadPlugin.close` (renamed from `destroy`) runs on `bread.stop()`;
   stores keep `migrate?`/`close?`; transports use `init?`/`close?`. `RemoteAgent` (the remote-agent
   seam) was aligned the same way in Chunk 5 (`destroy` → `close`), so every lifecycle-holding seam now
