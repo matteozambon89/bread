@@ -75,6 +75,11 @@ export default defineConfig({
 })
 ```
 
+`@breadai/provider-transcription` is a separate registry for `config.transcription` (15 lazy
+optional peers). A pipeline `transcription` step passes an http(s) `FileOutput` URL to `transcribe`,
+and the next step reads the transcript text. See [`docs/providers.md`](./docs/providers.md#transcription)
+and [`docs/pipelines.md`](./docs/pipelines.md#transcription).
+
 ### Runtime
 
 `bread` runs on **Bun** — the `@breadai/store-sqlite` store (`bun:sqlite`) works out of the box.

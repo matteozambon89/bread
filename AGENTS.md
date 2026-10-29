@@ -64,6 +64,7 @@ Server runners do not read stdin for init or add.
 | `@breadai/provider-llm` | `providers/llm` | The 21 language-model providers as a `ProviderRegistry` (`providerLlm`) |
 | `@breadai/provider-catalog` | `providers/catalog` | Re-exports `providerLlm` and `providerEntries` from `@breadai/provider-llm` |
 | `@breadai/provider-decisions` | `providers/decisions` | System One hosts as a `DecisionRegistry` (`providerDecisions`) for `config.decisions` |
+| `@breadai/provider-transcription` | `providers/transcription` | 15 transcription models as a `TranscriptionRegistry` (`providerTranscription`) for `config.transcription` |
 | `@breadai/protocol-ag-ui` | `protocols/ag-ui` | AG-UI protocol |
 | `@breadai/protocol-a2a-server` | `protocols/a2a-server` | Agent-to-agent (A2A) protocol |
 | `@breadai/protocol-mcp-client` | `protocols/mcp-client` | Consume MCP servers (config-level + per-agent `cfg.plugins.mcp_client`) |
@@ -155,6 +156,12 @@ The CLI loader (`packages/server/src/loader.ts`) attaches private fields to each
   (`packages/core/src/decision.ts`). A `decision` pipeline step calls `systemOne` and records
   `{ label, answer }` on the step-end crumb without replacing the value passed onward.
   `@breadai/provider-decisions` fills the registry. Core does not import that package.
+- **Transcription** — `BreadConfig.transcription` is a `TranscriptionRegistry`
+  (`packages/core/src/transcription.ts`), separate from `config.providers`. A `transcription`
+  pipeline step requires `config.blobStore`, accepts only an http(s) `FileOutput`, passes
+  `new URL(file.uri)` to `transcribe`, and forwards `result.text` only.
+  `@breadai/provider-transcription` fills the registry. Core does not import that package.
+  See [`docs/pipelines.md`](./docs/pipelines.md#transcription).
 - **Lifecycle unification** — `BreadPlugin.close` (renamed from `destroy`) runs on `bread.stop()`;
   stores keep `migrate?`/`close?`; transports use `init?`/`close?`. `RemoteAgent` (the remote-agent
   seam) was aligned the same way in Chunk 5 (`destroy` → `close`), so every lifecycle-holding seam now
