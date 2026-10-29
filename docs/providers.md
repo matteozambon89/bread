@@ -93,3 +93,56 @@ missing catalog import fails loudly at run time rather than silently picking the
 
 See [agents.md](./agents.md#providers) for where `model`/`providers` sit in `AgentConfig`.
 Decision hosts are a separate registry, `config.decisions` — see [decisions.md](./decisions.md).
+
+## Embedding models
+
+`providers` returns a `LanguageModel`. Embeddings are not that registry.
+`BreadConfig.embeddings` is an `EmbeddingRegistry`: a provider name to a factory
+that takes a model id and returns an AI SDK `EmbeddingModel`.
+
+Install [`@breadai/provider-embeddings`](https://www.npmjs.com/package/@breadai/provider-embeddings)
+for 16 lazily-imported peers. A key that also exists on `@breadai/provider-llm`
+uses that same name. `voyage` and `alibaba` are embedding-only.
+Language-model-only keys (`anthropic`, `groq`, `xai`, `deepseek`, `cerebras`,
+`openrouter`, `workers-ai`) are not included.
+
+```ts
+import { defineConfig } from '@breadai/core'
+import { providerEmbeddings } from '@breadai/provider-embeddings'
+
+export default defineConfig({
+  entrypoints: ['memory'],
+  embeddings: providerEmbeddings,
+})
+```
+
+| Key | Package | Auth |
+| --- | --- | --- |
+| `openai` | `@ai-sdk/openai` | `OPENAI_API_KEY`. Optional `OPENAI_BASE_URL`. |
+| `azure` | `@ai-sdk/azure` | `AZURE_API_KEY`, `AZURE_RESOURCE_NAME` |
+| `google` | `@ai-sdk/google` | `GOOGLE_GENERATIVE_AI_API_KEY` |
+| `google-vertex` | `@ai-sdk/google-vertex` | `GOOGLE_VERTEX_PROJECT`, `GOOGLE_VERTEX_LOCATION`, `GOOGLE_APPLICATION_CREDENTIALS` |
+| `amazon-bedrock` | `@ai-sdk/amazon-bedrock` | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION` |
+| `mistral` | `@ai-sdk/mistral` | `MISTRAL_API_KEY` |
+| `cohere` | `@ai-sdk/cohere` | `COHERE_API_KEY` |
+| `togetherai` | `@ai-sdk/togetherai` | `TOGETHER_AI_API_KEY` |
+| `fireworks` | `@ai-sdk/fireworks` | `FIREWORKS_API_KEY` |
+| `deepinfra` | `@ai-sdk/deepinfra` | `DEEPINFRA_API_KEY` |
+| `perplexity` | `@ai-sdk/perplexity` | `PERPLEXITY_API_KEY` |
+| `baseten` | `@ai-sdk/baseten` | `BASETEN_API_KEY` |
+| `ollama` | `ollama-ai-provider-v2` | None. Local server. Optional `OLLAMA_BASE_URL`. |
+| `openai-compatible` | `@ai-sdk/openai-compatible` | `OPENAI_COMPATIBLE_BASE_URL`. Optional `OPENAI_COMPATIBLE_API_KEY`. |
+| `voyage` | `@ai-sdk/voyage` | `VOYAGE_API_KEY` |
+| `alibaba` | `@ai-sdk/alibaba` | `ALIBABA_API_KEY` |
+
+`ollama` is the local embedding provider. `openai-compatible` is the escape hatch
+for a server that speaks the embeddings API: the factory calls
+`createOpenAICompatible(...).embeddingModel(modelId)`. Spread your own
+`embeddingModel` factory under another key for a second host.
+
+Registering `embeddings` does not turn on vector search. Postgres still takes a
+hand-written `embed` function, and SQLite and memory stay keyword-only. See
+[store.md](./store.md#semantic-vector-search).
+[`examples/knowledge-graph`](https://github.com/matteozambon89/bread/tree/HEAD/examples/knowledge-graph)
+spreads `providerEmbeddings` next to its document and knowledge auto-inject and
+leaves the SQLite store keyword-only.

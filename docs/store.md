@@ -91,24 +91,40 @@ first-party stores implement the full interface.
 
 ## Semantic (vector) search
 
-`store` accepts an optional `embed` function. When provided, documents and knowledge nodes
-are embedded on write and searched by cosine similarity via [pgvector](https://github.com/pgvector/pgvector);
+`store` accepts an optional `embed` function, `(text: string) => Promise<number[]>`.
+When provided, documents and knowledge nodes are embedded on write and searched
+by cosine similarity via [pgvector](https://github.com/pgvector/pgvector);
 without it, search falls back to keyword (`ILIKE`) matching.
 
-```ts
-import { store } from '@breadai/store-postgres'
-import { openai } from '@ai-sdk/openai'
+`config.embeddings` is a separate registry of AI SDK embedding models — see
+[providers](./providers.md#embedding-models). It does not replace `embed`. A
+`{ provider, model }` ref is not an `embed` value. Pass a hand-written function:
 
-store: store({
-  embed: async (text) => {
-    const res = await openai.embeddings.create({ model: 'text-embedding-3-small', input: text })
-    return res.data[0].embedding
-  },
+```ts
+import { embed } from 'ai'
+import { defineConfig } from '@breadai/core'
+import { providerEmbeddings } from '@breadai/provider-embeddings'
+import { store } from '@breadai/store-postgres'
+
+const model = await providerEmbeddings.openai('text-embedding-3-small')
+
+export default defineConfig({
+  entrypoints: ['writer'],
+  embeddings: providerEmbeddings,
+  store: store({
+    embed: async (text) => {
+      const { embedding } = await embed({ model, value: text })
+      return embedding
+    },
+  }),
 })
 ```
 
-When `embed` is set, `migrate()` also runs `CREATE EXTENSION IF NOT EXISTS vector`. The SQLite and
-memory stores are always keyword-only.
+When `embed` is set, `migrate()` also runs `CREATE EXTENSION IF NOT EXISTS vector`.
+The SQLite and memory stores are always keyword-only, including when
+`config.embeddings` is set. [`examples/knowledge-graph`](https://github.com/matteozambon89/bread/tree/HEAD/examples/knowledge-graph)
+registers `providerEmbeddings` beside document and knowledge auto-inject and
+does not pass `embed` to its SQLite store.
 
 ## Blob storage
 

@@ -75,6 +75,12 @@ export default defineConfig({
 })
 ```
 
+Embedding models are a separate registry. [`@breadai/provider-embeddings`](./providers/embeddings)
+exports `providerEmbeddings` for `config.embeddings` (an AI SDK `EmbeddingModel`,
+not a `LanguageModel`). That registry does not replace a Postgres `embed`
+function — see [`docs/providers.md`](./docs/providers.md) and
+[`docs/store.md`](./docs/store.md).
+
 ### Runtime
 
 `bread` runs on **Bun** — the `@breadai/store-sqlite` store (`bun:sqlite`) works out of the box.

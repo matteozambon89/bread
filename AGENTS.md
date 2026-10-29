@@ -63,6 +63,7 @@ Server runners do not read stdin for init or add.
 | `@breadai/store-s3` | `stores/s3` | S3-backed `BlobStore` — binary/file storage via presigned URLs |
 | `@breadai/provider-llm` | `providers/llm` | The 21 language-model providers as a `ProviderRegistry` (`providerLlm`) |
 | `@breadai/provider-catalog` | `providers/catalog` | Re-exports `providerLlm` and `providerEntries` from `@breadai/provider-llm` |
+| `@breadai/provider-embeddings` | `providers/embeddings` | 16 embedding providers as an `EmbeddingRegistry` (`providerEmbeddings`) for `config.embeddings` |
 | `@breadai/provider-decisions` | `providers/decisions` | System One hosts as a `DecisionRegistry` (`providerDecisions`) for `config.decisions` |
 | `@breadai/protocol-ag-ui` | `protocols/ag-ui` | AG-UI protocol |
 | `@breadai/protocol-a2a-server` | `protocols/a2a-server` | Agent-to-agent (A2A) protocol |
@@ -155,6 +156,12 @@ The CLI loader (`packages/server/src/loader.ts`) attaches private fields to each
   (`packages/core/src/decision.ts`). A `decision` pipeline step calls `systemOne` and records
   `{ label, answer }` on the step-end crumb without replacing the value passed onward.
   `@breadai/provider-decisions` fills the registry. Core does not import that package.
+- **Embeddings** — `BreadConfig.embeddings` is an `EmbeddingRegistry`
+  (`packages/core/src/embedding.ts`): `(modelId) => EmbeddingModel`. It is not
+  `config.providers`. `@breadai/provider-embeddings` fills it. Core does not turn
+  a `{ provider, model }` ref into the Postgres `EmbedFn`; a hand-written `embed`
+  function still works. See [`docs/providers.md`](./docs/providers.md) and
+  [`docs/store.md`](./docs/store.md).
 - **Lifecycle unification** — `BreadPlugin.close` (renamed from `destroy`) runs on `bread.stop()`;
   stores keep `migrate?`/`close?`; transports use `init?`/`close?`. `RemoteAgent` (the remote-agent
   seam) was aligned the same way in Chunk 5 (`destroy` → `close`), so every lifecycle-holding seam now
