@@ -93,3 +93,49 @@ missing catalog import fails loudly at run time rather than silently picking the
 
 See [agents.md](./agents.md#providers) for where `model`/`providers` sit in `AgentConfig`.
 Decision hosts are a separate registry, `config.decisions` — see [decisions.md](./decisions.md).
+
+## Reranking
+
+`BreadConfig.reranking` is a `RerankingRegistry`: a map of provider name to
+`(modelId: string) => RerankingModel | Promise<RerankingModel>`. It is not `config.providers`.
+That registry returns a `LanguageModel`, so a reranker cannot live on it. Core has no built-in
+rerankers. `resolveReranking` throws `RERANKING_NOT_CONFIGURED` when the registry is unset and
+`UNKNOWN_RERANKING_PROVIDER` for an unknown name.
+
+[`@breadai/provider-reranking`](https://github.com/matteozambon89/bread/tree/HEAD/providers/reranking)
+exports `providerReranking` for that field. Each entry lazy-imports an optional peer and returns
+that provider's `.reranking(modelId)`. The keys are `cohere`, `amazon-bedrock`, `togetherai`, and
+`voyage`. `openai-compatible` is not a key — the AI SDK has no reranking factory for it.
+
+```ts
+import { defineConfig } from '@breadai/core'
+import { providerReranking } from '@breadai/provider-reranking'
+import { store } from '@breadai/store-postgres'
+
+export default defineConfig({
+  entrypoints: ['memory'],
+  reranking: providerReranking,
+  store: store({
+    rerank: { provider: 'cohere', model: 'rerank-v3.5' },
+  }),
+})
+```
+
+`bread.start()` binds `config.reranking` onto the Postgres store. When `rerank` is set,
+`searchDocuments` and `queryKnowledge` load candidate text — document content, knowledge
+label — call `resolveReranking`, reorder those hits, and then apply `limit`. With no
+`rerank` ref, order stays what the store does today (pgvector distance when `embed` is
+set, keyword otherwise). See [store](./store.md#reranking). SQLite and memory stay
+keyword-only: they take no `rerank` ref, and setting `reranking` does not reorder them.
+[`examples/knowledge-graph`](https://github.com/matteozambon89/bread/tree/HEAD/examples/knowledge-graph)
+uses SQLite, so its `core_doc_search` and `core_kg_query` order is unchanged.
+
+| Key | Call | Auth the SDK reads |
+| --- | --- | --- |
+| `cohere` | `cohere.reranking(modelId)` (`@ai-sdk/cohere`) | `COHERE_API_KEY` |
+| `amazon-bedrock` | `bedrock.reranking(modelId)` (`@ai-sdk/amazon-bedrock`) | `AWS_REGION`, plus `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`, or `AWS_BEARER_TOKEN_BEDROCK` |
+| `togetherai` | `togetherai.reranking(modelId)` (`@ai-sdk/togetherai`) | `TOGETHER_API_KEY` |
+| `voyage` | `voyage.reranking(modelId)` (`@ai-sdk/voyage`) | `VOYAGE_API_KEY` |
+
+A missing peer throws `MISSING_PROVIDER` and names the `bun add` package. Spreading the registry
+does not import those packages.

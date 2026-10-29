@@ -75,6 +75,13 @@ export default defineConfig({
 })
 ```
 
+Reranking is a separate registry, `reranking`, not `providers` (that one returns a `LanguageModel`).
+[`@breadai/provider-reranking`](./providers/reranking) lazy-loads `cohere`, `amazon-bedrock`,
+`togetherai`, and `voyage`. Postgres rescores document and knowledge hits when the store has a
+`rerank` ref; SQLite and memory stay keyword-only.
+[`examples/knowledge-graph`](./examples/knowledge-graph) uses SQLite, so its `core_doc_search` and
+`core_kg_query` order is unchanged. See [`docs/providers.md`](./docs/providers.md).
+
 ### Runtime
 
 `bread` runs on **Bun** — the `@breadai/store-sqlite` store (`bun:sqlite`) works out of the box.
