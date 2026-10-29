@@ -62,3 +62,26 @@ receives the lookup string.
 curl -N -X POST localhost:3000/pipelines/refund/run \
   -d '{"input":"ord-1002, charged twice"}'
 ```
+
+## Speak pipeline
+
+`pipelines.speak` runs `ticket-lookup`, then the same decision step as `refund`, then
+`{ type: 'speech', provider: 'openai', model: 'tts-1' }`. The decision does not replace the lookup
+string, so speech reads that text. `refund` is unchanged.
+
+Speech needs `config.speech` from [`@breadai/provider-speech`](../../providers/speech) and a
+`config.blobStore`. This example keeps the bytes in memory for the life of the process
+([`blob-store.ts`](./blob-store.ts)); swap that for
+[`@breadai/store-s3`](../../stores/s3) when the audio must outlive the process. Install the OpenAI
+peer before calling it (`bun add @ai-sdk/openai`) and set `OPENAI_API_KEY`. `xai` and `hume` ignore
+the model id; the other catalog providers use it.
+
+```bash
+curl -N -X POST localhost:3000/pipelines/speak/run \
+  -d '{"input":"ord-1002, charged twice"}'
+```
+
+The stream includes `file:generated` for the stored audio. The step's output, which would be the
+next step's input, is the `FileOutput`. See
+[`docs/pipelines.md`](../../docs/pipelines.md#speech) and
+[`docs/providers.md`](../../docs/providers.md#speech).

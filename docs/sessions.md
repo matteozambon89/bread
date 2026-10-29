@@ -81,8 +81,10 @@ no principal argument.
 
 `GET /runs/:runId/stream` and `POST /runs/:runId/cancel` apply the same check to the run's
 owner with `runVisible`: the principal the run is live under on this replica, otherwise the
-principal on its `agent:run:start` crumb. A run the caller cannot see is the same `404` as an
-unknown run. When auth is configured, a caller with no principal, such as an API key, is `403`
+principal on its `agent:run:start` crumb. A speech step has no start crumb. Its owner is the
+principal on the session named by its `file:generated` crumb, which is logged on that step's
+run id. A run the caller cannot see is the same `404` as an unknown run. When auth is configured,
+a caller with no principal, such as an API key, is `403`
 on both routes, as on run start and resume.
 
 `bread.store` does not apply the check. `bread sessions` reads and deletes through the store, so

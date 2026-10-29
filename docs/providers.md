@@ -93,3 +93,46 @@ missing catalog import fails loudly at run time rather than silently picking the
 
 See [agents.md](./agents.md#providers) for where `model`/`providers` sit in `AgentConfig`.
 Decision hosts are a separate registry, `config.decisions` — see [decisions.md](./decisions.md).
+
+## Speech
+
+Speech models are not language models. `config.providers` returns a `LanguageModel`.
+`config.speech` is a `SpeechRegistry`: a map of provider name to a factory
+`(modelId: string) => SpeechModel | Promise<SpeechModel>`. A speech pipeline step names
+`provider` and `model`. Core has no built-in speech providers.
+
+Install
+[`@breadai/provider-speech`](https://github.com/matteozambon89/bread/tree/HEAD/providers/speech).
+Each entry is an optional peer, imported on first use, same as `@breadai/provider-llm`.
+
+```ts
+import { defineConfig } from '@breadai/core'
+import { providerSpeech } from '@breadai/provider-speech'
+
+export default defineConfig({
+  entrypoints: ['reply'],
+  speech: providerSpeech,
+})
+```
+
+The catalog is exactly these twelve. `openai-compatible` has no speech factory and is not included.
+`xai` and `hume` expose `speech()` with no model id; the step still passes `model`, and those two
+ignore it.
+
+| Key | Package | Auth |
+| --- | --- | --- |
+| `openai` | `@ai-sdk/openai` | `OPENAI_API_KEY` |
+| `azure` | `@ai-sdk/azure` | `AZURE_API_KEY`, `AZURE_RESOURCE_NAME` |
+| `google` | `@ai-sdk/google` | `GOOGLE_GENERATIVE_AI_API_KEY` |
+| `google-vertex` | `@ai-sdk/google-vertex` | `GOOGLE_VERTEX_API_KEY`, `GOOGLE_VERTEX_PROJECT`, `GOOGLE_VERTEX_LOCATION` |
+| `mistral` | `@ai-sdk/mistral` | `MISTRAL_API_KEY` |
+| `xai` | `@ai-sdk/xai` | `XAI_API_KEY` |
+| `elevenlabs` | `@ai-sdk/elevenlabs` | `ELEVENLABS_API_KEY` |
+| `deepgram` | `@ai-sdk/deepgram` | `DEEPGRAM_API_KEY` |
+| `cartesia` | `@ai-sdk/cartesia` | `CARTESIA_API_KEY` |
+| `hume` | `@ai-sdk/hume` | `HUME_API_KEY` |
+| `fish-audio` | `@ai-sdk/fish-audio` | `FISH_AUDIO_API_KEY` |
+| `fal` | `@ai-sdk/fal` | `FAL_API_KEY`, or `FAL_KEY` when that is unset |
+
+A missing peer throws `MISSING_PROVIDER` and names `bun add <package>`. The step that calls
+`generateSpeech` is documented in [pipelines.md](./pipelines.md#speech).
