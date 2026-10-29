@@ -40,6 +40,7 @@ Step types:
 | `parallel` | Run nested steps concurrently, merge crumb streams. The step's output is the **ordered array of branch outputs**. |
 | `map` | Fan the input array out across `agentId` — each element runs through the agent; output is the array of per-element outputs. |
 | `decision` | Ask one System One question. The step-end output is `{ label, answer }`. The next step still receives the pre-decision value. See [decisions.md](./decisions.md). |
+| `image` | Read the current value as a string or `{ text?, images, mask? }` and call `generateImage` once (`n: 1`, `maxRetries: 0`). Store the bytes with `config.blobStore`, emit `file:generated`, and pass the `FileOutput` on. See [Image](#image). |
 | `branch` | Run exactly one arm. `cases` match `eq` with strict string equality, first hit. See [Branch](#branch). |
 
 ```bash
@@ -51,6 +52,22 @@ UUIDv7 minted for each pipeline run, so step ids are unique per run and can't be
 `parallel` and `branch` steps extend the `pipelineId` part (for example `…:article:1:parallel:0:0`),
 and resuming a paused pipeline reuses the original `pipelineRunId`. Releases before this one used
 `<pipelineId>:<stepIndex>`. See [HTTP API](./http-api.md#post-pipelinesidrun).
+
+### Image
+
+```ts
+{
+  type: 'image',
+  provider: 'openai',
+  model: 'gpt-image-1',
+}
+```
+
+The current value is a string, or `{ text?, images, mask? }` — the AI SDK `GenerateImagePrompt`. A string is the text prompt. The object passes `images` through (optional `text` and `mask` too), so a model that enhances a source image can receive one. Topaz ignores text and fails unless `images` is set. Anything else throws `IMAGE_PROMPT` before a model call. The step calls the image registry (`config.image`, not `config.providers`) once, stores `image.uint8Array` with `config.blobStore`, and yields `file:generated` (`agentId: 'image'`, same `runId` as the step). The step-end `output` is the `FileOutput` (`{ kind: 'file', uri, mimeType }`), and that object is the next step's input. Unlike `decision`, this step replaces the value.
+
+No `blobStore` throws `BLOB_STORE_NOT_CONFIGURED`. No `image` registry throws `IMAGE_NOT_CONFIGURED`. An unknown `provider` throws `UNKNOWN_IMAGE_PROVIDER`. A rejected `generateImage` (bad key, content policy, empty image) is rethrown as `BreadError` `AGENT_ERROR` with the provider message, `pipelineId`, and `stepIndex`. The catalog is [`@breadai/provider-image`](https://github.com/matteozambon89/bread/tree/HEAD/providers/image) — see [providers.md](./providers.md#image-models). The crumb's session is the pipeline invocation, so the log keeps the URI and `deleteSession` cascades the row. Bytes still live in the blob store — see [store.md](./store.md#blob-storage).
+
+[`examples/pipeline`](https://github.com/matteozambon89/bread/tree/HEAD/examples/pipeline) pipeline `cover` runs the writer, then this step, so the writer's paragraph is the prompt.
 
 ### Branch
 

@@ -140,6 +140,9 @@ degrade gracefully rather than crashing at startup. Current consumers:
   model) is stored automatically via `blobStore.put()`; a run with none configured throws a runtime
   `BreadError('BLOB_STORE_NOT_CONFIGURED', ...)` the moment the model actually produces a file, not
   at startup.
+- An [image pipeline step](./pipelines.md#image) stores the bytes from `generateImage` the same way
+  and emits `file:generated`. It throws `BLOB_STORE_NOT_CONFIGURED` when `blobStore` is unset,
+  before it calls the image model.
 - `ToolContext.blobStore` — a tool's own `execute()` can call `ctx.blobStore.put()` directly to
   store a file it generates or fetches; see [tools.md](./tools.md#toolcontext).
 

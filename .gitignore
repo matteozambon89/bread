@@ -11,3 +11,4 @@ docs/.vitepress/cache/
 *.db*
 *.log
 .DS_Store
+examples/pipeline/blobs/
