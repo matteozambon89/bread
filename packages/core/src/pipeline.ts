@@ -1,5 +1,6 @@
 import { v7 as uuidv7 } from 'uuid'
 import { decisionLabel, resolveDecisionClient, toHostQuestion } from './decision.js'
+import { resolveVideoModel } from './video.js'
 import { runWithOnErrorRetry } from './hooks.js'
 import type { BreadCrumb, LoopHostLink, PipelineCheckpointParent, PipelineStep, Principal, RunOptions, SupervisorCheckpointParent } from './types.js'
 import { BreadError } from './types.js'
@@ -156,6 +157,25 @@ export async function* runPipeline(opts: PipelineRunOpts): AsyncGenerator<BreadC
       const decided = decisionLabel(step.question, response.answers)
       output = { label: decided.label, answer: decided.answer }
       lastDecision = decided.label
+    } else if (step.type === 'video') {
+      if (!ctx.blobStore) {
+        throw new BreadError(
+          `Pipeline "${pipelineId}" step ${index} is a video step but no blobStore is configured — see docs/store.md#blob-storage`,
+          'BLOB_STORE_NOT_CONFIGURED',
+          { pipelineId, stepIndex: index },
+        )
+      }
+      if (typeof current !== 'string') {
+        throw new BreadError(
+          `Pipeline "${pipelineId}" step ${index} video prompt must be a string.`,
+          'VIDEO_PROMPT',
+          { pipelineId, stepIndex: index },
+        )
+      }
+      // Resolve before passing the prompt on so a missing provider fails here.
+      // The vendor job (start, poll, bytes) stays deferred.
+      await resolveVideoModel(ctx.video, step.provider, step.model)
+      output = current
     } else if (step.type === 'branch') {
       if (step.default === undefined) {
         throw new BreadError(
@@ -240,6 +260,7 @@ function getStepAgentId(step: PipelineStep): string {
   if (step.type === 'agent' || step.type === 'map') return step.agentId
   if (step.type === 'decision') return 'decision'
   if (step.type === 'branch') return 'branch'
+  if (step.type === 'video') return 'video'
   return 'parallel'
 }
 
