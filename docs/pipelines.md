@@ -40,6 +40,7 @@ Step types:
 | `parallel` | Run nested steps concurrently, merge crumb streams. The step's output is the **ordered array of branch outputs**. |
 | `map` | Fan the input array out across `agentId` — each element runs through the agent; output is the array of per-element outputs. |
 | `decision` | Ask one System One question. The step-end output is `{ label, answer }`. The next step still receives the pre-decision value. See [decisions.md](./decisions.md). |
+| `transcription` | Transcribe an http(s) `FileOutput`. The next step receives the transcript text only. Requires `config.blobStore`. See [Transcription](#transcription). |
 | `branch` | Run exactly one arm. `cases` match `eq` with strict string equality, first hit. See [Branch](#branch). |
 
 ```bash
@@ -51,6 +52,38 @@ UUIDv7 minted for each pipeline run, so step ids are unique per run and can't be
 `parallel` and `branch` steps extend the `pipelineId` part (for example `…:article:1:parallel:0:0`),
 and resuming a paused pipeline reuses the original `pipelineRunId`. Releases before this one used
 `<pipelineId>:<stepIndex>`. See [HTTP API](./http-api.md#post-pipelinesidrun).
+
+### Transcription
+
+```ts
+{ type: 'transcription', provider: 'openai', model: 'whisper-1' }
+```
+
+The current value must be a `FileOutput` whose `uri` is `http:` or `https:` and a URL
+`blobStore.issued` accepts. The step downloads that URL itself. It refuses loopback, private,
+link-local, and metadata addresses, checks every redirect hop the same way, and pins the
+connection to the address it already checked. It passes the bytes to `transcribe` from `ai`.
+It does not call `BlobStore.get` or `BlobStore.put`. Segments, speakers, and timestamps are not
+kept. The step-end `output`, and the value the next step reads, are the transcript text.
+
+Optional `providerOptions` is forwarded to `transcribe` (`gladia`, `vertex`, and the other SDK
+provider names).
+
+`pipeline:step:start` is yielded with `pipeline:step:end` only after the transcript is ready.
+Both use `agentId: 'transcription'`. A failure throws before either crumb.
+
+Unset `config.blobStore` throws `BLOB_STORE_NOT_CONFIGURED` before `transcribe`. A value that is
+not a `FileOutput`, or a uri that is not http(s), throws `TRANSCRIPTION_INPUT` before `transcribe`.
+A URL the store did not issue, or one that resolves to a blocked address, throws
+`TRANSCRIPTION_URL_BLOCKED`. A fetch failure throws `TRANSCRIPTION_FETCH_FAILED`. A provider
+failure throws `TRANSCRIPTION_FAILED`. An empty transcript throws `TRANSCRIPTION_EMPTY`. Those
+errors are `BreadError`s and do not include the file URL. An unset `config.transcription` throws
+`TRANSCRIPTION_NOT_CONFIGURED`. An unknown provider throws `UNKNOWN_TRANSCRIPTION_PROVIDER`.
+
+[`examples/pipeline`](https://github.com/matteozambon89/bread/tree/HEAD/examples/pipeline) declares
+`transcript` and then the writer. It does not set `blobStore`, so `article` is unchanged. The registry is
+[`@breadai/provider-transcription`](https://github.com/matteozambon89/bread/tree/HEAD/providers/transcription).
+See [providers.md](./providers.md#transcription).
 
 ### Branch
 

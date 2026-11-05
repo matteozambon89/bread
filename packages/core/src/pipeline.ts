@@ -1,5 +1,8 @@
+import { NoTranscriptGeneratedError, transcribe } from 'ai'
 import { v7 as uuidv7 } from 'uuid'
 import { decisionLabel, resolveDecisionClient, toHostQuestion } from './decision.js'
+import { downloadTranscriptionAudio } from './transcription-audio.js'
+import { resolveTranscriptionModel, transcriptionAudioUrl } from './transcription.js'
 import { runWithOnErrorRetry } from './hooks.js'
 import type { BreadCrumb, LoopHostLink, PipelineCheckpointParent, PipelineStep, Principal, RunOptions, SupervisorCheckpointParent } from './types.js'
 import { BreadError } from './types.js'
@@ -79,6 +82,24 @@ export async function* runPipeline(opts: PipelineRunOpts): AsyncGenerator<BreadC
       runId: stepRunId,
       timestamp: Date.now(),
     }
+    // Validate and transcribe before any crumb. A throw after step:start used to
+    // leave a start with no end, and the SDK download accepted any http(s) URL.
+    if (step.type === 'transcription') {
+      const output = await transcribeStep(step, current, ctx, pipelineId, index)
+      yield startCrumb
+      yield {
+        type: 'pipeline:step:end',
+        pipelineId,
+        stepIndex: index,
+        agentId: 'transcription',
+        runId: stepRunId,
+        output,
+        timestamp: Date.now(),
+      }
+      current = output
+      continue
+    }
+
     yield startCrumb
 
     // This step's suffix only. The branch step and each parallel slot are
@@ -232,6 +253,78 @@ export async function* runPipeline(opts: PipelineRunOpts): AsyncGenerator<BreadC
 
 // The step's own runId. Also the key the HTTP transports register a live
 // step under, so it must be unique per invocation.
+async function transcribeStep(
+  step: Extract<PipelineStep, { type: 'transcription' }>,
+  current: unknown,
+  ctx: RunnerContext,
+  pipelineId: string,
+  index: number,
+): Promise<string> {
+  const where = { pipelineId, stepIndex: index }
+  if (!ctx.blobStore) {
+    throw new BreadError(
+      `Pipeline "${pipelineId}" step ${index} transcribes audio but no blobStore is configured — see docs/store.md#blob-storage`,
+      'BLOB_STORE_NOT_CONFIGURED',
+      where,
+    )
+  }
+  const audio = transcriptionAudioUrl(current, where)
+  if (typeof ctx.blobStore.issued !== 'function') {
+    throw new BreadError(
+      `Pipeline "${pipelineId}" step ${index} transcription only downloads a URL the blob store issued.`,
+      'TRANSCRIPTION_URL_BLOCKED',
+      where,
+    )
+  }
+  const model = await resolveTranscriptionModel(ctx.transcription, step.provider, step.model)
+  const issued = (href: string) => ctx.blobStore!.issued!(href)
+  let bytes: Uint8Array
+  try {
+    bytes = await downloadTranscriptionAudio(audio, issued, {
+      ...(ctx.signal ? { signal: ctx.signal } : {}),
+    })
+  } catch (err) {
+    throw transcriptionFailure(err, where)
+  }
+  let result: { text: string }
+  try {
+    result = await transcribe({
+      model,
+      audio: bytes,
+      ...(step.providerOptions ? { providerOptions: step.providerOptions } : {}),
+      ...(ctx.signal ? { abortSignal: ctx.signal } : {}),
+    })
+  } catch (err) {
+    throw transcriptionFailure(err, where)
+  }
+  if (!result.text) {
+    throw new BreadError(
+      `Pipeline "${pipelineId}" step ${index} transcription produced no text.`,
+      'TRANSCRIPTION_EMPTY',
+      where,
+    )
+  }
+  return result.text
+}
+
+function transcriptionFailure(err: unknown, where: { pipelineId: string; stepIndex: number }): BreadError {
+  if (err instanceof BreadError) {
+    return new BreadError(err.message, err.code, { ...where, ...err.context })
+  }
+  if (NoTranscriptGeneratedError.isInstance(err)) {
+    return new BreadError(
+      `Pipeline "${where.pipelineId}" step ${where.stepIndex} transcription produced no text.`,
+      'TRANSCRIPTION_EMPTY',
+      where,
+    )
+  }
+  return new BreadError(
+    `Pipeline "${where.pipelineId}" step ${where.stepIndex} transcription failed.`,
+    'TRANSCRIPTION_FAILED',
+    where,
+  )
+}
+
 function stepRunIdOf(pipelineRunId: string, pipelineId: string, index: number): string {
   return `${pipelineRunId}:${pipelineId}:${index}`
 }
@@ -240,6 +333,7 @@ function getStepAgentId(step: PipelineStep): string {
   if (step.type === 'agent' || step.type === 'map') return step.agentId
   if (step.type === 'decision') return 'decision'
   if (step.type === 'branch') return 'branch'
+  if (step.type === 'transcription') return 'transcription'
   return 'parallel'
 }
 

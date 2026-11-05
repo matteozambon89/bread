@@ -5,6 +5,7 @@ import type { BreadStore } from './storage/store.js'
 import type { TaskRegistry } from './task.js'
 import type { DecisionRegistry } from './decision.js'
 import type { ProviderRegistry } from './model-provider.js'
+import type { TranscriptionRegistry } from './transcription.js'
 import type { ToolOrigin } from './permissions.js'
 import type {
   AgentDefinition,
@@ -34,6 +35,7 @@ export interface RunnerContext {
   systemPrompt?: string | undefined
   providers?: ProviderRegistry | undefined
   decisions?: DecisionRegistry | undefined
+  transcription?: TranscriptionRegistry | undefined
   pluginTools?: { plugin: string; def: ToolDefinition }[] | undefined
   pluginToolResolvers?:
     | { plugin: string; resolve: NonNullable<BreadPlugin['resolveAgentTools']> }[]

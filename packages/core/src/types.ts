@@ -1,6 +1,8 @@
+import type { JSONValue } from 'ai'
 import type { z } from 'zod'
 import type { DecisionQuestion, DecisionRegistry } from './decision.js'
 import type { ModelRef, ProviderRegistry } from './model-provider.js'
+import type { TranscriptionRegistry } from './transcription.js'
 import type { BlobStore, FileOutput } from './storage/blob-store.js'
 import type { BreadStore } from './storage/store.js'
 import type { BreadTransport } from './transport.js'
@@ -787,6 +789,14 @@ export type PipelineStep =
   | { type: 'map'; agentId: string }
   | { type: 'decision'; provider: string; model: string; question: DecisionQuestion }
   | {
+      type: 'transcription'
+      provider: string
+      model: string
+      // Passed through to `transcribe` as AI SDK providerOptions. Keys are the
+      // SDK provider names (`gladia`, `vertex`), not always the catalog key.
+      providerOptions?: Record<string, Record<string, JSONValue>>
+    }
+  | {
       type: 'branch'
       // Dot path into the current value. Omit to use the latest decision label.
       on?: string
@@ -918,11 +928,10 @@ export interface BreadConfig {
   // interactive fallback. Optional here only so a partial config can be built
   // up before `bread.start()`/`createServer()` validate it.
   store?: BreadStore
-  // Optional binary-content storage (e.g. @breadai/store-s3), consumed by
-  // features that need to persist file bytes — currently A2A's inline
-  // FilePart handling. Unlike `store`, unset is not an error; a feature that
-  // needs it and finds it missing fails with its own clear, feature-specific
-  // message instead of a startup-time throw.
+  // Optional binary-content storage (e.g. @breadai/store-s3). Unlike `store`,
+  // unset is not a startup error. A generated file part and a transcription
+  // step throw BLOB_STORE_NOT_CONFIGURED when they run without one. The
+  // transcription step does not call get or put.
   blobStore?: BlobStore
   // Named model-provider instances, keyed by the name `model.provider` refers
   // to (e.g. `{ anthropic, 'anthropic-eu': createAnthropic({ baseURL }) }`).
@@ -934,6 +943,11 @@ export interface BreadConfig {
   // built-ins — install @breadai/provider-decisions. Unset throws
   // DECISION_NOT_CONFIGURED; an unknown name throws UNKNOWN_DECISION_PROVIDER.
   decisions?: DecisionRegistry
+  // Transcription models keyed by the transcription step's `provider`. Core has
+  // no built-ins — install @breadai/provider-transcription. Unset throws
+  // TRANSCRIPTION_NOT_CONFIGURED; an unknown name throws
+  // UNKNOWN_TRANSCRIPTION_PROVIDER. Separate from `providers`.
+  transcription?: TranscriptionRegistry
   // The crumb fabric between replicas of this app. Defaults to the embedded
   // Stream transport (single container); set a distributed implementation
   // (e.g. @breadai/transport-redis) so passive subscribers on other replicas

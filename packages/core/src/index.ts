@@ -47,6 +47,7 @@ export type {
   DecisionQuestion,
   DecisionRegistry,
 } from './decision.js'
+export type { TranscriptionRegistry } from './transcription.js'
 export { buildToolCredentials } from './runner.js'
 export type { Skill, SkillMeta, SkillToolEntry } from './skills.js'
 export { injectSkillPrompt, loadSkill, loadSkillMeta } from './skills.js'
