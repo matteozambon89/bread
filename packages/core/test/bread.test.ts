@@ -72,6 +72,42 @@ describe('createBread — start guards', () => {
 })
 
 describe('createBread — start/stop wiring', () => {
+  test('start binds config.reranking onto a store that accepts it', async () => {
+    const registry = {
+      cohere: () => {
+        throw new Error('not called at start')
+      },
+    }
+    let bound: unknown = Symbol('unset')
+    let calls = 0
+    const base = store()
+    Object.assign(base, {
+      bindReranking(next: unknown) {
+        calls++
+        bound = next
+      },
+    })
+    const bread = createBread(baseConfig({ store: base, reranking: registry }))
+    await bread.start()
+    expect(calls).toBe(1)
+    expect(bound).toBe(registry)
+    await bread.stop()
+  })
+
+  test('start passes an unset reranking registry through', async () => {
+    let bound: unknown = Symbol('unset')
+    const base = store()
+    Object.assign(base, {
+      bindReranking(next: unknown) {
+        bound = next
+      },
+    })
+    const bread = createBread(baseConfig({ store: base }))
+    await bread.start()
+    expect(bound).toBeUndefined()
+    await bread.stop()
+  })
+
   test('start migrates the store and runs plugin init; stop runs close and closes the store', async () => {
     const spy = spyStore()
     let initialised = 0

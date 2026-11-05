@@ -110,6 +110,34 @@ store: store({
 When `embed` is set, `migrate()` also runs `CREATE EXTENSION IF NOT EXISTS vector`. The SQLite and
 memory stores are always keyword-only.
 
+## Reranking
+
+Postgres accepts `rerank: { provider, model }`. `bread.start()` binds
+[`config.reranking`](./providers.md#reranking) onto that store. `searchDocuments` and
+`queryKnowledge` take a bounded page from the vector or keyword order — document title
+and content, or the knowledge label — rerank that page, and then apply `limit`. `%` and
+`_` in a keyword query match literally. With no `rerank` ref, order stays what it is
+today (pgvector when `embed` is set, keyword otherwise).
+SQLite and memory stay keyword-only. Setting `config.reranking` does not reorder them,
+and they do not take a `rerank` ref.
+
+```ts
+import { defineConfig } from '@breadai/core'
+import { providerReranking } from '@breadai/provider-reranking'
+import { store } from '@breadai/store-postgres'
+
+export default defineConfig({
+  entrypoints: ['writer'],
+  reranking: providerReranking,
+  store: store({
+    rerank: { provider: 'cohere', model: 'rerank-v3.5' },
+  }),
+})
+```
+
+A store used without `bread.start()` must call `bindReranking(config.reranking)` before
+search. A `rerank` ref with no registry throws `RERANKING_NOT_CONFIGURED`.
+
 ## Blob storage
 
 Binary content (file bytes) is a separate, independent seam from `BreadStore` — a `BlobStore`

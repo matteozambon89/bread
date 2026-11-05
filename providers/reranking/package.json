@@ -1,0 +1,71 @@
+{
+  "name": "@breadai/provider-reranking",
+  "version": "0.1.0",
+  "description": "Reranking providers for bread — cohere, amazon-bedrock, togetherai, and voyage as a RerankingRegistry for config.reranking.",
+  "license": "MIT",
+  "author": "Matteo Zambon <matteo@yeeti.co>",
+  "keywords": [
+    "ai",
+    "agents",
+    "bread",
+    "provider",
+    "reranking",
+    "ai-sdk"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/matteozambon89/bread.git",
+    "directory": "providers/reranking"
+  },
+  "homepage": "https://github.com/matteozambon89/bread",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "bread-source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "bun build ./src/index.ts --outdir dist --target node --format esm --packages external && tsc --emitDeclarationOnly --outDir dist"
+  },
+  "dependencies": {
+    "@breadai/core": "workspace:>=0.1.1 <1.0.0"
+  },
+  "peerDependencies": {
+    "@ai-sdk/amazon-bedrock": ">=5.0",
+    "@ai-sdk/cohere": ">=4.0",
+    "@ai-sdk/togetherai": ">=3.0",
+    "@ai-sdk/voyage": ">=2.0"
+  },
+  "peerDependenciesMeta": {
+    "@ai-sdk/amazon-bedrock": {
+      "optional": true
+    },
+    "@ai-sdk/cohere": {
+      "optional": true
+    },
+    "@ai-sdk/togetherai": {
+      "optional": true
+    },
+    "@ai-sdk/voyage": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "ai": "^7.0.93",
+    "typescript": "^5.8.3"
+  }
+}

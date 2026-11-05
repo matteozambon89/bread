@@ -7,6 +7,7 @@ import { type AgentRegistry, buildToolCredentials, resumeRun, runAgent } from '.
 import { type TaskRegistry, createTaskTool } from './task.js'
 import type { BlobStore, FileOutput } from './storage/blob-store.js'
 import type { BreadStore } from './storage/store.js'
+import { bindStoreReranking } from './reranking.js'
 import { type BreadTransport, streamTransport, toWireCrumb } from './transport.js'
 import {
   type BreadConfig,
@@ -135,6 +136,7 @@ export function createBread(
         )
       }
       store = config.store
+      bindStoreReranking(store, config.reranking)
       await store.migrate?.()
 
       if (config.plugins) {

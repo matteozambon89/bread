@@ -1,5 +1,6 @@
 import net from 'node:net'
 import { PGlite } from '@electric-sql/pglite'
+import { vector } from '@electric-sql/pglite/vector'
 import { PGLiteSocketServer } from '@electric-sql/pglite-socket'
 import postgres from 'postgres'
 
@@ -47,7 +48,8 @@ function freePort(): Promise<number> {
  * (`ALTER DATABASE`) and post-stop (`close`), when no socket client exists.
  */
 export async function withPglite(): Promise<PgliteHandle> {
-  const db = new PGlite()
+  // Bundled pgvector so migrate() can CREATE EXTENSION vector for embed tests.
+  const db = new PGlite({ extensions: { vector } })
   await db.waitReady
   // Silence pglite's chatty DEBUG/NOTICE for every connection (before the socket
   // is up, so this direct exec can't race a socket client).

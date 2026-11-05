@@ -2,6 +2,8 @@ import postgres from 'postgres'
 import { v7 as uuidv7 } from 'uuid'
 import {
   decodeLastOutput,
+  rerankHits,
+  resolveReranking,
   type BreadStore,
   type CheckpointRecord,
   type CleanupOptions,
@@ -11,6 +13,8 @@ import {
   type LoopIteration,
   type LoopRecord,
   type LoopStatus,
+  type RerankRef,
+  type RerankingRegistry,
   type Session,
   type SessionMessage,
   type TaskRunRecord,
@@ -19,6 +23,7 @@ import {
 } from '@breadai/core'
 import { requireExecutionId } from '@breadai/core'
 import { migrate } from './migrate.js'
+import { candidateLimit, documentRerankText, likeContains } from './rerank-query.js'
 
 export type EmbedFn = (text: string) => Promise<number[]>
 
@@ -29,6 +34,15 @@ export interface PostgresStoreOptions {
   // write and searched by cosine similarity via pgvector; otherwise search is
   // keyword-based (ILIKE).
   embed?: EmbedFn
+  // When set, search loads candidate text and reranks before applying limit.
+  // bread.start() binds config.reranking. With no ref, order stays as retrieved.
+  rerank?: RerankRef
+}
+
+export interface PostgresStore extends BreadStore {
+  // `undefined` clears a previous bind. bread.start() always calls this, so a
+  // later start without config.reranking does not keep the old model.
+  bindReranking(registry: RerankingRegistry | undefined): void
 }
 
 interface SessionRow {
@@ -231,8 +245,9 @@ function vec(embedding: number[]): string {
 
 // The default BreadStore: PostgreSQL via postgres.js. All tables are `bread_`
 // prefixed and created by migrate(). Pass `embed` to enable pgvector semantic
-// search over documents and knowledge nodes.
-export function store(opts: PostgresStoreOptions = {}): BreadStore {
+// search over documents and knowledge nodes. Pass `rerank` to rescore those
+// hits; bread.start() supplies config.reranking.
+export function store(opts: PostgresStoreOptions = {}): PostgresStore {
   const url = opts.url ?? process.env.DATABASE_URL
   if (!url) {
     throw new Error(
@@ -241,6 +256,8 @@ export function store(opts: PostgresStoreOptions = {}): BreadStore {
     )
   }
   const embed = opts.embed
+  const rerankRef = opts.rerank
+  let registry: RerankingRegistry | undefined
   const sql = postgres(url)
   // postgres.js's JSONValue type is narrower than our stored shapes (arbitrary
   // record/unknown content); this wraps the jsonb helper for our call sites.
@@ -564,16 +581,32 @@ export function store(opts: PostgresStoreOptions = {}): BreadStore {
 
     async queryKnowledge({ agentId, query, limit }) {
       const n = limit ?? 10
-      const rows = embed
+      // Rerank a retrieval page larger than `limit`, never the whole match set.
+      const page = rerankRef ? candidateLimit(n) : n
+      if (rerankRef) await resolveReranking(rerankRef, registry)
+      const embedding = embed ? vec(await embed(query)) : undefined
+      const rows = embedding
         ? await sql<Array<{ id: string; label: string; data: Record<string, unknown> }>>`
             SELECT id, label, data FROM bread_kg_nodes
             WHERE agent_id = ${agentId} AND embedding IS NOT NULL
-            ORDER BY embedding <=> ${vec(await embed(query))}::vector LIMIT ${n}`
+            ORDER BY embedding <=> ${embedding}::vector
+            LIMIT ${page}`
         : await sql<Array<{ id: string; label: string; data: Record<string, unknown> }>>`
             SELECT id, label, data FROM bread_kg_nodes
-            WHERE agent_id = ${agentId} AND label ILIKE ${`%${query}%`}
-            ORDER BY created_at DESC LIMIT ${n}`
-      return rows.map((r): KnowledgeNode => ({ id: r.id, label: r.label, data: r.data ?? {} }))
+            WHERE agent_id = ${agentId} AND label ILIKE ${likeContains(query)} ESCAPE '\\'
+            ORDER BY created_at DESC
+            LIMIT ${page}`
+      const ordered = rerankRef
+        ? await rerankHits({
+            query,
+            hits: rows,
+            text: (row) => row.label,
+            ref: rerankRef,
+            registry,
+            limit: n,
+          })
+        : rows
+      return ordered.map((r): KnowledgeNode => ({ id: r.id, label: r.label, data: r.data ?? {} }))
     },
 
     async forgetKnowledge({ id }) {
@@ -606,15 +639,32 @@ export function store(opts: PostgresStoreOptions = {}): BreadStore {
 
     async searchDocuments({ agentId, query, limit }) {
       const n = limit ?? 5
-      const rows = embed
-        ? await sql<Array<{ id: string; title: string; source: string | null }>>`
-            SELECT id, title, source FROM bread_documents
-            WHERE agent_id = ${agentId} AND embedding IS NOT NULL
-            ORDER BY embedding <=> ${vec(await embed(query))}::vector LIMIT ${n}`
-        : await sql<Array<{ id: string; title: string; source: string | null }>>`
-            SELECT id, title, source FROM bread_documents
-            WHERE agent_id = ${agentId} AND (title ILIKE ${`%${query}%`} OR content ILIKE ${`%${query}%`})
-            LIMIT ${n}`
+      const page = rerankRef ? candidateLimit(n) : n
+      if (rerankRef) await resolveReranking(rerankRef, registry)
+      const embedding = embed ? vec(await embed(query)) : undefined
+      const pattern = likeContains(query)
+      const where = embedding
+        ? sql`WHERE agent_id = ${agentId} AND embedding IS NOT NULL`
+        : sql`WHERE agent_id = ${agentId} AND (title ILIKE ${pattern} ESCAPE '\\' OR content ILIKE ${pattern} ESCAPE '\\')`
+      const tail = embedding
+        ? sql`ORDER BY embedding <=> ${embedding}::vector LIMIT ${page}`
+        : sql`ORDER BY created_at DESC LIMIT ${page}`
+      if (rerankRef) {
+        const rows = await sql<
+          Array<{ id: string; title: string; source: string | null; content: string }>
+        >`SELECT id, title, source, content FROM bread_documents ${where} ${tail}`
+        const ordered = await rerankHits({
+          query,
+          hits: rows,
+          text: documentRerankText,
+          ref: rerankRef,
+          registry,
+          limit: n,
+        })
+        return ordered.map((r): DocumentRecord => ({ id: r.id, title: r.title, source: r.source }))
+      }
+      const rows = await sql<Array<{ id: string; title: string; source: string | null }>>`
+        SELECT id, title, source FROM bread_documents ${where} ${tail}`
       return rows.map((r): DocumentRecord => ({ id: r.id, title: r.title, source: r.source }))
     },
 
@@ -631,6 +681,10 @@ export function store(opts: PostgresStoreOptions = {}): BreadStore {
 
     async close() {
       await sql.end()
+    },
+
+    bindReranking(next) {
+      registry = next
     },
   }
 }
