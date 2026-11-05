@@ -38,8 +38,21 @@ function missingProvider(provider: string, pkg: string): never {
   })
 }
 
+function isMissingPackage(err: unknown): boolean {
+  if (!(err instanceof Error)) return false
+  const code = (err as { code?: unknown }).code
+  if (code === 'ERR_MODULE_NOT_FOUND' || code === 'MODULE_NOT_FOUND') return true
+  return /Cannot find (package|module)/.test(err.message)
+}
+
 async function loadExport(provider: string, entry: CatalogEntry): Promise<unknown> {
-  const m = await import(entry.pkg).catch(() => missingProvider(provider, entry.pkg))
+  let m: unknown
+  try {
+    m = await import(entry.pkg)
+  } catch (err) {
+    if (isMissingPackage(err)) missingProvider(provider, entry.pkg)
+    throw err
+  }
   const loaded = (m as Record<string, unknown>)[entry.export]
   if (loaded == null) {
     throw new BreadError(

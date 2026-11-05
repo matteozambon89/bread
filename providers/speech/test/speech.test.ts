@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test'
+import { describe, expect, mock, test } from 'bun:test'
 import { providerSpeech, speechEntries } from '@breadai/provider-speech'
 
 const CATALOG = [
@@ -33,6 +33,21 @@ describe('providerSpeech', () => {
       expect(err).toMatchObject({ code: 'MISSING_PROVIDER' })
       expect((err as Error).message).toContain(speechEntries[name]!.pkg)
       expect((err as Error).message).toContain(`bun add ${speechEntries[name]!.pkg}`)
+    }
+  })
+
+  test('a package that fails to load is not reported as missing', async () => {
+    mock.module('@ai-sdk/openai', () => {
+      throw new Error('openai init exploded')
+    })
+    try {
+      const err = await providerSpeech.openai!('tts-1').catch((error: unknown) => error)
+      expect(err).toBeInstanceOf(Error)
+      expect((err as { code?: string }).code).not.toBe('MISSING_PROVIDER')
+      expect((err as Error).message).toContain('openai init exploded')
+      expect((err as Error).message).not.toContain('bun add')
+    } finally {
+      mock.restore()
     }
   })
 

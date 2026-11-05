@@ -34,6 +34,9 @@ A pipeline step speaks the current string and passes a `FileOutput` on:
 The step requires `config.blobStore`. Behavior, including `file:generated`, is documented on the
 [speech step](https://matteozambon89.github.io/bread/pipelines.html#speech).
 
+A missing peer throws `MISSING_PROVIDER` and names the package to install. A package that is
+installed but fails to load keeps that error.
+
 The catalog is exactly the keys below. `openai-compatible` has no speech factory and is not
 included. `xai` and `hume` expose `speech()` with no model id; the step still passes `model`, and
 those two ignore it.

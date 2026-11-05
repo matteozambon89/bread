@@ -134,5 +134,6 @@ ignore it.
 | `fish-audio` | `@ai-sdk/fish-audio` | `FISH_AUDIO_API_KEY` |
 | `fal` | `@ai-sdk/fal` | `FAL_API_KEY`, or `FAL_KEY` when that is unset |
 
-A missing peer throws `MISSING_PROVIDER` and names `bun add <package>`. The step that calls
-`generateSpeech` is documented in [pipelines.md](./pipelines.md#speech).
+A missing peer throws `MISSING_PROVIDER` and names `bun add <package>`. A peer that is installed
+but fails to load keeps that error. The step that calls `generateSpeech` is documented in
+[pipelines.md](./pipelines.md#speech).
