@@ -32,9 +32,53 @@ function missingProvider(provider: string, pkg: string): never {
   })
 }
 
+function isMissingPackage(err: unknown, pkg: string): boolean {
+  if (typeof err !== 'object' || err === null) return false
+  if ((err as { code?: unknown }).code !== 'ERR_MODULE_NOT_FOUND') return false
+  const specifier = (err as { specifier?: unknown }).specifier
+  if (typeof specifier === 'string') return specifier === pkg
+  const message = err instanceof Error ? err.message : ''
+  return message.includes(`'${pkg}'`) || message.includes(`"${pkg}"`)
+}
+
+async function loadPackage(provider: string, pkg: string): Promise<unknown> {
+  try {
+    return await import(pkg)
+  } catch (err) {
+    if (isMissingPackage(err, pkg)) missingProvider(provider, pkg)
+    throw err
+  }
+}
+
+// The default `vertex` export reads GOOGLE_VERTEX_API_KEY and enables Express
+// Mode. transcription() then throws. A non-string apiKey skips that read.
+function googleVertexModel(imported: Record<string, unknown>, provider: string, modelId: string): TranscriptionModel {
+  const createVertex = imported.createVertex
+  if (typeof createVertex !== 'function') {
+    throw new BreadError(
+      'Provider package @ai-sdk/google-vertex has no "createVertex" export',
+      'PROVIDER_EXPORT_MISSING',
+      { provider },
+    )
+  }
+  const factory = (createVertex as (options: { apiKey: boolean }) => { transcription?: unknown })({
+    apiKey: false,
+  })
+  const transcription = factory?.transcription
+  if (typeof transcription !== 'function') {
+    throw new BreadError(
+      'Provider package @ai-sdk/google-vertex has no "createVertex().transcription" export',
+      'PROVIDER_EXPORT_MISSING',
+      { provider },
+    )
+  }
+  return (transcription as (id: string) => TranscriptionModel).call(factory, modelId)
+}
+
 async function resolveEntry(provider: string, entry: CatalogEntry, modelId: string): Promise<TranscriptionModel> {
-  const imported = await import(entry.pkg).catch(() => missingProvider(provider, entry.pkg))
-  const factory = (imported as Record<string, unknown>)[entry.export]
+  const imported = (await loadPackage(provider, entry.pkg)) as Record<string, unknown>
+  if (provider === 'google-vertex') return googleVertexModel(imported, provider, modelId)
+  const factory = imported[entry.export]
   if (factory === null || (typeof factory !== 'function' && typeof factory !== 'object')) {
     throw new BreadError(
       `Provider package ${entry.pkg} has no "${entry.export}" export`,
@@ -50,6 +94,9 @@ async function resolveEntry(provider: string, entry: CatalogEntry, modelId: stri
       { provider },
     )
   }
+  // Gladia's SDK sends any id other than "default" as the API model field.
+  // The step still requires a model string; the single Gladia model ignores it.
+  if (provider === 'gladia') return (transcription as () => TranscriptionModel).call(factory)
   return (transcription as (id?: string) => TranscriptionModel).call(factory, modelId)
 }
 
@@ -58,8 +105,9 @@ async function resolveEntry(provider: string, entry: CatalogEntry, modelId: stri
 //   import { providerTranscription } from '@breadai/provider-transcription'
 //   export default defineConfig({ transcription: providerTranscription })
 //
-// Each factory lazy-imports its optional peer and returns
-// `provider.transcription(modelId)`. Spreading this object never throws.
+// Each factory lazy-imports its optional peer. Gladia omits the model id.
+// google-vertex uses createVertex so Express Mode stays off. Spreading this
+// object never throws.
 export const providerTranscription: TranscriptionRegistry = Object.fromEntries(
   Object.entries(ENTRIES).map(([provider, entry]) => [
     provider,

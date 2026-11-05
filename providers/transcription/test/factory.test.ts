@@ -19,7 +19,16 @@ const modules: Record<string, Record<string, unknown>> = {
   '@ai-sdk/openai': { openai: provider('openai') },
   '@ai-sdk/azure': { azure: provider('azure') },
   '@ai-sdk/google': { google: provider('google') },
-  '@ai-sdk/google-vertex': { vertex: provider('google-vertex') },
+  '@ai-sdk/google-vertex': {
+    vertex: {
+      transcription() {
+        throw new Error('Google Vertex transcription models do not support Express Mode API keys')
+      },
+    },
+    createVertex() {
+      return provider('google-vertex')
+    },
+  },
   '@ai-sdk/mistral': { mistral: provider('mistral') },
   '@ai-sdk/groq': { groq: provider('groq') },
   '@ai-sdk/xai': { xai: provider('xai') },
@@ -62,7 +71,13 @@ describe('providerTranscription factories', () => {
     expect(calls.get('google-vertex')).toEqual(['whisper-1'])
     expect(calls.get('elevenlabs')).toEqual(['whisper-1'])
     expect(calls.get('fish-audio')).toEqual(['whisper-1'])
-    expect(calls.get('gladia')).toEqual(['whisper-1'])
+    expect(calls.get('gladia')).toEqual([])
     expect(calls.get('fal')).toEqual(['whisper-1'])
+  })
+
+  test('gladia omits the model id and uses its single model', async () => {
+    calls.delete('gladia')
+    await providerTranscription.gladia!('whisper-1')
+    expect(calls.get('gladia')).toEqual([])
   })
 })

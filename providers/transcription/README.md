@@ -23,14 +23,14 @@ export default defineConfig({
 })
 ```
 
-A pipeline step names one key and a model id. The step passes an http(s) `FileOutput` URL to `transcribe` and the next step reads the transcript text. See [pipelines](https://matteozambon89.github.io/bread/pipelines.html#transcription).
+A pipeline step names one key and a model id. The step downloads only an http(s) `FileOutput` URL the blob store issued and the next step reads the transcript text. See [pipelines](https://matteozambon89.github.io/bread/pipelines.html#transcription).
 
 | Key | Package | Auth |
 | --- | --- | --- |
 | `openai` | `@ai-sdk/openai` | `OPENAI_API_KEY`. Optional `OPENAI_BASE_URL`. |
 | `azure` | `@ai-sdk/azure` | `AZURE_API_KEY`, `AZURE_RESOURCE_NAME`. |
 | `google` | `@ai-sdk/google` | `GOOGLE_GENERATIVE_AI_API_KEY`. |
-| `google-vertex` | `@ai-sdk/google-vertex` | `GOOGLE_VERTEX_PROJECT`, `GOOGLE_VERTEX_LOCATION`. Optional `GOOGLE_VERTEX_API_KEY`. |
+| `google-vertex` | `@ai-sdk/google-vertex` | `GOOGLE_VERTEX_PROJECT`, `GOOGLE_VERTEX_LOCATION`. `GOOGLE_VERTEX_API_KEY` is not used — that key selects Express Mode, which Vertex transcription rejects. |
 | `mistral` | `@ai-sdk/mistral` | `MISTRAL_API_KEY`. |
 | `groq` | `@ai-sdk/groq` | `GROQ_API_KEY`. |
 | `xai` | `@ai-sdk/xai` | `XAI_API_KEY`. |
@@ -43,7 +43,7 @@ A pipeline step names one key and a model id. The step passes an http(s) `FileOu
 | `revai` | `@ai-sdk/revai` | `REVAI_API_KEY`. |
 | `fal` | `@ai-sdk/fal` | `FAL_API_KEY`, or `FAL_KEY` when that is unset. |
 
-There is no `openai-compatible` transcription factory. LiveKit and the AI Gateway are not keys. A missing peer throws `MISSING_PROVIDER`.
+There is no `openai-compatible` transcription factory. LiveKit and the AI Gateway are not keys. A missing peer throws `MISSING_PROVIDER`. A peer that is installed but fails to evaluate is not reported as missing. Gladia is called with no model id. `google-vertex` is built with `createVertex({ apiKey: false })` so `GOOGLE_VERTEX_API_KEY` does not turn on Express Mode.
 
 [`examples/pipeline`](https://github.com/matteozambon89/bread/tree/HEAD/examples/pipeline) runs `transcript`, then the writer.
 
