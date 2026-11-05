@@ -1,4 +1,5 @@
 import type { z } from 'zod'
+import { bindStoreConfig } from './embedding.js'
 import type {
   AgentConfig,
   AgentDefinition,
@@ -13,6 +14,7 @@ import type {
 } from './types.js'
 
 export function defineConfig(config: BreadConfig): BreadConfig {
+  if (config.store) bindStoreConfig(config.store, config)
   return config
 }
 
