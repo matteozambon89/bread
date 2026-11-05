@@ -43,6 +43,9 @@ export interface RunnerContext {
   remoteAgents?: Record<string, RemoteAgent> | undefined
   credentials?: CredentialProvider | undefined
   blobStore?: BlobStore | undefined
+  // Keys put during a buffered loop attempt. The attempt deletes them when it
+  // discards the crumbs. Absent on a run whose crumbs are yielded as they happen.
+  blobJournal?: string[] | undefined
   // Global hook chain tail: plugin-contributed hooks (config.plugins order),
   // then BreadConfig.hooks itself — always the last link in every scope's
   // beforeRun/afterRun/onError/onSuspend chain (see runner-helpers.ts's chain helpers).

@@ -16,5 +16,9 @@ export function memoryBlobStore(): BlobStore {
     async get(key) {
       return blobs.get(key)
     },
+
+    async delete(key) {
+      blobs.delete(key)
+    },
   }
 }

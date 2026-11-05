@@ -170,8 +170,9 @@ transport. Missed history is replayed from the durable crumb log, then live fram
   missing `identity.principal` is `403`. With a principal, `runVisible` from `@breadai/core` picks
   the run owner before any header is sent: the principal of a run live on this replica, otherwise
   the principal on the run's first logged crumb. For an agent run that crumb is `agent:run:start`.
-  A speech step logs only `file:generated` on its step run id, and the owner is the principal on
-  the session that crumb names. A run the caller can't see, a run with no owner source, and an
+  A speech step logs `file:generated` and then `agent:run:end` on its step run id. The owner is the
+  principal stamped on `file:generated`, not a session row. The stream replays the audio and closes
+  on `agent:run:end`. A run the caller can't see, a run with no owner source, and an
   unknown run id are all the same `404`. A run with no stored principal is visible only to the
   local CLI principal.
   `transport({ authorizeStream })` on both HTTP transports still runs after that grant.
@@ -193,7 +194,8 @@ Nested `parallel` and `branch` steps extend the `pipelineId` part, and resume re
 `pipelineRunId`. A step id is live only while its stream runs. `pipeline:step:*` and
 `pipeline:branch:taken` are not logged, so once the response ends `POST /runs/:runId/cancel`
 answers `404` for that id, and `GET /runs/:runId/stream` does too — except a speech step, whose
-`file:generated` crumb stays on that id and replays for the session principal. Older releases
+`file:generated` and `agent:run:end` stay on that id. The stream replays the audio and closes on
+`agent:run:end`. The owner is the principal on `file:generated`. Older releases
 used `<pipelineId>:<stepIndex>`, which is a breaking change for clients that built step ids by hand.
 
 ## HITL

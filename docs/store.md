@@ -113,7 +113,7 @@ memory stores are always keyword-only.
 ## Blob storage
 
 Binary content (file bytes) is a separate, independent seam from `BreadStore` — a `BlobStore`
-(`put`/`get`), set via `config.blobStore`. Separate because a blob backend like S3 can't
+(`put`/`get`/`delete`), set via `config.blobStore`. Separate because a blob backend like S3 can't
 reasonably implement `BreadStore`'s session/checkpoint/loop contract; `BlobStore` sits alongside
 `BreadTransport` as bread's other pluggable seam, not a bolt-on to `store`.
 

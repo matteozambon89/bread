@@ -1,18 +1,31 @@
 import { describe, expect, test } from 'bun:test'
 import type { SpeechModel } from 'ai'
+import { z } from 'zod'
 import {
   BreadError,
+  defineHumanTool,
   isFileOutput,
   LOCAL_CLI_PRINCIPAL,
   runVisible,
   type AgentRunStartCrumb,
+  type BlobStore,
   type BreadCrumb,
   type FileGeneratedCrumb,
   type PipelineStepEndCrumb,
   type PipelineStepStartCrumb,
   type SpeechRegistry,
 } from '@breadai/core'
-import { collect, defineTestAgent, makeBread, memoryBlobStore, mockTextModel } from '@breadai/test-utils'
+import {
+  collect,
+  defineTestAgent,
+  makeBread,
+  memoryBlobStore,
+  mockErrorModel,
+  mockScript,
+  mockTextModel,
+  mockToolCallModel,
+  type ScriptStep,
+} from '@breadai/test-utils'
 import type { MockLanguageModelV4 } from 'ai/test'
 
 const TICKET = 'ord-1002, charged twice'
@@ -66,7 +79,7 @@ async function drain(gen: AsyncIterable<BreadCrumb>): Promise<{ crumbs: BreadCru
 }
 
 describe('bread.runPipeline — speech step', () => {
-  test('stores the audio, emits file:generated on a real session, and passes the file on', async () => {
+  test('stores the audio, emits file:generated then agent:run:end, and passes the file on', async () => {
     const seen = { calls: 0 }
     const blobs = memoryBlobStore()
     const reply = mockTextModel('noted') as MockLanguageModelV4
@@ -96,10 +109,12 @@ describe('bread.runPipeline — speech step', () => {
       const fileCrumb = crumbs.find((crumb) => crumb.type === 'file:generated') as FileGeneratedCrumb
       expect(fileCrumb.agentId).toBe('speech')
       expect(fileCrumb.mimeType.length).toBeGreaterThan(0)
-      const session = await bread.store.getSession(fileCrumb.sessionId)
-      expect(session?.principal).toEqual(principal)
+      expect(fileCrumb.principal).toEqual(principal)
+      expect(fileCrumb.sessionId).toBeUndefined()
       const logged = await bread.store.getCrumbs!(fileCrumb.runId)
-      expect(logged.map((entry) => entry.type)).toEqual(['file:generated'])
+      expect(logged.map((entry) => entry.type)).toEqual(['file:generated', 'agent:run:end'])
+      expect(logged[0]?.sessionId ?? null).toBeNull()
+      expect((logged[0]?.crumb as { principal?: typeof principal }).principal).toEqual(principal)
       expect(await runVisible(bread.store, fileCrumb.runId, principal)).toBe(true)
       expect(await runVisible(bread.store, fileCrumb.runId, { iss: principal.iss, sub: 'other' })).toBe(false)
       const key = fileCrumb.uri.slice('memory://'.length)
@@ -146,7 +161,7 @@ describe('bread.runPipeline — speech step', () => {
       expect(fileCrumb.runId).not.toBe(agentStart.runId)
       expect(crumbs.some((crumb) => crumb.runId === fileCrumb.runId && crumb.type === 'agent:run:start')).toBe(false)
       const logged = await bread.store.getCrumbs!(fileCrumb.runId)
-      expect(logged.map((entry) => entry.type)).toEqual(['file:generated'])
+      expect(logged.map((entry) => entry.type)).toEqual(['file:generated', 'agent:run:end'])
       expect(logged[0]?.seq).toBe(fileCrumb.seq)
       const agentLogged = await bread.store.getCrumbs!(agentStart.runId)
       expect(agentLogged.some((entry) => entry.type === 'file:generated')).toBe(false)
@@ -157,7 +172,7 @@ describe('bread.runPipeline — speech step', () => {
     }
   })
 
-  test('an unstamped speech session stays visible to the local cli principal only', async () => {
+  test('an unstamped speech run stays visible to the local cli principal only', async () => {
     const seen = { calls: 0 }
     const { bread, stop } = await makeBread({
       agents: { reply: defineTestAgent({ model: 'reply' }) },
@@ -169,9 +184,11 @@ describe('bread.runPipeline — speech step', () => {
       },
     })
     try {
+      const before = await bread.store.listSessions()
       const crumbs = await collect(bread.runPipeline('speak', TICKET))
       const fileCrumb = crumbs.find((crumb) => crumb.type === 'file:generated') as FileGeneratedCrumb
-      expect((await bread.store.getSession(fileCrumb.sessionId))?.principal).toBeUndefined()
+      expect(await bread.store.listSessions()).toEqual(before)
+      expect(fileCrumb.principal).toBeUndefined()
       expect(await runVisible(bread.store, fileCrumb.runId, LOCAL_CLI_PRINCIPAL)).toBe(true)
       expect(await runVisible(bread.store, fileCrumb.runId, { iss: 'https://idp.example', sub: 'ada' })).toBe(false)
     } finally {
@@ -264,6 +281,154 @@ describe('bread.runPipeline — speech step', () => {
       const { error } = await drain(bread.runPipeline('speak', TICKET))
       expect((error as BreadError).code).toBe('UNKNOWN_SPEECH_PROVIDER')
       expect(reply.doStreamCalls).toHaveLength(0)
+    } finally {
+      await stop()
+    }
+  })
+
+  test('passes voice through to a provider that requires it', async () => {
+    let voice: string | undefined
+    const model = {
+      specificationVersion: 'v4',
+      provider: 'fake.speech',
+      modelId: 'aura-2',
+      async doGenerate(options: { text: string; voice?: string }) {
+        voice = options.voice
+        if (!options.voice) throw new Error('voice is required')
+        return {
+          audio: AUDIO,
+          warnings: [],
+          response: {
+            timestamp: new Date(),
+            modelId: 'aura-2',
+            headers: { 'content-type': 'audio/mpeg' },
+          },
+        }
+      },
+    } as SpeechModel
+    const { bread, stop } = await makeBread({
+      agents: { reply: defineTestAgent({ model: 'reply' }) },
+      models: { reply: mockTextModel('noted') },
+      config: {
+        blobStore: memoryBlobStore(),
+        speech: { deepgram: () => model },
+        pipelines: {
+          speak: [{ type: 'speech', provider: 'deepgram', model: 'aura-2', voice: 'aura-2-thalia-en' }],
+        },
+      },
+    })
+    try {
+      const { error } = await drain(bread.runPipeline('speak', TICKET))
+      expect(error).toBeUndefined()
+      expect(voice).toBe('aura-2-thalia-en')
+    } finally {
+      await stop()
+    }
+  })
+
+  test('does not mint a session and keeps the audio crumb after sessions are deleted', async () => {
+    const seen = { calls: 0 }
+    const principal = { iss: 'https://idp.example', sub: 'ada' }
+    const { bread, stop } = await makeBread({
+      agents: { reply: defineTestAgent({ model: 'reply' }) },
+      models: { reply: mockTextModel('unused') },
+      config: {
+        blobStore: memoryBlobStore(),
+        speech: speechRegistry(seen),
+        pipelines: { speak: [{ type: 'speech', provider: 'openai', model: 'tts-1' }] },
+      },
+    })
+    try {
+      const before = (await bread.store.listSessions()).map((session) => session.id)
+      const crumbs = await collect(bread.runPipeline('speak', TICKET, { principal }))
+      const fileCrumb = crumbs.find((crumb) => crumb.type === 'file:generated') as FileGeneratedCrumb
+      expect((await bread.store.listSessions()).map((session) => session.id)).toEqual(before)
+      for (const session of await bread.store.listSessions()) await bread.store.deleteSession(session.id)
+      const logged = await bread.store.getCrumbs!(fileCrumb.runId)
+      expect(logged[0]?.type).toBe('file:generated')
+      expect(logged[0]?.sessionId ?? null).toBeNull()
+      expect((logged[0]?.crumb as { principal?: { iss: string; sub: string } }).principal).toEqual(principal)
+      expect(await runVisible(bread.store, fileCrumb.runId, principal)).toBe(true)
+      expect(await runVisible(bread.store, fileCrumb.runId, { iss: principal.iss, sub: 'other' })).toBe(false)
+    } finally {
+      await stop()
+    }
+  })
+
+  test('a discarded loop attempt does not keep the speech audio', async () => {
+    const approve = defineHumanTool('approve', z.object({ question: z.string() }))
+    const blobs = new Map<string, Uint8Array>()
+    let puts = 0
+    const blobStore: BlobStore = {
+      async put(data) {
+        const key = `blob-${++puts}`
+        blobs.set(key, data)
+        return { key, url: `memory://${key}` }
+      },
+      async get(key) {
+        const id = key.startsWith('memory://') ? key.slice('memory://'.length) : key
+        const data = blobs.get(id)
+        return data ? { data } : undefined
+      },
+      async delete(key) {
+        blobs.delete(key)
+      },
+    }
+    const seen = { calls: 0 }
+    const hostScript: ScriptStep[] = [
+      { tool: 'core_start_loop', args: { pipeline: ['gate', 'second'], input: 'seed' } },
+      { text: 'host done' },
+    ]
+    const { bread, stop } = await makeBread({
+      agents: {
+        host: defineTestAgent({
+          model: 'host',
+          config: {
+            loop: {
+              pool: ['gate', 'second'],
+              maxIterations: 3,
+              hooks: { onError: () => ({ action: 'recover', output: 'recovered' }) },
+            },
+          },
+        }),
+        gate: defineTestAgent({ model: 'gate', humanTools: [approve] }),
+        second: defineTestAgent({ model: 'second' }),
+      },
+      models: {
+        host: mockScript(hostScript),
+        gate: mockToolCallModel({
+          toolName: 'human_approve',
+          args: { question: 'gate?' },
+          then: 'gate output',
+        }),
+        second: mockErrorModel('second down'),
+      },
+      config: {
+        blobStore,
+        speech: speechRegistry(seen),
+      },
+    })
+    try {
+      const first = await collect(bread.run('host', 'go'))
+      const gate = first.find((crumb) => crumb.type === 'human:required') as { checkpointId: string }
+      const record = await bread.store.getCheckpoint(gate.checkpointId)
+      if (record?.parent?.kind !== 'pipeline') throw new Error('expected a pipeline parent')
+      await bread.store.saveCheckpoint({
+        ...record,
+        parent: {
+          ...record.parent,
+          remainingSteps: [
+            { type: 'speech', provider: 'openai', model: 'tts-1' },
+            ...record.parent.remainingSteps,
+          ],
+        },
+      })
+      const cont = await collect(bread.resume(gate.checkpointId, { approved: true }))
+      expect(cont.some((crumb) => crumb.type === 'loop:iteration:end')).toBe(true)
+      expect(seen.calls).toBe(1)
+      expect(puts).toBe(1)
+      expect(blobs.size).toBe(0)
+      expect(cont.some((crumb) => crumb.type === 'file:generated')).toBe(false)
     } finally {
       await stop()
     }

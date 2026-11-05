@@ -7,6 +7,7 @@ import type { BreadCrumb, LoopHostLink, PipelineCheckpointParent, PipelineStep, 
 import { BreadError } from './types.js'
 import { runAgent } from './runner.js'
 import type { RunnerContext } from './runner.js'
+import type { BlobStore } from './storage/blob-store.js'
 import type { CheckpointRecord } from './storage/store.js'
 
 export interface PipelineRunOpts {
@@ -173,30 +174,41 @@ export async function* runPipeline(opts: PipelineRunOpts): AsyncGenerator<BreadC
           { pipelineId, stepIndex: index },
         )
       }
+      const started = Date.now()
       const model = await resolveSpeechModel(ctx.speech, step.provider, step.model)
       const spoken = await generateSpeech({
         model,
         text: current,
+        ...(step.voice !== undefined ? { voice: step.voice } : {}),
         ...(ctx.signal ? { abortSignal: ctx.signal } : {}),
       })
       const mimeType = spoken.audio.mediaType
-      const { url } = await ctx.blobStore.put(spoken.audio.uint8Array, { mimeType })
-      // The log's session foreign key needs a real row. That row's principal is
-      // the owner of this step run id: file:generated is its only durable crumb,
-      // and it stays on stepRunId so its seq does not join an earlier agent run.
-      const session = await ctx.store.createSession({
-        ...(opts.principal ? { principal: opts.principal } : {}),
-      })
+      const { key, url } = await ctx.blobStore.put(spoken.audio.uint8Array, { mimeType })
+      // A buffered loop attempt may drop these crumbs. The key is deleted with them.
+      ctx.blobJournal?.push(key)
+      // No minted session: deleting that row would cascade the only audio crumb.
+      // file:generated stays first so runVisible reads the principal stamped here.
+      const principal = opts.principal
+        ? { iss: opts.principal.iss, sub: opts.principal.sub }
+        : undefined
+      output = { kind: 'file', uri: url, mimeType }
       yield {
         type: 'file:generated',
         agentId: getStepAgentId(step),
         runId: stepRunId,
-        sessionId: session.id,
         timestamp: Date.now(),
         uri: url,
         mimeType,
+        ...(principal ? { principal } : {}),
       }
-      output = { kind: 'file', uri: url, mimeType }
+      yield {
+        type: 'agent:run:end',
+        agentId: getStepAgentId(step),
+        runId: stepRunId,
+        timestamp: Date.now(),
+        output,
+        durationMs: Date.now() - started,
+      }
     } else if (step.type === 'branch') {
       if (step.default === undefined) {
         throw new BreadError(
@@ -718,6 +730,11 @@ export async function* continuePipelineParent(
   if (parent.supervisor) return { output: driven.output, supervisor: parent.supervisor }
 }
 
+async function forgetBlobs(blobStore: BlobStore | undefined, keys: readonly string[]): Promise<void> {
+  if (!blobStore) return
+  for (const key of keys) await blobStore.delete(key)
+}
+
 type RemainingBoxed =
   | { kind: 'done'; crumbs: BreadCrumb[]; result: PipelineResult }
   | { kind: 'recover'; output: unknown }
@@ -742,12 +759,13 @@ async function* runRemainingWithLoopError(
     outcome = await runWithOnErrorRetry<RemainingBoxed>(
       async () => {
         const crumbs: BreadCrumb[] = []
+        const blobJournal: string[] = []
         const gen = runPipeline({
           pipelineId: parent.pipelineId,
           pipelineRunId: parent.pipelineRunId,
           steps: parent.remainingSteps,
           input: stepOutput,
-          ctx,
+          ctx: { ...ctx, blobJournal },
           baseIndex: parent.stepIndex + 1,
           ...(carriedLabel !== undefined ? { decisionLabel: carriedLabel } : {}),
           ...(parent.outer ? { outer: parent.outer } : {}),
@@ -763,6 +781,7 @@ async function* runRemainingWithLoopError(
           return { kind: 'done', crumbs, result: next.value }
         } catch (err) {
           if (err instanceof BreadError && err.code === 'LOOP_SUSPENDED') released.push(...crumbs)
+          else await forgetBlobs(ctx.blobStore, blobJournal)
           throw err
         }
       },

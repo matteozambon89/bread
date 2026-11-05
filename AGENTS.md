@@ -158,10 +158,13 @@ The CLI loader (`packages/server/src/loader.ts`) attaches private fields to each
   `@breadai/provider-decisions` fills the registry. Core does not import that package.
 - **Speech** — `BreadConfig.speech` is a `SpeechRegistry` defined in core
   (`packages/core/src/speech.ts`), separate from `ProviderRegistry` (that one returns a
-  `LanguageModel`). A `speech` pipeline step calls `generateSpeech` on the current string, stores
-  the audio with `config.blobStore`, emits `file:generated` on that step's run id and on a session
-  created for the step, and passes the `FileOutput` on. The session principal is what `runVisible`
-  uses to replay that run: the step does not log `agent:run:start`. `@breadai/provider-speech` fills the registry. Core does not import
+  `LanguageModel`). A `speech` pipeline step calls `generateSpeech` on the current string (and
+  passes `voice` when the step sets one), stores the audio with `config.blobStore`, emits
+  `file:generated` then `agent:run:end` on that step's run id, and passes the `FileOutput` on.
+  It does not mint a session. The principal stamped on `file:generated` is what `runVisible` uses
+  to replay that run: the step does not log `agent:run:start`, and the stream closes on
+  `agent:run:end`. A discarded loop attempt deletes audio whose crumbs were not kept.
+  `@breadai/provider-speech` fills the registry. Core does not import
   that package. The catalog is openai, azure, google, google-vertex, mistral, xai, elevenlabs,
   deepgram, cartesia, hume, fish-audio, and fal. `openai-compatible` is not a speech provider.
 - **Lifecycle unification** — `BreadPlugin.close` (renamed from `destroy`) runs on `bread.stop()`;

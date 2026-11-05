@@ -40,7 +40,7 @@ Step types:
 | `parallel` | Run nested steps concurrently, merge crumb streams. The step's output is the **ordered array of branch outputs**. |
 | `map` | Fan the input array out across `agentId` — each element runs through the agent; output is the array of per-element outputs. |
 | `decision` | Ask one System One question. The step-end output is `{ label, answer }`. The next step still receives the pre-decision value. See [decisions.md](./decisions.md). |
-| `speech` | Speak the current string. Stores the audio, emits `file:generated`, and passes the `FileOutput` on. See [Speech](#speech). |
+| `speech` | Speak the current string. Stores the audio, emits `file:generated` then `agent:run:end`, and passes the `FileOutput` on. See [Speech](#speech). |
 | `branch` | Run exactly one arm. `cases` match `eq` with strict string equality, first hit. See [Branch](#branch). |
 
 ```bash
@@ -94,24 +94,26 @@ not evaluate the predicate again.
 ### Speech
 
 ```ts
-{ type: 'speech', provider: 'openai', model: 'tts-1' }
+{ type: 'speech', provider: 'openai', model: 'tts-1', voice: 'alloy' }
 ```
 
-The step reads the current value as the text passed to `generateSpeech`. A non-string throws
-`SPEECH_INPUT` before any provider call. No `config.blobStore` throws `BLOB_STORE_NOT_CONFIGURED`
-before the registry is resolved. An unset `config.speech` throws `SPEECH_NOT_CONFIGURED`. An
-unknown name throws `UNKNOWN_SPEECH_PROVIDER`. Both registry errors name what is registered, when
-anything is.
+The step reads the current value as the text passed to `generateSpeech`. `voice`, when set, is
+passed through. Cartesia, and Deepgram models `aura` and `aura-2`, throw without one. A non-string
+throws `SPEECH_INPUT` before any provider call. No `config.blobStore` throws
+`BLOB_STORE_NOT_CONFIGURED` before the registry is resolved. An unset `config.speech` throws
+`SPEECH_NOT_CONFIGURED`. An unknown name throws `UNKNOWN_SPEECH_PROVIDER`. Both registry errors
+name what is registered, when anything is.
 
 The audio bytes are stored with `blobStore.put()`. The step yields `file:generated`
-(`agentId: 'speech'`) on a session it creates for this step: pipeline crumbs have no session, and
-the crumb log's session foreign key needs a real row. That crumb stays on this step's run id.
-It is the only logged crumb there — the step does not emit `agent:run:start` — so after the
-pipeline response ends, including on another replica, `GET /runs/:runId/stream` authorizes the
-caller from that session's principal (`iss` and `sub`). Anyone else gets the same `404` as an
-unknown run. The step-end output, and the next step's input, is the `FileOutput`
-(`{ kind: 'file', uri, mimeType }`). A decision step ahead of speech does not replace the value,
-so speech still reads the pre-decision string.
+(`agentId: 'speech'`) and then `agent:run:end` on this step's run id. It does not mint a session.
+`session_id` on those crumbs stays null, and the principal (`iss` and `sub` only) is stamped on
+`file:generated`. That crumb is logged first — the step does not emit `agent:run:start` — so after
+the pipeline response ends, including on another replica, `GET /runs/:runId/stream` authorizes the
+caller from it and closes on `agent:run:end`. Anyone else gets the same `404` as an unknown run.
+A run with no principal is visible only to the local CLI principal. The step-end output, and the
+next step's input, is the `FileOutput` (`{ kind: 'file', uri, mimeType }`). A decision step ahead
+of speech does not replace the value, so speech still reads the pre-decision string. A loop
+attempt that retries or recovers deletes audio stored for crumbs it discards.
 
 `config.speech` is a `SpeechRegistry`, separate from `config.providers`. See
 [providers.md](./providers.md#speech).

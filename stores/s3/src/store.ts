@@ -1,4 +1,4 @@
-import { GetObjectCommand, NoSuchKey, PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
+import { DeleteObjectCommand, GetObjectCommand, NoSuchKey, PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { v7 as uuidv7 } from 'uuid'
 import type { BlobStore } from '@breadai/core'
@@ -51,6 +51,10 @@ export function store(opts: S3StoreOptions): BlobStore {
         if (err instanceof NoSuchKey) return undefined
         throw err
       }
+    },
+
+    async delete(key) {
+      await client.send(new DeleteObjectCommand({ Bucket: opts.bucket, Key: key }))
     },
   }
 }

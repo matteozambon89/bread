@@ -7,10 +7,12 @@
 export interface BlobStore {
   // Stores `data` and returns a generated key plus a retrievable URL — bread
   // never hands the caller a key to invent (mirrors BreadStore.ingestDocument
-  // generating its own id). No delete()/migrate()/close() yet — nothing
-  // currently needs blob lifecycle management; add when something does.
+  // generating its own id).
   put(data: Uint8Array, opts?: { mimeType?: string }): Promise<{ key: string; url: string }>
   get(key: string): Promise<{ data: Uint8Array; mimeType?: string } | undefined>
+  // Drops one object by the key put() returned. A discarded loop attempt rolls
+  // back speech audio that was stored before that attempt's crumbs were kept.
+  delete(key: string): Promise<void>
 }
 
 // A pointer to a blob an agent hands back as (part of) its own output — either a tool
