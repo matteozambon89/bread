@@ -99,6 +99,55 @@ describe('bread.runPipeline — video step', () => {
     }
   })
 
+  test('a missing blob store rejects after step start, before the prompt check, and stores nothing', async () => {
+    let puts = 0
+    const blobs = memoryBlobStore()
+    const blobStore = {
+      async put(data: Uint8Array, opts?: { mimeType?: string }) {
+        puts += 1
+        return blobs.put(data, opts)
+      },
+      get: blobs.get.bind(blobs),
+    }
+    const unset = await makeBread({
+      agents: { reply: defineTestAgent({ model: 'reply' }) },
+      models: { reply: mockTextModel('noted') },
+      config: {
+        video: { fal: () => videoModel('fal', 'ray-2') },
+        pipelines: { clip: [{ type: 'video', provider: 'fal', model: 'ray-2' }] },
+      },
+    })
+    try {
+      const crumbs: BreadCrumb[] = []
+      let error: unknown
+      try {
+        for await (const crumb of unset.bread.runPipeline('clip', { prompt: PROMPT })) crumbs.push(crumb)
+      } catch (caught) {
+        error = caught
+      }
+      expect(error).toMatchObject({ code: 'BLOB_STORE_NOT_CONFIGURED' })
+      expect(crumbs.map((crumb) => crumb.type)).toEqual(['pipeline:step:start'])
+    } finally {
+      await unset.stop()
+    }
+
+    const configured = await makeBread({
+      agents: { reply: defineTestAgent({ model: 'reply' }) },
+      models: { reply: mockTextModel('noted') },
+      config: {
+        blobStore,
+        video: { fal: () => videoModel('fal', 'ray-2') },
+        pipelines: { clip: [{ type: 'video', provider: 'fal', model: 'ray-2' }] },
+      },
+    })
+    try {
+      await collect(configured.bread.runPipeline('clip', PROMPT))
+      expect(puts).toBe(0)
+    } finally {
+      await configured.stop()
+    }
+  })
+
   test('throws BLOB_STORE_NOT_CONFIGURED when blobStore is unset, before the prompt check', async () => {
     let resolved = 0
     const { bread, stop } = await makeBread({
