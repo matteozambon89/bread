@@ -39,6 +39,8 @@ export { isFileOutput } from './storage/blob-store.js'
 export type { AgentRegistry, RunnerContext } from './runner.js'
 export { resolveModel } from './model-provider.js'
 export type { ModelRef, ProviderRegistry } from './model-provider.js'
+export { resolveVideoModel } from './video.js'
+export type { VideoModel, VideoRegistry } from './video.js'
 export type {
   DecisionBucket,
   DecisionClient,

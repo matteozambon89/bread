@@ -13,6 +13,15 @@ import {
   parseSelector,
 } from '@breadai/core'
 
+// Date.now() alone collides when two loads happen in the same millisecond.
+// Bun then returns the first module, which has already closed over its values.
+let importSeq = 0
+
+function freshImport(path: string): Promise<any> {
+  importSeq += 1
+  return import(`${path}?t=${Date.now()}-${importSeq}`)
+}
+
 // ---------------------------------------------------------------------------
 // Config loader
 // ---------------------------------------------------------------------------
@@ -21,7 +30,7 @@ export async function loadConfig(projectRoot: string): Promise<BreadConfig> {
   const configPath = resolve(projectRoot, 'bread.config.ts')
   // Cache-bust so a re-import sees on-disk edits (hot reload) rather than the
   // cached module.
-  const mod = await import(`${configPath}?t=${Date.now()}`)
+  const mod = await freshImport(configPath)
   const config: BreadConfig = mod.default ?? mod.config
   if (!config) throw new Error(`bread.config.ts must export a default BreadConfig`)
   return config
@@ -45,7 +54,7 @@ export async function loadAgents(
     try {
       // Cache-bust so `bread dev` re-imports fresh code on hot reload — Bun
       // otherwise returns the cached module and re-serves stale agent code.
-      mod = await import(`${agentFile}?t=${Date.now()}`)
+      mod = await freshImport(agentFile)
     } catch (err) {
       console.error(`[bread] Failed to load agent "${agentId}" from ${agentFile}:`, err)
       continue
@@ -112,7 +121,7 @@ export async function loadTasks(projectRoot: string): Promise<TaskRegistry> {
     let def: TaskDefinition<unknown, unknown> | undefined
     try {
       // Cache-bust so `bread dev` re-imports fresh task code on hot reload.
-      const mod = await import(`${taskPath}?t=${Date.now()}`)
+      const mod = await freshImport(taskPath)
       def = mod.default ?? mod.task
     } catch (err) {
       console.error(`[bread] Failed to load task ${taskPath}:`, err)
@@ -153,7 +162,7 @@ async function loadTools(agentDir: string): Promise<{
     const toolPath = join(toolsDir, file)
     let def: any
     try {
-      const mod = await import(`${toolPath}?t=${Date.now()}`)
+      const mod = await freshImport(toolPath)
       def = mod.default ?? mod.tool
     } catch (err) {
       console.error(`[bread] Failed to load tool ${toolPath}:`, err)
@@ -230,7 +239,7 @@ export async function loadEvals(projectRoot: string, scopePath?: string): Promis
         await scan(full)
       } else if (entry.endsWith('.eval.ts') || entry.endsWith('.eval.js')) {
         try {
-          const mod = await import(`${full}?t=${Date.now()}`)
+          const mod = await freshImport(full)
           const def = mod.default ?? mod.evalDef
           if (def?._evalDef) evals.push(def)
         } catch (err) {

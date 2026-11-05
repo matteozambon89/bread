@@ -142,6 +142,9 @@ degrade gracefully rather than crashing at startup. Current consumers:
   at startup.
 - `ToolContext.blobStore` — a tool's own `execute()` can call `ctx.blobStore.put()` directly to
   store a file it generates or fetches; see [tools.md](./tools.md#toolcontext).
+- A pipeline [`video` step](./pipelines.md#video) requires `config.blobStore` and throws
+  `BLOB_STORE_NOT_CONFIGURED` when it is unset. The step does not call `BlobStore.put` yet — it
+  only checks that a store is configured, then passes the prompt string on.
 
 `BlobStore.put()` generates its own key (like `ingestDocument` generates its own document id) and
 returns a retrievable `url` — for `@breadai/store-s3`, a presigned GET URL. There's no
