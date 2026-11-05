@@ -2,8 +2,10 @@ import { defineConfig } from '@breadai/core'
 import { agUi } from '@breadai/protocol-ag-ui'
 import { providerDecisions } from '@breadai/provider-decisions'
 import { providerLlm } from '@breadai/provider-llm'
+import { providerSpeech } from '@breadai/provider-speech'
 import { store } from '@breadai/store-sqlite'
 import { transport } from '@breadai/transport-http-chunked'
+import { localBlobStore } from './blob-store.ts'
 
 // `triage-supervisor` is the only entrypoint a client calls directly; `investigator`,
 // `ticket-lookup`, and `policy-check` still need to be registered because the runner
@@ -14,6 +16,8 @@ export default defineConfig({
   transport: transport(),
   providers: providerLlm,
   decisions: providerDecisions,
+  speech: providerSpeech,
+  blobStore: localBlobStore(),
   pipelines: {
     refund: [
       { type: 'agent', agentId: 'ticket-lookup' },
@@ -37,6 +41,23 @@ export default defineConfig({
         ],
         default: [{ type: 'agent', agentId: 'investigator' }],
       },
+    ],
+    // ticket-lookup, then the same decision as refund. The decision does not
+    // replace the lookup string, so speech reads that text.
+    speak: [
+      { type: 'agent', agentId: 'ticket-lookup' },
+      {
+        type: 'decision',
+        provider: 'typesafe',
+        model: 'jev-latest',
+        question: {
+          type: 'choice',
+          text: 'How should this refund be routed?',
+          options: ['needs_review', 'auto_refund', 'deny'],
+          otherwise: 'needs_review',
+        },
+      },
+      { type: 'speech', provider: 'openai', model: 'tts-1' },
     ],
   },
   plugins: [

@@ -42,7 +42,10 @@ authoritative "no".
 The rest of the vocabulary is deliberately literal: **agent**, **tool**, **task** (one-shot,
 stateless), **skill** (loadable instruction pack), **loop** (agent-driven iteration),
 **pipeline** (declared step sequence), **decision** (a pipeline step that records a System One
-label on its step-end crumb and leaves the value passed onward unchanged), **branch** (an exclusive
+label on its step-end crumb and leaves the value passed onward unchanged), **speech** (a pipeline
+step that speaks the current string, stores the audio, emits `file:generated` on a real session,
+and passes the `FileOutput` on — its registry is `config.speech`, not `config.providers`),
+**branch** (an exclusive
 pipeline step: one arm, strict string equality on `on` or the latest decision label, required
 default), **supervisor** (LLM-driven delegation to sub-agents via
 `core_delegate`), **store**

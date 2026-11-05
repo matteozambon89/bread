@@ -5,6 +5,7 @@ import type { BreadStore } from './storage/store.js'
 import type { TaskRegistry } from './task.js'
 import type { DecisionRegistry } from './decision.js'
 import type { ProviderRegistry } from './model-provider.js'
+import type { SpeechRegistry } from './speech.js'
 import type { ToolOrigin } from './permissions.js'
 import type {
   AgentDefinition,
@@ -34,6 +35,7 @@ export interface RunnerContext {
   systemPrompt?: string | undefined
   providers?: ProviderRegistry | undefined
   decisions?: DecisionRegistry | undefined
+  speech?: SpeechRegistry | undefined
   pluginTools?: { plugin: string; def: ToolDefinition }[] | undefined
   pluginToolResolvers?:
     | { plugin: string; resolve: NonNullable<BreadPlugin['resolveAgentTools']> }[]
@@ -41,6 +43,9 @@ export interface RunnerContext {
   remoteAgents?: Record<string, RemoteAgent> | undefined
   credentials?: CredentialProvider | undefined
   blobStore?: BlobStore | undefined
+  // Keys put during a buffered loop attempt. The attempt deletes them when it
+  // discards the crumbs. Absent on a run whose crumbs are yielded as they happen.
+  blobJournal?: string[] | undefined
   // Global hook chain tail: plugin-contributed hooks (config.plugins order),
   // then BreadConfig.hooks itself — always the last link in every scope's
   // beforeRun/afterRun/onError/onSuspend chain (see runner-helpers.ts's chain helpers).

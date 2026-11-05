@@ -1,6 +1,7 @@
 import type { z } from 'zod'
 import type { DecisionQuestion, DecisionRegistry } from './decision.js'
 import type { ModelRef, ProviderRegistry } from './model-provider.js'
+import type { SpeechRegistry } from './speech.js'
 import type { BlobStore, FileOutput } from './storage/blob-store.js'
 import type { BreadStore } from './storage/store.js'
 import type { BreadTransport } from './transport.js'
@@ -44,8 +45,10 @@ export interface AgentRunStartCrumb extends BaseCrumb {
   principal?: { iss: string; sub: string }
 }
 
-export interface AgentRunEndCrumb extends BaseCrumb {
+export interface AgentRunEndCrumb extends Omit<BaseCrumb, 'sessionId'> {
   type: 'agent:run:end'
+  // Null when the run has no caller session. A speech step does not mint one.
+  sessionId?: string
   output: unknown
   durationMs: number
   // Files the model generated directly during this run (no tool call involved) —
@@ -67,15 +70,18 @@ export interface ReasoningDeltaCrumb extends BaseCrumb {
   delta: string
 }
 
-// A file the model generated directly as part of its own generation (e.g. an
-// image-generation-capable model) — sourced from the AI SDK's stream 'file'
-// part, independent of any tool call. Emitted the instant the file is stored via
-// BlobStore.put(); see AgentRunEndCrumb.files for the run's full accumulated list.
-export interface FileGeneratedCrumb extends BaseCrumb {
+// A stored file: a language-model stream 'file' part, or audio from a speech
+// pipeline step. Emitted once BlobStore.put() returns. See AgentRunEndCrumb.files
+// for files accumulated during an agent run.
+export interface FileGeneratedCrumb extends Omit<BaseCrumb, 'sessionId'> {
   type: 'file:generated'
+  // Null when the run has no caller session. A speech step does not mint one.
+  sessionId?: string
   uri: string
   mimeType: string
   name?: string
+  // iss and sub only, same as agent:run:start. A speech step's owner lives here.
+  principal?: { iss: string; sub: string }
 }
 
 export interface ToolCallCrumb extends BaseCrumb {
@@ -786,6 +792,7 @@ export type PipelineStep =
   | { type: 'parallel'; steps: PipelineStep[] }
   | { type: 'map'; agentId: string }
   | { type: 'decision'; provider: string; model: string; question: DecisionQuestion }
+  | { type: 'speech'; provider: string; model: string; voice?: string }
   | {
       type: 'branch'
       // Dot path into the current value. Omit to use the latest decision label.
@@ -934,6 +941,11 @@ export interface BreadConfig {
   // built-ins — install @breadai/provider-decisions. Unset throws
   // DECISION_NOT_CONFIGURED; an unknown name throws UNKNOWN_DECISION_PROVIDER.
   decisions?: DecisionRegistry
+  // Speech models keyed by the speech step's `provider`. Not a ProviderRegistry:
+  // those factories return a LanguageModel. Core has no built-ins — install
+  // @breadai/provider-speech. Unset throws SPEECH_NOT_CONFIGURED; an unknown
+  // name throws UNKNOWN_SPEECH_PROVIDER.
+  speech?: SpeechRegistry
   // The crumb fabric between replicas of this app. Defaults to the embedded
   // Stream transport (single container); set a distributed implementation
   // (e.g. @breadai/transport-redis) so passive subscribers on other replicas

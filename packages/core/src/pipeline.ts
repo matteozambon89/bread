@@ -1,10 +1,13 @@
+import { generateSpeech } from 'ai'
 import { v7 as uuidv7 } from 'uuid'
 import { decisionLabel, resolveDecisionClient, toHostQuestion } from './decision.js'
 import { runWithOnErrorRetry } from './hooks.js'
+import { resolveSpeechModel } from './speech.js'
 import type { BreadCrumb, LoopHostLink, PipelineCheckpointParent, PipelineStep, Principal, RunOptions, SupervisorCheckpointParent } from './types.js'
 import { BreadError } from './types.js'
 import { runAgent } from './runner.js'
 import type { RunnerContext } from './runner.js'
+import type { BlobStore } from './storage/blob-store.js'
 import type { CheckpointRecord } from './storage/store.js'
 
 export interface PipelineRunOpts {
@@ -156,6 +159,56 @@ export async function* runPipeline(opts: PipelineRunOpts): AsyncGenerator<BreadC
       const decided = decisionLabel(step.question, response.answers)
       output = { label: decided.label, answer: decided.answer }
       lastDecision = decided.label
+    } else if (step.type === 'speech') {
+      if (typeof current !== 'string') {
+        throw new BreadError(
+          `Pipeline "${pipelineId}" step ${index} is speech but the current value is not a string.`,
+          'SPEECH_INPUT',
+          { pipelineId, stepIndex: index },
+        )
+      }
+      if (!ctx.blobStore) {
+        throw new BreadError(
+          `Pipeline "${pipelineId}" step ${index} speaks audio but no blobStore is configured — see docs/store.md#blob-storage`,
+          'BLOB_STORE_NOT_CONFIGURED',
+          { pipelineId, stepIndex: index },
+        )
+      }
+      const started = Date.now()
+      const model = await resolveSpeechModel(ctx.speech, step.provider, step.model)
+      const spoken = await generateSpeech({
+        model,
+        text: current,
+        ...(step.voice !== undefined ? { voice: step.voice } : {}),
+        ...(ctx.signal ? { abortSignal: ctx.signal } : {}),
+      })
+      const mimeType = spoken.audio.mediaType
+      const { key, url } = await ctx.blobStore.put(spoken.audio.uint8Array, { mimeType })
+      // A buffered loop attempt may drop these crumbs. The key is deleted with them.
+      ctx.blobJournal?.push(key)
+      // No minted session: deleting that row would cascade the only audio crumb.
+      // file:generated stays first so runVisible reads the principal stamped here.
+      const principal = opts.principal
+        ? { iss: opts.principal.iss, sub: opts.principal.sub }
+        : undefined
+      output = { kind: 'file', uri: url, mimeType }
+      yield {
+        type: 'file:generated',
+        agentId: getStepAgentId(step),
+        runId: stepRunId,
+        timestamp: Date.now(),
+        uri: url,
+        mimeType,
+        ...(principal ? { principal } : {}),
+      }
+      yield {
+        type: 'agent:run:end',
+        agentId: getStepAgentId(step),
+        runId: stepRunId,
+        timestamp: Date.now(),
+        output,
+        durationMs: Date.now() - started,
+      }
     } else if (step.type === 'branch') {
       if (step.default === undefined) {
         throw new BreadError(
@@ -239,6 +292,7 @@ function stepRunIdOf(pipelineRunId: string, pipelineId: string, index: number): 
 function getStepAgentId(step: PipelineStep): string {
   if (step.type === 'agent' || step.type === 'map') return step.agentId
   if (step.type === 'decision') return 'decision'
+  if (step.type === 'speech') return 'speech'
   if (step.type === 'branch') return 'branch'
   return 'parallel'
 }
@@ -676,6 +730,11 @@ export async function* continuePipelineParent(
   if (parent.supervisor) return { output: driven.output, supervisor: parent.supervisor }
 }
 
+async function forgetBlobs(blobStore: BlobStore | undefined, keys: readonly string[]): Promise<void> {
+  if (!blobStore) return
+  for (const key of keys) await blobStore.delete(key)
+}
+
 type RemainingBoxed =
   | { kind: 'done'; crumbs: BreadCrumb[]; result: PipelineResult }
   | { kind: 'recover'; output: unknown }
@@ -700,12 +759,13 @@ async function* runRemainingWithLoopError(
     outcome = await runWithOnErrorRetry<RemainingBoxed>(
       async () => {
         const crumbs: BreadCrumb[] = []
+        const blobJournal: string[] = []
         const gen = runPipeline({
           pipelineId: parent.pipelineId,
           pipelineRunId: parent.pipelineRunId,
           steps: parent.remainingSteps,
           input: stepOutput,
-          ctx,
+          ctx: { ...ctx, blobJournal },
           baseIndex: parent.stepIndex + 1,
           ...(carriedLabel !== undefined ? { decisionLabel: carriedLabel } : {}),
           ...(parent.outer ? { outer: parent.outer } : {}),
@@ -721,6 +781,7 @@ async function* runRemainingWithLoopError(
           return { kind: 'done', crumbs, result: next.value }
         } catch (err) {
           if (err instanceof BreadError && err.code === 'LOOP_SUSPENDED') released.push(...crumbs)
+          else await forgetBlobs(ctx.blobStore, blobJournal)
           throw err
         }
       },

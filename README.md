@@ -75,6 +75,14 @@ export default defineConfig({
 })
 ```
 
+Speech is a separate registry, not another language-model provider. `@breadai/provider-speech`
+exports `providerSpeech` for `config.speech`. A pipeline step
+`{ type: 'speech', provider, model }` speaks the current string, stores the audio, and passes the
+file on. See [`docs/providers.md`](./docs/providers.md#speech) and
+[`docs/pipelines.md`](./docs/pipelines.md#speech).
+[`examples/support-triage`](./examples/support-triage) pipeline `speak` runs a lookup, a decision,
+then speech, and leaves `refund` unchanged.
+
 ### Runtime
 
 `bread` runs on **Bun** — the `@breadai/store-sqlite` store (`bun:sqlite`) works out of the box.

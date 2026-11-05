@@ -393,4 +393,65 @@ describe('runVisible', () => {
     expect(await runVisible({}, 'r1', owner)).toBe(false)
     expect(await runVisible(noLog, 'r1', owner)).toBe(false)
   })
+
+  const speechFile = {
+    runId: 'speech-step',
+    seq: 2,
+    type: 'file:generated',
+    crumb: { type: 'file:generated', principal: owner },
+  }
+
+  test('a speech file run is visible from the principal on its crumb', async () => {
+    const store = {
+      getCrumbs: async () => [speechFile],
+      getSession: async () => {
+        throw new Error('session must not be read')
+      },
+    }
+    expect(await runVisible(store, 'speech-step', owner)).toBe(true)
+    expect(await runVisible(store, 'speech-step', { ...owner, tenant: 'acme' })).toBe(true)
+    expect(await runVisible(store, 'speech-step', other)).toBe(false)
+    expect(await runVisible(store, 'speech-step', LOCAL_CLI_PRINCIPAL)).toBe(false)
+  })
+
+  test('a speech file run with no principal is visible to the local cli only', async () => {
+    const store = {
+      getCrumbs: async () => [{ ...speechFile, crumb: { type: 'file:generated' } }],
+      getSession: async () => {
+        throw new Error('session must not be read')
+      },
+    }
+    expect(await runVisible(store, 'speech-step', LOCAL_CLI_PRINCIPAL)).toBe(true)
+    expect(await runVisible(store, 'speech-step', owner)).toBe(false)
+  })
+
+  test('a speech file stays visible from the crumb principal when the session is gone', async () => {
+    const store = {
+      getCrumbs: async () => [
+        {
+          runId: 'speech-step',
+          seq: 1,
+          type: 'file:generated',
+          crumb: { type: 'file:generated', principal: owner },
+        },
+      ],
+      getSession: async () => {
+        throw new Error('session must not be read')
+      },
+    }
+    expect(await runVisible(store, 'speech-step', owner)).toBe(true)
+    expect(await runVisible(store, 'speech-step', { ...owner, tenant: 'acme' })).toBe(true)
+    expect(await runVisible(store, 'speech-step', other)).toBe(false)
+    expect(await runVisible(store, 'speech-step', LOCAL_CLI_PRINCIPAL)).toBe(false)
+  })
+
+  test('a first crumb that is neither a start nor a speech file does not read the session', async () => {
+    const store = {
+      getCrumbs: async () => [{ ...speechFile, type: 'tool:call' }],
+      getSession: async () => {
+        throw new Error('session must not be read')
+      },
+    }
+    expect(await runVisible(store, 'speech-step', owner)).toBe(false)
+  })
 })
