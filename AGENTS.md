@@ -160,7 +160,8 @@ The CLI loader (`packages/server/src/loader.ts`) attaches private fields to each
   from `ProviderRegistry`. `resolveVideoModel` throws `VIDEO_NOT_CONFIGURED` or
   `UNKNOWN_VIDEO_PROVIDER`. A pipeline `{ type: 'video', provider, model }` requires
   `config.blobStore` (`BLOB_STORE_NOT_CONFIGURED`), requires a string current value
-  (`VIDEO_PROMPT`, before resolve), resolves the model, and passes that string on. It does not
+  (`VIDEO_PROMPT`, before resolve), resolves the model, and passes that string on. A
+  non-model throws `VIDEO_MODEL` and the step does not end. It does not
   call `experimental_generateVideo` or `experimental_startVideo`, and it does not store bytes.
   `@breadai/provider-video` supplies the 13 lazy `instance.video(modelId)` factories. Core does
   not import that package. See [`docs/pipelines.md`](./docs/pipelines.md#video).

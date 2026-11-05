@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import type { PipelineStepEndCrumb, PipelineStepStartCrumb, VideoModel } from '@breadai/core'
+import type { BreadCrumb, PipelineStepEndCrumb, PipelineStepStartCrumb, VideoModel } from '@breadai/core'
 import { collect, defineTestAgent, makeBread, memoryBlobStore, mockTextModel } from '@breadai/test-utils'
 import type { MockLanguageModelV4 } from 'ai/test'
 
@@ -141,6 +141,40 @@ describe('bread.runPipeline — video step', () => {
     try {
       const error = await collect(bread.runPipeline('clip', PROMPT)).catch((caught) => caught)
       expect(error).toMatchObject({ code: 'VIDEO_NOT_CONFIGURED' })
+    } finally {
+      await stop()
+    }
+  })
+
+  test('does not complete the step when the video factory returns a non-model', async () => {
+    const reply = mockTextModel('noted') as MockLanguageModelV4
+    const { bread, stop } = await makeBread({
+      agents: { reply: defineTestAgent({ model: 'reply' }) },
+      models: { reply },
+      config: {
+        blobStore: memoryBlobStore(),
+        video: {
+          fal: () => 'not-a-model' as unknown as VideoModel,
+        },
+        pipelines: {
+          clip: [
+            { type: 'video', provider: 'fal', model: 'ray-2' },
+            { type: 'agent', agentId: 'reply' },
+          ],
+        },
+      },
+    })
+    try {
+      const crumbs: BreadCrumb[] = []
+      let error: unknown
+      try {
+        for await (const crumb of bread.runPipeline('clip', PROMPT)) crumbs.push(crumb)
+      } catch (caught) {
+        error = caught
+      }
+      expect(reply.doStreamCalls).toHaveLength(0)
+      expect(crumbs.some((crumb) => crumb.type === 'pipeline:step:end')).toBe(false)
+      expect(error).toMatchObject({ code: 'VIDEO_MODEL' })
     } finally {
       await stop()
     }

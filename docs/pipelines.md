@@ -102,7 +102,8 @@ before the model is resolved. The step requires `config.blobStore`; unset throws
 `BLOB_STORE_NOT_CONFIGURED` even when the value is not a string (see
 [store.md](./store.md#blob-storage)). It then resolves `provider` and `model` on
 [`config.video`](./providers.md#video-models). No registry throws `VIDEO_NOT_CONFIGURED`. An
-unknown name throws `UNKNOWN_VIDEO_PROVIDER`.
+unknown name throws `UNKNOWN_VIDEO_PROVIDER`. A resolved value that is not a video model
+throws `VIDEO_MODEL` and the step does not end.
 
 The step output, and the next step's input, is that same string. `pipeline:step:start` and
 `pipeline:step:end` use `agentId: 'video'`. The step does not call `experimental_generateVideo` or

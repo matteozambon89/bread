@@ -1,6 +1,6 @@
 import { v7 as uuidv7 } from 'uuid'
 import { decisionLabel, resolveDecisionClient, toHostQuestion } from './decision.js'
-import { resolveVideoModel } from './video.js'
+import { isVideoModel, resolveVideoModel } from './video.js'
 import { runWithOnErrorRetry } from './hooks.js'
 import type { BreadCrumb, LoopHostLink, PipelineCheckpointParent, PipelineStep, Principal, RunOptions, SupervisorCheckpointParent } from './types.js'
 import { BreadError } from './types.js'
@@ -173,8 +173,16 @@ export async function* runPipeline(opts: PipelineRunOpts): AsyncGenerator<BreadC
         )
       }
       // Resolve before passing the prompt on so a missing provider fails here.
-      // The vendor job (start, poll, bytes) stays deferred.
-      await resolveVideoModel(ctx.video, step.provider, step.model)
+      // The vendor job (start, poll, bytes) stays deferred. A non-model must
+      // not look like that success — the next step would receive the prompt.
+      const model = await resolveVideoModel(ctx.video, step.provider, step.model)
+      if (!isVideoModel(model)) {
+        throw new BreadError(
+          `Pipeline "${pipelineId}" step ${index} video provider "${step.provider}" did not return a video model.`,
+          'VIDEO_MODEL',
+          { pipelineId, stepIndex: index, provider: step.provider, model: step.model },
+        )
+      }
       output = current
     } else if (step.type === 'branch') {
       if (step.default === undefined) {
