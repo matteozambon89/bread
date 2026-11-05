@@ -47,8 +47,8 @@ entry. `google`, `google-vertex`, and `xai` reuse the language-model catalog key
 | `topaz` | `@ai-sdk/topaz` | `topaz` | `TOPAZ_API_KEY` |
 | `heygen` | `@ai-sdk/heygen` | `heygen` | `HEYGEN_API_KEY` |
 
-A missing peer throws `MISSING_PROVIDER` and names the package to `bun add`. Spreading the
-registry does not import anything.
+A missing peer throws `MISSING_PROVIDER` and names the package to `bun add`. An installed
+peer that fails to load keeps that error. Spreading the registry does not import anything.
 
 A pipeline step `{ type: 'video', provider, model }` reads the current value as a string prompt.
 It requires `config.blobStore`. It resolves the model and passes that string on. It does not call

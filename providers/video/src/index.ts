@@ -1,4 +1,7 @@
+import { createRequire } from 'node:module'
 import { BreadError, type VideoModel, type VideoRegistry } from '@breadai/core'
+
+const fromHere = createRequire(import.meta.url)
 
 export interface VideoCatalogEntry {
   pkg: string
@@ -32,8 +35,33 @@ function missingProvider(provider: string, pkg: string): never {
   })
 }
 
+function moduleNotFound(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null) return false
+  const code = (error as { code?: unknown }).code
+  return code === 'ERR_MODULE_NOT_FOUND' || code === 'MODULE_NOT_FOUND'
+}
+
+// A package on disk that fails to evaluate is not "not installed".
+function packageIsInstalled(pkg: string): boolean {
+  try {
+    fromHere.resolve(`${pkg}/package.json`)
+    return true
+  } catch {
+    return false
+  }
+}
+
+async function loadPackage(provider: string, pkg: string): Promise<unknown> {
+  try {
+    return await import(pkg)
+  } catch (error) {
+    if (!packageIsInstalled(pkg) && moduleNotFound(error)) missingProvider(provider, pkg)
+    throw error
+  }
+}
+
 async function resolveEntry(provider: string, entry: VideoCatalogEntry, modelId: string): Promise<VideoModel> {
-  const m = await import(entry.pkg).catch(() => missingProvider(provider, entry.pkg))
+  const m = await loadPackage(provider, entry.pkg)
   const loaded = (m as Record<string, unknown>)[entry.export]
   // google/vertex/xai/alibaba/minimax are callable. fal, replicate, and the
   // other video-only peers are plain objects. Both expose `.video(modelId)`.
@@ -52,7 +80,7 @@ async function resolveEntry(provider: string, entry: VideoCatalogEntry, modelId:
       { provider },
     )
   }
-  return (video as (id: string) => VideoModel)(modelId)
+  return (video as (this: unknown, id: string) => VideoModel).call(loaded, modelId)
 }
 
 // The 13 catalog providers, ready to use as `config.video` (or spread into a
