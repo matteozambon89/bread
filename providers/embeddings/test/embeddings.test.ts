@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { describe, expect, test } from 'bun:test'
 import { embeddingEntries, providerEmbeddings } from '@breadai/provider-embeddings'
 
@@ -165,4 +166,22 @@ describe('providerEmbeddings', () => {
       else process.env.OPENAI_COMPATIBLE_API_KEY = prevKey
     }
   })
+})
+
+const repoRoot = new URL('../../../', import.meta.url)
+
+test('README and providers docs name the four embed operations', () => {
+  for (const file of ['README.md', 'docs/providers.md']) {
+    const text = readFileSync(new URL(file, repoRoot), 'utf8')
+    for (const operation of [
+      'document ingest',
+      'document search',
+      'knowledge-node write',
+      'knowledge query',
+    ]) {
+      expect(text).toContain(operation)
+    }
+    expect(text).not.toContain('when the store writes')
+    expect(text).not.toContain('resolved only when the store writes')
+  }
 })
