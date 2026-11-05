@@ -22,8 +22,11 @@ export async function resolveVideoModel(
       'VIDEO_NOT_CONFIGURED',
     )
   }
-  const factory = registry[provider]
-  if (!factory) {
+  // Inherited Object.prototype functions (`toString`, `constructor`, …) are not
+  // registrations. `registry[name]` would otherwise return one and the caller
+  // would treat that call's result as a model.
+  const factory = Object.hasOwn(registry, provider) ? registry[provider] : undefined
+  if (typeof factory !== 'function') {
     const known = Object.keys(registry)
     throw new BreadError(
       `Unknown video provider: "${provider}". ` +
@@ -36,4 +39,23 @@ export async function resolveVideoModel(
     )
   }
   return factory(model)
+}
+
+// A factory can return anything at runtime. v3 always generates in `doGenerate`.
+// v4 may only implement the async `doStart` / `doStatus` pair.
+export function isVideoModel(value: unknown): value is VideoModel {
+  if (typeof value !== 'object' || value === null) return false
+  const model = value as {
+    specificationVersion?: unknown
+    provider?: unknown
+    modelId?: unknown
+    doGenerate?: unknown
+    doStart?: unknown
+  }
+  if (typeof model.provider !== 'string' || typeof model.modelId !== 'string') return false
+  if (model.specificationVersion === 'v3') return typeof model.doGenerate === 'function'
+  if (model.specificationVersion === 'v4') {
+    return typeof model.doGenerate === 'function' || typeof model.doStart === 'function'
+  }
+  return false
 }

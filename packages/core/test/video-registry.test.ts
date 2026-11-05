@@ -45,4 +45,21 @@ describe('resolveVideoModel', () => {
     expect(err.code).toBe('UNKNOWN_VIDEO_PROVIDER')
     expect(err.message).toContain('No video providers are registered')
   })
+
+  test('throws UNKNOWN_VIDEO_PROVIDER for an inherited object function name', async () => {
+    const registry: VideoRegistry = { fal: () => videoModel('fal', 'ray-2') }
+    for (const name of [
+      'toString',
+      'constructor',
+      'valueOf',
+      'hasOwnProperty',
+      'isPrototypeOf',
+      'propertyIsEnumerable',
+      'toLocaleString',
+    ]) {
+      const err = await resolveVideoModel(registry, name, 'model').catch((error) => error)
+      expect(err.code).toBe('UNKNOWN_VIDEO_PROVIDER')
+      expect(err.message).toContain(name)
+    }
+  })
 })
