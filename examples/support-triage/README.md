@@ -71,7 +71,8 @@ string, so speech reads that text. `refund` is unchanged.
 
 Speech needs `config.speech` from [`@breadai/provider-speech`](../../providers/speech) and a
 `config.blobStore`. This example keeps the bytes in memory for the life of the process
-([`blob-store.ts`](./blob-store.ts)); swap that for
+([`blob-store.ts`](./blob-store.ts)). The url `put` returns is an HTTP GET for those bytes, and
+`get` accepts that url. Swap that store for
 [`@breadai/store-s3`](../../stores/s3) when the audio must outlive the process. Install the OpenAI
 peer before calling it (`bun add @ai-sdk/openai`) and set `OPENAI_API_KEY`. `xai` and `hume` ignore
 the model id; the other catalog providers use it.
