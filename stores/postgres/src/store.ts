@@ -3,6 +3,7 @@ import { v7 as uuidv7 } from 'uuid'
 import {
   decodeLastOutput,
   rerankHits,
+  resolveReranking,
   type BreadStore,
   type CheckpointRecord,
   type CleanupOptions,
@@ -22,6 +23,7 @@ import {
 } from '@breadai/core'
 import { requireExecutionId } from '@breadai/core'
 import { migrate } from './migrate.js'
+import { candidateLimit, documentRerankText, likeContains } from './rerank-query.js'
 
 export type EmbedFn = (text: string) => Promise<number[]>
 
@@ -38,8 +40,8 @@ export interface PostgresStoreOptions {
 }
 
 export interface PostgresStore extends BreadStore {
-  // Undefined leaves a previous bind in place so start() without a registry
-  // does not clear one the caller already set.
+  // `undefined` clears a previous bind. bread.start() always calls this, so a
+  // later start without config.reranking does not keep the old model.
   bindReranking(registry: RerankingRegistry | undefined): void
 }
 
@@ -579,38 +581,32 @@ export function store(opts: PostgresStoreOptions = {}): PostgresStore {
 
     async queryKnowledge({ agentId, query, limit }) {
       const n = limit ?? 10
-      // Limit applies after rerank. Cutting the candidate page in SQL would
-      // drop a hit the reranker would have kept.
-      if (rerankRef) {
-        const rows = embed
-          ? await sql<Array<{ id: string; label: string; data: Record<string, unknown> }>>`
-              SELECT id, label, data FROM bread_kg_nodes
-              WHERE agent_id = ${agentId} AND embedding IS NOT NULL
-              ORDER BY embedding <=> ${vec(await embed(query))}::vector`
-          : await sql<Array<{ id: string; label: string; data: Record<string, unknown> }>>`
-              SELECT id, label, data FROM bread_kg_nodes
-              WHERE agent_id = ${agentId} AND label ILIKE ${`%${query}%`}
-              ORDER BY created_at DESC`
-        const ordered = await rerankHits({
-          query,
-          hits: rows,
-          text: (row) => row.label,
-          ref: rerankRef,
-          registry,
-          limit: n,
-        })
-        return ordered.map((r): KnowledgeNode => ({ id: r.id, label: r.label, data: r.data ?? {} }))
-      }
-      const rows = embed
+      // Rerank a retrieval page larger than `limit`, never the whole match set.
+      const page = rerankRef ? candidateLimit(n) : n
+      if (rerankRef) await resolveReranking(rerankRef, registry)
+      const embedding = embed ? vec(await embed(query)) : undefined
+      const rows = embedding
         ? await sql<Array<{ id: string; label: string; data: Record<string, unknown> }>>`
             SELECT id, label, data FROM bread_kg_nodes
             WHERE agent_id = ${agentId} AND embedding IS NOT NULL
-            ORDER BY embedding <=> ${vec(await embed(query))}::vector LIMIT ${n}`
+            ORDER BY embedding <=> ${embedding}::vector
+            LIMIT ${page}`
         : await sql<Array<{ id: string; label: string; data: Record<string, unknown> }>>`
             SELECT id, label, data FROM bread_kg_nodes
-            WHERE agent_id = ${agentId} AND label ILIKE ${`%${query}%`}
-            ORDER BY created_at DESC LIMIT ${n}`
-      return rows.map((r): KnowledgeNode => ({ id: r.id, label: r.label, data: r.data ?? {} }))
+            WHERE agent_id = ${agentId} AND label ILIKE ${likeContains(query)} ESCAPE '\\'
+            ORDER BY created_at DESC
+            LIMIT ${page}`
+      const ordered = rerankRef
+        ? await rerankHits({
+            query,
+            hits: rows,
+            text: (row) => row.label,
+            ref: rerankRef,
+            registry,
+            limit: n,
+          })
+        : rows
+      return ordered.map((r): KnowledgeNode => ({ id: r.id, label: r.label, data: r.data ?? {} }))
     },
 
     async forgetKnowledge({ id }) {
@@ -643,34 +639,32 @@ export function store(opts: PostgresStoreOptions = {}): PostgresStore {
 
     async searchDocuments({ agentId, query, limit }) {
       const n = limit ?? 5
+      const page = rerankRef ? candidateLimit(n) : n
+      if (rerankRef) await resolveReranking(rerankRef, registry)
+      const embedding = embed ? vec(await embed(query)) : undefined
+      const pattern = likeContains(query)
+      const where = embedding
+        ? sql`WHERE agent_id = ${agentId} AND embedding IS NOT NULL`
+        : sql`WHERE agent_id = ${agentId} AND (title ILIKE ${pattern} ESCAPE '\\' OR content ILIKE ${pattern} ESCAPE '\\')`
+      const tail = embedding
+        ? sql`ORDER BY embedding <=> ${embedding}::vector LIMIT ${page}`
+        : sql`ORDER BY created_at DESC LIMIT ${page}`
       if (rerankRef) {
-        const rows = embed
-          ? await sql<Array<{ id: string; title: string; source: string | null; content: string }>>`
-              SELECT id, title, source, content FROM bread_documents
-              WHERE agent_id = ${agentId} AND embedding IS NOT NULL
-              ORDER BY embedding <=> ${vec(await embed(query))}::vector`
-          : await sql<Array<{ id: string; title: string; source: string | null; content: string }>>`
-              SELECT id, title, source, content FROM bread_documents
-              WHERE agent_id = ${agentId} AND (title ILIKE ${`%${query}%`} OR content ILIKE ${`%${query}%`})`
+        const rows = await sql<
+          Array<{ id: string; title: string; source: string | null; content: string }>
+        >`SELECT id, title, source, content FROM bread_documents ${where} ${tail}`
         const ordered = await rerankHits({
           query,
           hits: rows,
-          text: (row) => row.content,
+          text: documentRerankText,
           ref: rerankRef,
           registry,
           limit: n,
         })
         return ordered.map((r): DocumentRecord => ({ id: r.id, title: r.title, source: r.source }))
       }
-      const rows = embed
-        ? await sql<Array<{ id: string; title: string; source: string | null }>>`
-            SELECT id, title, source FROM bread_documents
-            WHERE agent_id = ${agentId} AND embedding IS NOT NULL
-            ORDER BY embedding <=> ${vec(await embed(query))}::vector LIMIT ${n}`
-        : await sql<Array<{ id: string; title: string; source: string | null }>>`
-            SELECT id, title, source FROM bread_documents
-            WHERE agent_id = ${agentId} AND (title ILIKE ${`%${query}%`} OR content ILIKE ${`%${query}%`})
-            LIMIT ${n}`
+      const rows = await sql<Array<{ id: string; title: string; source: string | null }>>`
+        SELECT id, title, source FROM bread_documents ${where} ${tail}`
       return rows.map((r): DocumentRecord => ({ id: r.id, title: r.title, source: r.source }))
     },
 
@@ -690,7 +684,7 @@ export function store(opts: PostgresStoreOptions = {}): PostgresStore {
     },
 
     bindReranking(next) {
-      if (next !== undefined) registry = next
+      registry = next
     },
   }
 }

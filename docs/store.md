@@ -114,9 +114,10 @@ memory stores are always keyword-only.
 
 Postgres accepts `rerank: { provider, model }`. `bread.start()` binds
 [`config.reranking`](./providers.md#reranking) onto that store. `searchDocuments` and
-`queryKnowledge` then load candidate text — document content, knowledge label — call
-`resolveReranking`, reorder those hits, and apply `limit` afterwards. With no `rerank`
-ref, order stays what it is today (pgvector when `embed` is set, keyword otherwise).
+`queryKnowledge` take a bounded page from the vector or keyword order — document title
+and content, or the knowledge label — rerank that page, and then apply `limit`. `%` and
+`_` in a keyword query match literally. With no `rerank` ref, order stays what it is
+today (pgvector when `embed` is set, keyword otherwise).
 SQLite and memory stay keyword-only. Setting `config.reranking` does not reorder them,
 and they do not take a `rerank` ref.
 

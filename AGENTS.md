@@ -161,9 +161,10 @@ The CLI loader (`packages/server/src/loader.ts`) attaches private fields to each
   `@breadai/provider-reranking` fills the registry with lazy optional peers (`cohere`,
   `amazon-bedrock`, `togetherai`, `voyage`). Core does not import that package.
   `bread.start()` binds the registry onto a store that implements `bindReranking`. Postgres
-  `searchDocuments` / `queryKnowledge` load candidate text (document content, knowledge label),
-  call `resolveReranking` when the store's `rerank` ref is set, reorder those hits, then apply
-  `limit`. With no ref, order is unchanged. SQLite and memory stay keyword-only, including
+  `searchDocuments` / `queryKnowledge` take a bounded page from the vector or keyword order
+  (document title and content, knowledge label), call `resolveReranking` before that read when
+  the store's `rerank` ref is set, reorder that page, then apply `limit`. With no ref, order is
+  unchanged. SQLite and memory stay keyword-only, including
   [`examples/knowledge-graph`](./examples/knowledge-graph).
 - **Lifecycle unification** — `BreadPlugin.close` (renamed from `destroy`) runs on `bread.stop()`;
   stores keep `migrate?`/`close?`; transports use `init?`/`close?`. `RemoteAgent` (the remote-agent

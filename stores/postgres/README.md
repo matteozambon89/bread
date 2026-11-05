@@ -9,9 +9,10 @@
 Postgres `BreadStore` — bread's production-default persistence: sessions, messages, checkpoints,
 loops, task runs, knowledge graph, and documents, with optional
 [pgvector](https://github.com/pgvector/pgvector) semantic search when you pass an `embed`
-function. Pass `rerank: { provider, model }` to rescore `searchDocuments` and `queryKnowledge`
-after that retrieval. `bread.start()` binds `config.reranking`; `limit` still caps the result.
-With no `rerank` ref, order is unchanged. SQLite and memory stay keyword-only.
+function. Pass `rerank: { provider, model }` to rescore a bounded page of `searchDocuments` and
+`queryKnowledge` hits (document title and content, knowledge label). `bread.start()` binds
+`config.reranking`; `limit` still caps the result. With no `rerank` ref, order is unchanged.
+SQLite and memory stay keyword-only.
 
 ```bash
 bun add @breadai/store-postgres   # or: npm i @breadai/store-postgres
