@@ -37,8 +37,8 @@ export async function resolveTranscriptionModel(
   return factory(model)
 }
 
-// The pipeline value must already be an http(s) FileOutput. transcribe downloads
-// that url; this does not read the blob.
+// The pipeline value must already be an http(s) FileOutput. The step downloads
+// that url only when the blob store issued it. This does not read the blob.
 export function transcriptionAudioUrl(
   value: unknown,
   where: { pipelineId: string; stepIndex: number },

@@ -76,8 +76,8 @@ export default defineConfig({
 ```
 
 `@breadai/provider-transcription` is a separate registry for `config.transcription` (15 lazy
-optional peers). A pipeline `transcription` step passes an http(s) `FileOutput` URL to `transcribe`,
-and the next step reads the transcript text. See [`docs/providers.md`](./docs/providers.md#transcription)
+optional peers). A pipeline `transcription` step downloads only an http(s) `FileOutput` URL the
+blob store issued, and the next step reads the transcript text. See [`docs/providers.md`](./docs/providers.md#transcription)
 and [`docs/pipelines.md`](./docs/pipelines.md#transcription).
 
 ### Runtime

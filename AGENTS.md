@@ -158,8 +158,9 @@ The CLI loader (`packages/server/src/loader.ts`) attaches private fields to each
   `@breadai/provider-decisions` fills the registry. Core does not import that package.
 - **Transcription** — `BreadConfig.transcription` is a `TranscriptionRegistry`
   (`packages/core/src/transcription.ts`), separate from `config.providers`. A `transcription`
-  pipeline step requires `config.blobStore`, accepts only an http(s) `FileOutput`, passes
-  `new URL(file.uri)` to `transcribe`, and forwards `result.text` only.
+  pipeline step requires `config.blobStore`, downloads only an http(s) `FileOutput` URL that
+  `issued` accepts, pins the connection (no loopback, private, link-local, or metadata address,
+  including every redirect), and forwards `result.text` only.
   `@breadai/provider-transcription` fills the registry. Core does not import that package.
   See [`docs/pipelines.md`](./docs/pipelines.md#transcription).
 - **Lifecycle unification** — `BreadPlugin.close` (renamed from `destroy`) runs on `bread.stop()`;

@@ -1,11 +1,9 @@
 # pipeline
 
-`article` is unchanged: the researcher outlines, then `map` fans sections out to the writer.
+`article` is unchanged: the researcher outlines, then `map` fans sections out to the writer. This example does not set `blobStore`, so a model that generates a file still throws `BLOB_STORE_NOT_CONFIGURED`.
 
-`transcript` transcribes an http(s) `FileOutput`, then that same writer reads the transcript text. The step needs `config.blobStore`. This example's store only marks it set — the step does not call `get`. Install `@ai-sdk/openai` and set `OPENAI_API_KEY` before running `transcript`. See [pipelines](../../docs/pipelines.md#transcription).
+`transcript` transcribes an http(s) `FileOutput` only when that URL is one the blob store issued, then that same writer reads the transcript text. Add a blob store such as `@breadai/store-s3` before running it. This example does not set one. Install `@ai-sdk/openai` and set `OPENAI_API_KEY` when you do. See [pipelines](../../docs/pipelines.md#transcription).
 
 ```bash
 curl -N -X POST localhost:3000/pipelines/article/run -d '{"input":{"topic":"bread"}}'
-curl -N -X POST localhost:3000/pipelines/transcript/run \
-  -d '{"input":{"kind":"file","uri":"https://example.com/clip.mp3","mimeType":"audio/mpeg"}}'
 ```

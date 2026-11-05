@@ -43,7 +43,7 @@ The rest of the vocabulary is deliberately literal: **agent**, **tool**, **task*
 stateless), **skill** (loadable instruction pack), **loop** (agent-driven iteration),
 **pipeline** (declared step sequence), **decision** (a pipeline step that records a System One
 label on its step-end crumb and leaves the value passed onward unchanged), **transcription** (a
-pipeline step that reads an http(s) `FileOutput` and passes only the transcript text onward),
+pipeline step that downloads an http(s) `FileOutput` URL the blob store issued and passes only the transcript text onward),
 **branch** (an exclusive
 pipeline step: one arm, strict string equality on `on` or the latest decision label, required
 default), **supervisor** (LLM-driven delegation to sub-agents via

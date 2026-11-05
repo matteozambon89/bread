@@ -11,6 +11,9 @@ export interface BlobStore {
   // currently needs blob lifecycle management; add when something does.
   put(data: Uint8Array, opts?: { mimeType?: string }): Promise<{ key: string; url: string }>
   get(key: string): Promise<{ data: Uint8Array; mimeType?: string } | undefined>
+  // Transcription downloads a FileOutput only when this is true. Absent means
+  // the store cannot attest to the URL, so the step downloads nothing.
+  issued?(url: string): boolean | Promise<boolean>
 }
 
 // A pointer to a blob an agent hands back as (part of) its own output — either a tool

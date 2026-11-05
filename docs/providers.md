@@ -118,7 +118,9 @@ export default defineConfig({
 })
 ```
 
-A pipeline step `{ type: 'transcription', provider, model }` resolves that registry, passes an
-http(s) `FileOutput` URL to `transcribe`, and hands the transcript text to the next step. See
+A pipeline step `{ type: 'transcription', provider, model }` resolves that registry. Optional
+`providerOptions` is forwarded. The step downloads only an http(s) `FileOutput` URL the blob
+store issued, then hands the transcript text to the next step. See
 [pipelines.md](./pipelines.md#transcription). Unset throws `TRANSCRIPTION_NOT_CONFIGURED`. An
 unknown name throws `UNKNOWN_TRANSCRIPTION_PROVIDER`. A missing peer throws `MISSING_PROVIDER`.
+A peer that is installed but fails to evaluate is not reported as missing.

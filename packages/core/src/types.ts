@@ -1,3 +1,4 @@
+import type { JSONValue } from 'ai'
 import type { z } from 'zod'
 import type { DecisionQuestion, DecisionRegistry } from './decision.js'
 import type { ModelRef, ProviderRegistry } from './model-provider.js'
@@ -787,7 +788,14 @@ export type PipelineStep =
   | { type: 'parallel'; steps: PipelineStep[] }
   | { type: 'map'; agentId: string }
   | { type: 'decision'; provider: string; model: string; question: DecisionQuestion }
-  | { type: 'transcription'; provider: string; model: string }
+  | {
+      type: 'transcription'
+      provider: string
+      model: string
+      // Passed through to `transcribe` as AI SDK providerOptions. Keys are the
+      // SDK provider names (`gladia`, `vertex`), not always the catalog key.
+      providerOptions?: Record<string, Record<string, JSONValue>>
+    }
   | {
       type: 'branch'
       // Dot path into the current value. Omit to use the latest decision label.

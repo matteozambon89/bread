@@ -59,20 +59,29 @@ and resuming a paused pipeline reuses the original `pipelineRunId`. Releases bef
 { type: 'transcription', provider: 'openai', model: 'whisper-1' }
 ```
 
-The current value must be a `FileOutput` whose `uri` is `http:` or `https:`. The step passes
-`new URL(file.uri)` to `transcribe` from `ai`. It does not call `BlobStore.get` or `BlobStore.put`.
-Segments, speakers, and timestamps are not kept. The step-end `output`, and the value the next
-step reads, are the transcript text.
+The current value must be a `FileOutput` whose `uri` is `http:` or `https:` and a URL
+`blobStore.issued` accepts. The step downloads that URL itself. It refuses loopback, private,
+link-local, and metadata addresses, checks every redirect hop the same way, and pins the
+connection to the address it already checked. It passes the bytes to `transcribe` from `ai`.
+It does not call `BlobStore.get` or `BlobStore.put`. Segments, speakers, and timestamps are not
+kept. The step-end `output`, and the value the next step reads, are the transcript text.
 
-`pipeline:step:start` and `pipeline:step:end` use `agentId: 'transcription'`.
+Optional `providerOptions` is forwarded to `transcribe` (`gladia`, `vertex`, and the other SDK
+provider names).
+
+`pipeline:step:start` is yielded with `pipeline:step:end` only after the transcript is ready.
+Both use `agentId: 'transcription'`. A failure throws before either crumb.
 
 Unset `config.blobStore` throws `BLOB_STORE_NOT_CONFIGURED` before `transcribe`. A value that is
 not a `FileOutput`, or a uri that is not http(s), throws `TRANSCRIPTION_INPUT` before `transcribe`.
-An unset `config.transcription` throws `TRANSCRIPTION_NOT_CONFIGURED`. An unknown provider throws
-`UNKNOWN_TRANSCRIPTION_PROVIDER`.
+A URL the store did not issue, or one that resolves to a blocked address, throws
+`TRANSCRIPTION_URL_BLOCKED`. A fetch failure throws `TRANSCRIPTION_FETCH_FAILED`. A provider
+failure throws `TRANSCRIPTION_FAILED`. An empty transcript throws `TRANSCRIPTION_EMPTY`. Those
+errors are `BreadError`s and do not include the file URL. An unset `config.transcription` throws
+`TRANSCRIPTION_NOT_CONFIGURED`. An unknown provider throws `UNKNOWN_TRANSCRIPTION_PROVIDER`.
 
-[`examples/pipeline`](https://github.com/matteozambon89/bread/tree/HEAD/examples/pipeline) runs
-`transcript` and then the writer. `article` is unchanged. The registry is
+[`examples/pipeline`](https://github.com/matteozambon89/bread/tree/HEAD/examples/pipeline) declares
+`transcript` and then the writer. It does not set `blobStore`, so `article` is unchanged. The registry is
 [`@breadai/provider-transcription`](https://github.com/matteozambon89/bread/tree/HEAD/providers/transcription).
 See [providers.md](./providers.md#transcription).
 
