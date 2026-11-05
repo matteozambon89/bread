@@ -49,10 +49,21 @@ API. It reads `OPENAI_COMPATIBLE_BASE_URL` (required) and optionally
 await providerEmbeddings['openai-compatible']('text-embedding-3-small')
 ```
 
-Registering `embeddings` does not turn on vector search. Postgres still takes a
-hand-written `(text: string) => Promise<number[]>` `embed` function. A
-`{ provider, model }` ref is not that function. SQLite and memory stay
-keyword-only. See [store](https://matteozambon89.github.io/bread/store.html).
+Registering `embeddings` does not turn on vector search by itself. Postgres
+`embed` accepts either a function or a `{ provider, model }` ref. The ref is
+resolved on document ingest, document search, knowledge-node write, and
+knowledge query, not when the config is imported, from
+`config.embeddings`. A function is called as-is and does not read this registry.
+SQLite and memory stay keyword-only. See
+[store](https://matteozambon89.github.io/bread/store.html#semantic-vector-search).
+
+```ts
+embed: { provider: 'openai', model: 'text-embedding-3-small' }
+```
+
+```ts
+embed: async (text) => [text.length, 1]
+```
 
 ## Custom or additional instances
 

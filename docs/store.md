@@ -91,51 +91,53 @@ first-party stores implement the full interface.
 
 ## Semantic (vector) search
 
-`store` accepts an optional `embed` function, `(text: string) => Promise<number[]>`.
-When provided, documents and knowledge nodes are embedded on write and searched
-by cosine similarity via [pgvector](https://github.com/pgvector/pgvector);
-without it, search falls back to keyword (`ILIKE`) matching.
+Postgres `store` accepts an optional `embed` value. It is either a function,
+`(text: string) => Promise<number[]>`, or a ref, `{ provider: string, model: string }`.
+When it is set, document ingest, document search, knowledge-node writes, and
+knowledge queries embed the text and rank matches by cosine similarity via
+[pgvector](https://github.com/pgvector/pgvector). Without it, search is keyword
+(`ILIKE`).
 
-`config.embeddings` is a separate registry of AI SDK embedding models — see
-[providers](./providers.md#embedding-models). It does not replace `embed`. A
-`{ provider, model }` ref is not an `embed` value. Resolve the model inside
-`embed`, from the config object, so importing the module does not load the peer
-and a later replacement of `config.embeddings` is the registry the next write uses.
-`resolveEmbeddingModel` throws `UNKNOWN_EMBEDDING_PROVIDER` when the key is missing:
+A function is called as-is. It does not read `config.embeddings`.
+
+A ref is resolved on document ingest, document search, knowledge-node write,
+and knowledge query, not when the config module is imported and not inside
+`store()` or `defineConfig`. `defineConfig` keeps that config object for the
+store. Each of those operations reads `config.embeddings` from the object, so
+a later assignment is the registry the next operation uses. The registry is the
+AI SDK embedding models from [providers](./providers.md#embedding-models). A
+store that never went through `defineConfig` throws `EMBEDDINGS_NOT_BOUND`. A
+missing provider throws `UNKNOWN_EMBEDDING_PROVIDER`. The model call uses
+`maxRetries: 0`.
 
 ```ts
-import { embed } from 'ai'
-import { defineConfig, resolveEmbeddingModel, type BreadConfig } from '@breadai/core'
+import { defineConfig } from '@breadai/core'
 import { providerEmbeddings } from '@breadai/provider-embeddings'
 import { store } from '@breadai/store-postgres'
 
-const live: { config?: BreadConfig } = {}
-
-const config: BreadConfig = defineConfig({
+export default defineConfig({
   entrypoints: ['writer'],
   embeddings: providerEmbeddings,
   store: store({
-    embed: async (text) => {
-      const model = await resolveEmbeddingModel(
-        live.config?.embeddings,
-        'openai',
-        'text-embedding-3-small',
-      )
-      const { embedding } = await embed({ model, value: text, maxRetries: 0 })
-      return embedding
-    },
+    embed: { provider: 'openai', model: 'text-embedding-3-small' },
   }),
 })
+```
 
-live.config = config
-export default config
+```ts
+store: store({
+  embed: async (text) => [text.length, 1],
+})
 ```
 
 When `embed` is set, `migrate()` also runs `CREATE EXTENSION IF NOT EXISTS vector`.
-The SQLite and memory stores are always keyword-only, including when
-`config.embeddings` is set. [`examples/knowledge-graph`](https://github.com/matteozambon89/bread/tree/HEAD/examples/knowledge-graph)
-passes that `embed` function to Postgres and resolves `ollama` /
-`nomic-embed-text` from `config.embeddings` on each document and knowledge write.
+SQLite and memory stay keyword-only and take no `embed` option, including when
+`config.embeddings` is set.
+[`examples/knowledge-graph`](https://github.com/matteozambon89/bread/tree/HEAD/examples/knowledge-graph)
+passes an `ollama` / `nomic-embed-text` ref, resolved on document ingest,
+document search, knowledge-node write, and knowledge query.
+[`examples/custom-embed`](https://github.com/matteozambon89/bread/tree/HEAD/examples/custom-embed)
+passes a function.
 
 ## Blob storage
 

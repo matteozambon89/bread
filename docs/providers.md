@@ -140,11 +140,30 @@ for a server that speaks the embeddings API: the factory calls
 `createOpenAICompatible(...).embeddingModel(modelId)`. Spread your own
 `embeddingModel` factory under another key for a second host.
 
-Registering `embeddings` does not turn on vector search. Postgres still takes a
-hand-written `embed` function that calls `resolveEmbeddingModel` on
-`config.embeddings` when the write runs, and SQLite and memory stay keyword-only.
-See [store.md](./store.md#semantic-vector-search).
+Registering `embeddings` does not turn on vector search by itself. Postgres
+`embed` accepts either a function or a `{ provider, model }` ref. The ref is
+resolved on document ingest, document search, knowledge-node write, and
+knowledge query, not when the config is imported, from the
+`config.embeddings` object bound to that store. A function is called as-is and
+does not read the registry. SQLite and memory stay keyword-only and take no
+`embed` option. See [store.md](./store.md#semantic-vector-search).
+
+```ts
+store: store({
+  embed: { provider: 'ollama', model: 'nomic-embed-text' },
+})
+```
+
+```ts
+store: store({
+  embed: async (text) => [text.length, 1],
+})
+```
+
 [`examples/knowledge-graph`](https://github.com/matteozambon89/bread/tree/HEAD/examples/knowledge-graph)
-passes that function to Postgres next to its document and knowledge auto-inject.
+passes the `ollama` / `nomic-embed-text` ref next to its document and knowledge
+auto-inject.
+[`examples/custom-embed`](https://github.com/matteozambon89/bread/tree/HEAD/examples/custom-embed)
+passes a function.
 `ollama` reads optional `OLLAMA_BASE_URL` via `createOllama({ baseURL })`.
 `baseten` embeddings call `createBaseten({ modelURL })` with `BASETEN_MODEL_URL`.
