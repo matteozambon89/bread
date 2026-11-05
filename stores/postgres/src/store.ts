@@ -1,7 +1,10 @@
 import postgres from 'postgres'
 import { v7 as uuidv7 } from 'uuid'
 import {
+  BreadError,
   decodeLastOutput,
+  embedStoreText,
+  requireExecutionId,
   type BreadStore,
   type CheckpointRecord,
   type CleanupOptions,
@@ -13,22 +16,23 @@ import {
   type LoopStatus,
   type Session,
   type SessionMessage,
+  type StoreEmbed,
   type TaskRunRecord,
   type TaskRunStatus,
   encodeLastOutput,
 } from '@breadai/core'
-import { requireExecutionId } from '@breadai/core'
 import { migrate } from './migrate.js'
 
-export type EmbedFn = (text: string) => Promise<number[]>
+export type { EmbedFn, EmbeddingRef } from '@breadai/core'
 
 export interface PostgresStoreOptions {
   // Connection string. Defaults to process.env.DATABASE_URL; throws if neither.
   url?: string
-  // Optional embedder. When set, documents and knowledge nodes are embedded on
-  // write and searched by cosine similarity via pgvector; otherwise search is
-  // keyword-based (ILIKE).
-  embed?: EmbedFn
+  // Optional embedder. A function is called as-is. A ref is resolved on
+  // document ingest, document search, knowledge-node write, and knowledge
+  // query, not in this constructor. Without it, search stays keyword (ILIKE);
+  // with it, pgvector cosine similarity.
+  embed?: StoreEmbed
 }
 
 interface SessionRow {
@@ -229,9 +233,12 @@ function vec(embedding: number[]): string {
   return `[${embedding.join(',')}]`
 }
 
+const DOCUMENT_EMBEDDINGS = 'bread_documents'
+const KNOWLEDGE_EMBEDDINGS = 'bread_kg_nodes'
+
 // The default BreadStore: PostgreSQL via postgres.js. All tables are `bread_`
 // prefixed and created by migrate(). Pass `embed` to enable pgvector semantic
-// search over documents and knowledge nodes.
+// search over documents and knowledge nodes. A ref is not resolved here.
 export function store(opts: PostgresStoreOptions = {}): BreadStore {
   const url = opts.url ?? process.env.DATABASE_URL
   if (!url) {
@@ -242,6 +249,54 @@ export function store(opts: PostgresStoreOptions = {}): BreadStore {
   }
   const embed = opts.embed
   const sql = postgres(url)
+
+  function dimensionError(relation: string, stored: number, length: number): BreadError {
+    const ref = embed != null && typeof embed !== 'function' ? embed : undefined
+    const via = ref ? ` (provider "${ref.provider}", model "${ref.model}")` : ''
+    return new BreadError(
+      `Embedding dimension ${length} does not match the ${stored} already stored for ${relation}${via}.`,
+      'EMBEDDING_DIMENSION',
+      {
+        relation,
+        stored,
+        length,
+        ...(ref ? { provider: ref.provider, model: ref.model } : {}),
+      },
+    )
+  }
+
+  async function storedWidth(relation: string): Promise<number | undefined> {
+    const rows = await sql<Array<{ width: number | string }>>`
+      SELECT width FROM bread_embedding_widths WHERE relation = ${relation}`
+    const raw = rows[0]?.width
+    return raw == null ? undefined : Number(raw)
+  }
+
+  // Reads the ordinary width table only. A mismatch throws before ::vector.
+  async function rejectMismatchedWidth(relation: string, length: number): Promise<void> {
+    const stored = await storedWidth(relation)
+    if (stored != null && stored !== length) throw dimensionError(relation, stored, length)
+  }
+
+  // The first length is the relation's width. A raced insert that stored
+  // another length still rejects this one before any ::vector cast.
+  async function recordWidth(relation: string, length: number): Promise<void> {
+    await rejectMismatchedWidth(relation, length)
+    if ((await storedWidth(relation)) != null) return
+    await sql`
+      INSERT INTO bread_embedding_widths (relation, width)
+      VALUES (${relation}, ${length})
+      ON CONFLICT (relation) DO NOTHING`
+    await rejectMismatchedWidth(relation, length)
+  }
+
+  async function embeddingLiteral(relation: string, text: string, record: boolean): Promise<string> {
+    const values = await embedStoreText(breadStore, embed!, text)
+    if (record) await recordWidth(relation, values.length)
+    else await rejectMismatchedWidth(relation, values.length)
+    return vec(values)
+  }
+
   // postgres.js's JSONValue type is narrower than our stored shapes (arbitrary
   // record/unknown content); this wraps the jsonb helper for our call sites.
   const j = (v: unknown) => sql.json(v as never)
@@ -253,7 +308,7 @@ export function store(opts: PostgresStoreOptions = {}): BreadStore {
       ? sql`WHERE ${conds.reduce((acc, c, i) => (i === 0 ? c : sql`${acc} AND ${c}`))}`
       : sql``
 
-  return {
+  const breadStore: BreadStore = {
     // --- Sessions ------------------------------------------------------------
     async createSession(o) {
       const id = o?.id ?? uuidv7()
@@ -547,7 +602,7 @@ export function store(opts: PostgresStoreOptions = {}): BreadStore {
       const id = uuidv7()
       const now = Date.now()
       if (embed) {
-        const e = vec(await embed(label))
+        const e = await embeddingLiteral(KNOWLEDGE_EMBEDDINGS, label, true)
         await sql`INSERT INTO bread_kg_nodes (id, agent_id, session_id, label, data, embedding, created_at)
                   VALUES (${id}, ${agentId}, ${sessionId}, ${label}, ${j(data ?? {})}, ${e}::vector, ${now})`
       } else {
@@ -564,12 +619,15 @@ export function store(opts: PostgresStoreOptions = {}): BreadStore {
 
     async queryKnowledge({ agentId, query, limit }) {
       const n = limit ?? 10
-      const rows = embed
-        ? await sql<Array<{ id: string; label: string; data: Record<string, unknown> }>>`
+      if (embed) {
+        const embedding = await embeddingLiteral(KNOWLEDGE_EMBEDDINGS, query, false)
+        const rows = await sql<Array<{ id: string; label: string; data: Record<string, unknown> }>>`
             SELECT id, label, data FROM bread_kg_nodes
             WHERE agent_id = ${agentId} AND embedding IS NOT NULL
-            ORDER BY embedding <=> ${vec(await embed(query))}::vector LIMIT ${n}`
-        : await sql<Array<{ id: string; label: string; data: Record<string, unknown> }>>`
+            ORDER BY embedding <=> ${embedding}::vector LIMIT ${n}`
+        return rows.map((r): KnowledgeNode => ({ id: r.id, label: r.label, data: r.data ?? {} }))
+      }
+      const rows = await sql<Array<{ id: string; label: string; data: Record<string, unknown> }>>`
             SELECT id, label, data FROM bread_kg_nodes
             WHERE agent_id = ${agentId} AND label ILIKE ${`%${query}%`}
             ORDER BY created_at DESC LIMIT ${n}`
@@ -594,7 +652,7 @@ export function store(opts: PostgresStoreOptions = {}): BreadStore {
       const id = uuidv7()
       const now = Date.now()
       if (embed) {
-        const e = vec(await embed(content))
+        const e = await embeddingLiteral(DOCUMENT_EMBEDDINGS, content, true)
         await sql`INSERT INTO bread_documents (id, agent_id, title, content, source, embedding, created_at)
                   VALUES (${id}, ${agentId}, ${title}, ${content}, ${source ?? null}, ${e}::vector, ${now})`
       } else {
@@ -606,12 +664,15 @@ export function store(opts: PostgresStoreOptions = {}): BreadStore {
 
     async searchDocuments({ agentId, query, limit }) {
       const n = limit ?? 5
-      const rows = embed
-        ? await sql<Array<{ id: string; title: string; source: string | null }>>`
+      if (embed) {
+        const embedding = await embeddingLiteral(DOCUMENT_EMBEDDINGS, query, false)
+        const rows = await sql<Array<{ id: string; title: string; source: string | null }>>`
             SELECT id, title, source FROM bread_documents
             WHERE agent_id = ${agentId} AND embedding IS NOT NULL
-            ORDER BY embedding <=> ${vec(await embed(query))}::vector LIMIT ${n}`
-        : await sql<Array<{ id: string; title: string; source: string | null }>>`
+            ORDER BY embedding <=> ${embedding}::vector LIMIT ${n}`
+        return rows.map((r): DocumentRecord => ({ id: r.id, title: r.title, source: r.source }))
+      }
+      const rows = await sql<Array<{ id: string; title: string; source: string | null }>>`
             SELECT id, title, source FROM bread_documents
             WHERE agent_id = ${agentId} AND (title ILIKE ${`%${query}%`} OR content ILIKE ${`%${query}%`})
             LIMIT ${n}`
@@ -633,4 +694,5 @@ export function store(opts: PostgresStoreOptions = {}): BreadStore {
       await sql.end()
     },
   }
+  return breadStore
 }

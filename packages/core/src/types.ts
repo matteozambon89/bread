@@ -937,7 +937,8 @@ export interface BreadConfig {
   decisions?: DecisionRegistry
   // Named embedding-model factories. Separate from `providers` (a LanguageModel).
   // Core has no built-ins — install @breadai/provider-embeddings. Unset is fine.
-  // Does not replace a store `embed` function (`(text) => Promise<number[]>`).
+  // A Postgres embed ref reads this object on document ingest, document search,
+  // knowledge-node write, and knowledge query. A function embed does not.
   embeddings?: EmbeddingRegistry
   // The crumb fabric between replicas of this app. Defaults to the embedded
   // Stream transport (single container); set a distributed implementation

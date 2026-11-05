@@ -46,8 +46,16 @@ function freePort(): Promise<number> {
  * client and ends it immediately). Direct `db.exec` is used only pre-start
  * (`ALTER DATABASE`) and post-stop (`close`), when no socket client exists.
  */
-export async function withPglite(): Promise<PgliteHandle> {
-  const db = new PGlite()
+export async function withPglite(opts?: { vector?: boolean }): Promise<PgliteHandle> {
+  // Dimension checks need a real vector column. The migrate order test leaves
+  // this off so CREATE EXTENSION still fails after the tables exist.
+  const db = opts?.vector
+    ? new PGlite({
+        extensions: {
+          vector: (await import('@electric-sql/pglite/vector')).vector,
+        },
+      })
+    : new PGlite()
   await db.waitReady
   // Silence pglite's chatty DEBUG/NOTICE for every connection (before the socket
   // is up, so this direct exec can't race a socket client).
