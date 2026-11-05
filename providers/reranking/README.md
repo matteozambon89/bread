@@ -41,12 +41,13 @@ Do not put this on `config.providers`. That registry returns a `LanguageModel`.
 `openai-compatible` is not a key. The AI SDK has no reranking factory for it.
 
 `bread.start()` binds this registry onto a Postgres store. With `rerank: { provider, model }`,
-`searchDocuments` and `queryKnowledge` load candidate text (document content, knowledge label),
-reorder those hits, and then apply `limit`. With no `rerank` ref, order is unchanged. SQLite and
-memory stay keyword-only.
+`searchDocuments` and `queryKnowledge` take a bounded page (document title and content, knowledge
+label), reorder that page, and then apply `limit`. With no `rerank` ref, order is unchanged.
+SQLite and memory stay keyword-only.
 [`examples/knowledge-graph`](https://github.com/matteozambon89/bread/tree/HEAD/examples/knowledge-graph)
-uses SQLite, so its `core_doc_search` and `core_kg_query` order is unchanged. A missing peer throws
-`MISSING_PROVIDER` with the `bun add` command. Spreading `providerReranking` does not import the peers.
+uses SQLite, so its `core_doc_search` and `core_kg_query` order is unchanged. A peer that is not
+installed throws `MISSING_PROVIDER` with the `bun add` command. An import that fails for another
+reason is rethrown. Spreading `providerReranking` does not import the peers.
 
 Part of **[bread](https://github.com/matteozambon89/bread)** — an explicit-by-design framework for AI agents.
 Docs: [providers](https://matteozambon89.github.io/bread/providers.html) ·

@@ -22,9 +22,24 @@ function missingProvider(provider: string, pkg: string): never {
   })
 }
 
+// Only the missing peer itself is MISSING_PROVIDER. A broken install or a
+// missing transitive module keeps the original error.
+function directlyMissing(error: unknown, pkg: string): boolean {
+  if (!(error instanceof Error)) return false
+  const code = (error as { code?: string }).code
+  if (code !== 'ERR_MODULE_NOT_FOUND' && code !== 'MODULE_NOT_FOUND') return false
+  const match = error.message.match(/Cannot find (?:package|module) ['"]([^'"]+)['"]/)
+  return match?.[1] === pkg
+}
+
 async function resolveEntry(provider: string, entry: CatalogEntry, modelId: string) {
-  const namespace = await import(entry.pkg).catch(() => missingProvider(provider, entry.pkg))
-  return rerankingModelFrom(namespace, entry.export, provider, entry.pkg, modelId)
+  try {
+    const namespace = await import(entry.pkg)
+    return rerankingModelFrom(namespace, entry.export, provider, entry.pkg, modelId)
+  } catch (error) {
+    if (directlyMissing(error, entry.pkg)) missingProvider(provider, entry.pkg)
+    throw error
+  }
 }
 
 export const providerReranking: RerankingRegistry = Object.fromEntries(

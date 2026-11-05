@@ -122,11 +122,12 @@ export default defineConfig({
 ```
 
 `bread.start()` binds `config.reranking` onto the Postgres store. When `rerank` is set,
-`searchDocuments` and `queryKnowledge` load candidate text — document content, knowledge
-label — call `resolveReranking`, reorder those hits, and then apply `limit`. With no
-`rerank` ref, order stays what the store does today (pgvector distance when `embed` is
-set, keyword otherwise). See [store](./store.md#reranking). SQLite and memory stay
-keyword-only: they take no `rerank` ref, and setting `reranking` does not reorder them.
+`searchDocuments` and `queryKnowledge` take a bounded page from the vector or keyword
+order — document title and content, or the knowledge label — rerank that page, and then
+apply `limit`. With no `rerank` ref, order stays what the store does today (pgvector
+distance when `embed` is set, keyword otherwise). See [store](./store.md#reranking).
+SQLite and memory stay keyword-only: they take no `rerank` ref, and setting `reranking` does not
+reorder them.
 [`examples/knowledge-graph`](https://github.com/matteozambon89/bread/tree/HEAD/examples/knowledge-graph)
 uses SQLite, so its `core_doc_search` and `core_kg_query` order is unchanged.
 
@@ -137,5 +138,6 @@ uses SQLite, so its `core_doc_search` and `core_kg_query` order is unchanged.
 | `togetherai` | `togetherai.reranking(modelId)` (`@ai-sdk/togetherai`) | `TOGETHER_API_KEY` |
 | `voyage` | `voyage.reranking(modelId)` (`@ai-sdk/voyage`) | `VOYAGE_API_KEY` |
 
-A missing peer throws `MISSING_PROVIDER` and names the `bun add` package. Spreading the registry
-does not import those packages.
+A peer that is not installed throws `MISSING_PROVIDER` and names the `bun add` package. An
+import that fails for another reason, such as a broken install, is rethrown. Spreading the
+registry does not import those packages.

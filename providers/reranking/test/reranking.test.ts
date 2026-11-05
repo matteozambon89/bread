@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test'
+import { describe, expect, mock, test } from 'bun:test'
 import { resolveReranking } from '@breadai/core'
 import { providerReranking } from '@breadai/provider-reranking'
 import { rerankingModelFrom } from '../src/load.ts'
@@ -22,7 +22,7 @@ describe('providerReranking', () => {
     expect(() => ({ ...providerReranking })).not.toThrow()
   })
 
-  test('throws MISSING_PROVIDER naming the package to install', async () => {
+  test.serial('throws MISSING_PROVIDER naming the package to install', async () => {
     for (const provider of CATALOG) {
       const err = await resolveReranking(
         { provider, model: 'x' },
@@ -32,6 +32,32 @@ describe('providerReranking', () => {
       expect(err.message).toContain(PACKAGES[provider])
       expect(err.message).toContain(`bun add ${PACKAGES[provider]}`)
     }
+  })
+
+  test.serial('an installed peer that fails to evaluate is not reported as missing', async () => {
+    mock.module('@ai-sdk/cohere', () => {
+      throw new Error('transitive module failed to evaluate')
+    })
+    const broken = await resolveReranking(
+      { provider: 'cohere', model: 'x' },
+      providerReranking,
+    ).catch((error) => error)
+    expect((broken as { code?: string }).code).not.toBe('MISSING_PROVIDER')
+    expect((broken as Error).message).toContain('transitive module failed to evaluate')
+
+    const transitive = new Error(
+      "Cannot find package 'some-transitive' imported from '/node_modules/@ai-sdk/voyage/dist/index.js'",
+    )
+    Object.assign(transitive, { code: 'ERR_MODULE_NOT_FOUND' })
+    mock.module('@ai-sdk/voyage', () => {
+      throw transitive
+    })
+    const missingDep = await resolveReranking(
+      { provider: 'voyage', model: 'x' },
+      providerReranking,
+    ).catch((error) => error)
+    expect((missingDep as { code?: string }).code).not.toBe('MISSING_PROVIDER')
+    expect((missingDep as Error).message).toContain('some-transitive')
   })
 
   test('an unknown name still throws UNKNOWN_RERANKING_PROVIDER', async () => {
