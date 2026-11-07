@@ -4,7 +4,7 @@ type Sql = ReturnType<typeof postgres>
 
 // All tables are prefixed `bread_` so the store can share a database with an
 // application's own schema without collisions. Timestamps are BIGINT epoch ms.
-// `embedding` columns are pgvector and stay NULL unless an embed fn is wired.
+// `embedding` columns are pgvector and stay NULL unless an embedder is wired.
 const TABLES = `
 CREATE TABLE IF NOT EXISTS bread_sessions (
   id TEXT PRIMARY KEY,
@@ -128,9 +128,16 @@ CREATE TABLE IF NOT EXISTS bread_task_runs (
 CREATE INDEX IF NOT EXISTS idx_bread_task_runs_task ON bread_task_runs(task_id);
 CREATE INDEX IF NOT EXISTS idx_bread_task_runs_session ON bread_task_runs(session_id);
 CREATE INDEX IF NOT EXISTS idx_bread_task_runs_agent ON bread_task_runs(agent_id);
+
+-- Width of vectors already stored for a relation. Plain integers so a length
+-- check can reject a later embedder before any ::vector cast.
+CREATE TABLE IF NOT EXISTS bread_embedding_widths (
+  relation TEXT PRIMARY KEY,
+  width INTEGER NOT NULL
+);
 `
 
-// Add the pgvector embedding columns. Run only when an embed fn is configured;
+// Add the pgvector embedding columns. Run only when an embedder is configured;
 // requires the `vector` extension (enabled here, needs a superuser/owner role).
 const VECTOR = `
 CREATE EXTENSION IF NOT EXISTS vector;
@@ -152,7 +159,9 @@ ALTER TABLE bread_loops ADD COLUMN IF NOT EXISTS last_output JSONB;
 `
 
 export async function migrate(sql: Sql, withVectors: boolean): Promise<void> {
-  if (withVectors) await sql.unsafe(VECTOR)
+  // TABLES before VECTOR: ALTER TABLE on an empty database throws, and that
+  // failure used to skip creating the tables entirely.
   await sql.unsafe(TABLES)
+  if (withVectors) await sql.unsafe(VECTOR)
   await sql.unsafe(COLUMNS)
 }

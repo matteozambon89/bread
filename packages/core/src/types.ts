@@ -1,5 +1,6 @@
 import type { z } from 'zod'
 import type { DecisionQuestion, DecisionRegistry } from './decision.js'
+import type { EmbeddingRegistry } from './embedding.js'
 import type { ModelRef, ProviderRegistry } from './model-provider.js'
 import type { BlobStore, FileOutput } from './storage/blob-store.js'
 import type { BreadStore } from './storage/store.js'
@@ -934,6 +935,11 @@ export interface BreadConfig {
   // built-ins — install @breadai/provider-decisions. Unset throws
   // DECISION_NOT_CONFIGURED; an unknown name throws UNKNOWN_DECISION_PROVIDER.
   decisions?: DecisionRegistry
+  // Named embedding-model factories. Separate from `providers` (a LanguageModel).
+  // Core has no built-ins — install @breadai/provider-embeddings. Unset is fine.
+  // A Postgres embed ref reads this object on document ingest, document search,
+  // knowledge-node write, and knowledge query. A function embed does not.
+  embeddings?: EmbeddingRegistry
   // The crumb fabric between replicas of this app. Defaults to the embedded
   // Stream transport (single container); set a distributed implementation
   // (e.g. @breadai/transport-redis) so passive subscribers on other replicas
