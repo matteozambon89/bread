@@ -13,6 +13,7 @@ the moving parts.
 | `@breadai/runtime-bun`, `@breadai/runtime-node` | Listen adapters (`Bun.serve` / `@hono/node-server`, or mTLS when `config.server.tls` is set); CLI selects via `--runtime` / `config.server.runtime` |
 | `@breadai/store-postgres`, `@breadai/store-sqlite`, `@breadai/store-memory` | `BreadStore` backends — see [store.md](./store.md) |
 | `@breadai/provider-llm` | The 21 language-model providers as a `ProviderRegistry`. `@breadai/provider-catalog` re-exports it — see [providers.md](./providers.md) |
+| `@breadai/provider-embeddings` | 16 embedding providers as an `EmbeddingRegistry` for `config.embeddings` — see [providers.md](./providers.md#embedding-models) and [store.md](./store.md#semantic-vector-search) |
 | `@breadai/provider-decisions` | System One hosts as a `DecisionRegistry` for `config.decisions` — see [decisions.md](./decisions.md) |
 | `@breadai/otel`, `@breadai/protocol-ag-ui`, `@breadai/protocol-a2a-server`, `@breadai/a2ui`, `@breadai/protocol-mcp-client`, `@breadai/protocol-mcp-server` | Plugins |
 | `@breadai/auth-api-key`, `@breadai/auth-jwt`, `@breadai/auth-oauth2`, `@breadai/auth-trusted` | Standalone `BreadAuthStrategy`/`BreadSigner` factories — not plugins themselves; wrap with `@breadai/server`'s `authPlugin()` to attach — see [auth.md](./auth.md) |
@@ -28,7 +29,7 @@ folders, each with its own `@breadai/*` npm prefix:
 | Folder | npm packages | Covers |
 |--------|--------------|--------|
 | `stores/` | `@breadai/store-postgres`, `@breadai/store-sqlite`, `@breadai/store-memory` | `BreadStore` backends — see [store.md](./store.md) |
-| `providers/` | `@breadai/provider-llm`, `@breadai/provider-catalog`, `@breadai/provider-decisions` | Language-model registries, plus the System One `DecisionRegistry`. `provider-catalog` re-exports `provider-llm` — see [providers.md](./providers.md) and [decisions.md](./decisions.md) |
+| `providers/` | `@breadai/provider-llm`, `@breadai/provider-catalog`, `@breadai/provider-embeddings`, `@breadai/provider-decisions` | Language-model registries, the embedding `EmbeddingRegistry`, and the System One `DecisionRegistry`. `provider-catalog` re-exports `provider-llm` — see [providers.md](./providers.md) and [decisions.md](./decisions.md) |
 | `protocols/` | `@breadai/protocol-ag-ui`, `@breadai/protocol-a2a-server`, `@breadai/protocol-mcp-client`, `@breadai/protocol-mcp-server` | Wire-protocol adapters (`BreadPlugin`s) |
 | `extensions/` | `@breadai/otel`, `@breadai/a2ui` (attach as `BreadPlugin`s); `@breadai/auth-api-key`, `@breadai/auth-jwt`, `@breadai/auth-oauth2`, `@breadai/auth-trusted` (standalone auth factories, see [auth.md](./auth.md)) | Observability, UI generation, auth strategies/signers |
 | `transports/` | `@breadai/transport-http-chunked`, `@breadai/transport-http-sse`, `@breadai/transport-redis`, `@breadai/transport-stdout` | `BreadTransport` implementations — see [transports.md](./transports.md) |

@@ -47,6 +47,14 @@ export type {
   DecisionQuestion,
   DecisionRegistry,
 } from './decision.js'
+export {
+  embedStoreText,
+  resolveEmbeddingModel,
+  type EmbedFn,
+  type EmbeddingRef,
+  type EmbeddingRegistry,
+  type StoreEmbed,
+} from './embedding.js'
 export { buildToolCredentials } from './runner.js'
 export type { Skill, SkillMeta, SkillToolEntry } from './skills.js'
 export { injectSkillPrompt, loadSkill, loadSkillMeta } from './skills.js'

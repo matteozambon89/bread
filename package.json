@@ -24,7 +24,7 @@
   "scripts": {
     "build": "bun run --filter='!@bread-examples/*' build",
     "typecheck": "bun run --filter='*' typecheck",
-    "test": "bun test --conditions bread-source",
+    "test": "bun test --conditions bread-source && bun test --conditions bread-source ./providers/embeddings/test/resolve.isolated.ts",
     "test:coverage": "bun test --conditions bread-source --coverage",
     "knip": "knip",
     "bump": "bun scripts/bump.ts",

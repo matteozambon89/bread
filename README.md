@@ -75,6 +75,15 @@ export default defineConfig({
 })
 ```
 
+Embedding models are a separate registry. [`@breadai/provider-embeddings`](./providers/embeddings)
+exports `providerEmbeddings` for `config.embeddings` (an AI SDK `EmbeddingModel`,
+not a `LanguageModel`). Postgres `embed` accepts a `{ provider, model }` ref,
+resolved on document ingest, document search, knowledge-node write, and
+knowledge query, not when the config is imported, or a custom
+`(text: string) => Promise<number[]>` function that does not read the registry.
+SQLite and memory stay keyword-only. See [`docs/providers.md`](./docs/providers.md)
+and [`docs/store.md`](./docs/store.md).
+
 ### Runtime
 
 `bread` runs on **Bun** — the `@breadai/store-sqlite` store (`bun:sqlite`) works out of the box.

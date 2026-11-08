@@ -5,14 +5,16 @@
   "type": "module",
   "scripts": {
     "dev": "../../packages/cli/dist/bin.js dev",
-    "build": "../../packages/cli/dist/bin.js build"
+    "build": "DATABASE_URL=${DATABASE_URL:-postgres://127.0.0.1:5432/bread} ../../packages/cli/dist/bin.js build"
   },
   "dependencies": {
-    "@breadai/store-sqlite": "workspace:*",
-    "@breadai/core": "workspace:*",
     "@breadai/cli": "workspace:*",
-    "@breadai/transport-http-chunked": "workspace:*",
+    "@breadai/core": "workspace:*",
+    "@breadai/provider-embeddings": "workspace:*",
     "@breadai/provider-llm": "workspace:*",
+    "@breadai/store-postgres": "workspace:*",
+    "@breadai/transport-http-chunked": "workspace:*",
+    "ai": "^7.0.93",
     "ollama-ai-provider-v2": "^4",
     "zod": "^4.4.3"
   }
