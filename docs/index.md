@@ -38,6 +38,10 @@ export default defineConfig({
 })
 ```
 
+Image models are a separate registry, `image: providerImage` from `@breadai/provider-image`.
+A pipeline `image` step draws the current string, or `{ images }` when the model enhances a source image (Topaz). See [providers](./providers.md#image-models)
+and [pipelines](./pipelines.md#image).
+
 </section>
 
 <section>

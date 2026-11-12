@@ -208,10 +208,12 @@
       "dependencies": {
         "@breadai/cli": "workspace:*",
         "@breadai/core": "workspace:*",
+        "@breadai/provider-image": "workspace:*",
         "@breadai/provider-llm": "workspace:*",
         "@breadai/store-sqlite": "workspace:*",
         "@breadai/transport-http-chunked": "workspace:*",
         "ollama-ai-provider-v2": "^4",
+        "uuid": "^11.1.0",
         "zod": "^4.4.3",
       },
     },
@@ -616,6 +618,58 @@
         "ollama-ai-provider-v2",
       ],
     },
+    "providers/image": {
+      "name": "@breadai/provider-image",
+      "version": "0.1.0",
+      "dependencies": {
+        "@breadai/core": "workspace:>=0.1.1 <1.0.0",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "ai": "^7.0.93",
+        "typescript": "^5.8.3",
+      },
+      "peerDependencies": {
+        "@ai-sdk/amazon-bedrock": ">=5.0",
+        "@ai-sdk/azure": ">=4.0",
+        "@ai-sdk/black-forest-labs": ">=2.0",
+        "@ai-sdk/bytedance": ">=2.0",
+        "@ai-sdk/deepinfra": ">=3.0",
+        "@ai-sdk/fal": ">=3.0",
+        "@ai-sdk/fireworks": ">=3.0",
+        "@ai-sdk/google": ">=4.0",
+        "@ai-sdk/google-vertex": ">=5.0",
+        "@ai-sdk/luma": ">=3.0",
+        "@ai-sdk/openai": ">=4.0",
+        "@ai-sdk/openai-compatible": ">=3.0",
+        "@ai-sdk/prodia": ">=2.0",
+        "@ai-sdk/quiverai": ">=2.0",
+        "@ai-sdk/replicate": ">=3.0",
+        "@ai-sdk/togetherai": ">=3.0",
+        "@ai-sdk/topaz": ">=3.0",
+        "@ai-sdk/xai": ">=4.0",
+      },
+      "optionalPeers": [
+        "@ai-sdk/amazon-bedrock",
+        "@ai-sdk/azure",
+        "@ai-sdk/black-forest-labs",
+        "@ai-sdk/bytedance",
+        "@ai-sdk/deepinfra",
+        "@ai-sdk/fal",
+        "@ai-sdk/fireworks",
+        "@ai-sdk/google",
+        "@ai-sdk/google-vertex",
+        "@ai-sdk/luma",
+        "@ai-sdk/openai",
+        "@ai-sdk/openai-compatible",
+        "@ai-sdk/prodia",
+        "@ai-sdk/quiverai",
+        "@ai-sdk/replicate",
+        "@ai-sdk/togetherai",
+        "@ai-sdk/topaz",
+        "@ai-sdk/xai",
+      ],
+    },
     "providers/llm": {
       "name": "@breadai/provider-llm",
       "version": "0.1.0",
@@ -950,6 +1004,8 @@
     "@breadai/provider-decisions": ["@breadai/provider-decisions@workspace:providers/decisions"],
 
     "@breadai/provider-embeddings": ["@breadai/provider-embeddings@workspace:providers/embeddings"],
+
+    "@breadai/provider-image": ["@breadai/provider-image@workspace:providers/image"],
 
     "@breadai/provider-llm": ["@breadai/provider-llm@workspace:providers/llm"],
 
@@ -1939,6 +1995,8 @@
 
     "@breadai/provider-embeddings/@types/bun": ["@types/bun@1.4.2", "", { "dependencies": { "bun-types": "1.4.2" } }, "sha512-GimotNn7+ZV0uVArItBbriZsR1oNf0+WTzPkdcFrzShI7k2norL0uzEaJT8T33dWr7O/c9ZDuAFQrctKCi72oQ=="],
 
+    "@breadai/provider-image/@types/bun": ["@types/bun@1.4.4", "", { "dependencies": { "bun-types": "1.4.4" } }, "sha512-9wkRDXUXK124pEnAutE6n/l18j+i9GC5IAHK8TmX/2nlySETmky0OU6yL5U8pW1AoKh++AN9auDCr647BfurjQ=="],
+
     "@breadai/provider-llm/@types/bun": ["@types/bun@1.4.2", "", { "dependencies": { "bun-types": "1.4.2" } }, "sha512-GimotNn7+ZV0uVArItBbriZsR1oNf0+WTzPkdcFrzShI7k2norL0uzEaJT8T33dWr7O/c9ZDuAFQrctKCi72oQ=="],
 
     "@breadai/runtime-bun/@types/bun": ["@types/bun@1.4.2", "", { "dependencies": { "bun-types": "1.4.2" } }, "sha512-GimotNn7+ZV0uVArItBbriZsR1oNf0+WTzPkdcFrzShI7k2norL0uzEaJT8T33dWr7O/c9ZDuAFQrctKCi72oQ=="],
@@ -2013,6 +2071,8 @@
 
     "@breadai/provider-embeddings/@types/bun/bun-types": ["bun-types@1.4.2", "", { "dependencies": { "@types/node": "*" } }, "sha512-bxV1FgK7yBIzjRe5zBozIM4Bem11ZJcCXSrjWRG3YWLt8yFDePu4cLjpebO8OvPeIE9trbyPF4fuj3Cia4Fj3w=="],
 
+    "@breadai/provider-image/@types/bun/bun-types": ["bun-types@1.4.4", "", { "dependencies": { "@types/node": "*", "undici-types": "*" } }, "sha512-yjrJh5oGX7mMPKGd19YXyIjmEuj4G4zNC30bs7PM9Az7NQ3ndF3j6hbeRdvJTRQEhJ/FYQwW0a2moweEi2hMxQ=="],
+
     "@breadai/provider-llm/@types/bun/bun-types": ["bun-types@1.4.2", "", { "dependencies": { "@types/node": "*" } }, "sha512-bxV1FgK7yBIzjRe5zBozIM4Bem11ZJcCXSrjWRG3YWLt8yFDePu4cLjpebO8OvPeIE9trbyPF4fuj3Cia4Fj3w=="],
 
     "@breadai/runtime-bun/@types/bun/bun-types": ["bun-types@1.4.2", "", { "dependencies": { "@types/node": "*" } }, "sha512-bxV1FgK7yBIzjRe5zBozIM4Bem11ZJcCXSrjWRG3YWLt8yFDePu4cLjpebO8OvPeIE9trbyPF4fuj3Cia4Fj3w=="],
@@ -2068,6 +2128,10 @@
     "@breadai/provider-decisions/@types/bun/bun-types/@types/node": ["@types/node@26.0.0", "", { "dependencies": { "undici-types": "~8.3.0" } }, "sha512-vf2YFi1iY9lHGwNJMs01biZFbKJkrZR1T6/MlzjhJLPdntOHLhTrDSnSVcdtvjihi4VQNlrFRIxLsDBlQpAipA=="],
 
     "@breadai/provider-embeddings/@types/bun/bun-types/@types/node": ["@types/node@26.0.0", "", { "dependencies": { "undici-types": "~8.3.0" } }, "sha512-vf2YFi1iY9lHGwNJMs01biZFbKJkrZR1T6/MlzjhJLPdntOHLhTrDSnSVcdtvjihi4VQNlrFRIxLsDBlQpAipA=="],
+
+    "@breadai/provider-image/@types/bun/bun-types/@types/node": ["@types/node@26.0.0", "", { "dependencies": { "undici-types": "~8.3.0" } }, "sha512-vf2YFi1iY9lHGwNJMs01biZFbKJkrZR1T6/MlzjhJLPdntOHLhTrDSnSVcdtvjihi4VQNlrFRIxLsDBlQpAipA=="],
+
+    "@breadai/provider-image/@types/bun/bun-types/undici-types": ["undici-types@8.3.0", "", {}, "sha512-j375ScV60dom+YkPFIfTLcOiPxkN/buHz5GobjLhixFuANaNs3C9l4GmrWqejgXWJ7BbJcFYpTEUkS1Ge8bpZQ=="],
 
     "@breadai/provider-llm/@types/bun/bun-types/@types/node": ["@types/node@26.0.0", "", { "dependencies": { "undici-types": "~8.3.0" } }, "sha512-vf2YFi1iY9lHGwNJMs01biZFbKJkrZR1T6/MlzjhJLPdntOHLhTrDSnSVcdtvjihi4VQNlrFRIxLsDBlQpAipA=="],
 

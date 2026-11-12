@@ -1,6 +1,7 @@
 import type { z } from 'zod'
 import type { DecisionQuestion, DecisionRegistry } from './decision.js'
 import type { EmbeddingRegistry } from './embedding.js'
+import type { ImageRegistry } from './image.js'
 import type { ModelRef, ProviderRegistry } from './model-provider.js'
 import type { BlobStore, FileOutput } from './storage/blob-store.js'
 import type { BreadStore } from './storage/store.js'
@@ -39,7 +40,8 @@ interface BaseCrumb {
 
 export interface AgentRunStartCrumb extends BaseCrumb {
   type: 'agent:run:start'
-  input: unknown
+  // Optional: an image step with no text prompt omits it rather than logging bytes.
+  input?: unknown
   skill?: string | undefined
   // iss and sub only. Tenant is not a trace field.
   principal?: { iss: string; sub: string }
@@ -68,12 +70,12 @@ export interface ReasoningDeltaCrumb extends BaseCrumb {
   delta: string
 }
 
-// A file the model generated directly as part of its own generation (e.g. an
-// image-generation-capable model) — sourced from the AI SDK's stream 'file'
-// part, independent of any tool call. Emitted the instant the file is stored via
-// BlobStore.put(); see AgentRunEndCrumb.files for the run's full accumulated list.
-export interface FileGeneratedCrumb extends BaseCrumb {
+// Stored via BlobStore.put — a language-model file part, or an image step.
+// Optional sessionId: the log skips a row with none, because deleteSession
+// would not cascade it. The image step sets the invocation session.
+export interface FileGeneratedCrumb extends Omit<BaseCrumb, 'sessionId'> {
   type: 'file:generated'
+  sessionId?: string
   uri: string
   mimeType: string
   name?: string
@@ -787,6 +789,7 @@ export type PipelineStep =
   | { type: 'parallel'; steps: PipelineStep[] }
   | { type: 'map'; agentId: string }
   | { type: 'decision'; provider: string; model: string; question: DecisionQuestion }
+  | { type: 'image'; provider: string; model: string }
   | {
       type: 'branch'
       // Dot path into the current value. Omit to use the latest decision label.
@@ -920,10 +923,10 @@ export interface BreadConfig {
   // up before `bread.start()`/`createServer()` validate it.
   store?: BreadStore
   // Optional binary-content storage (e.g. @breadai/store-s3), consumed by
-  // features that need to persist file bytes — currently A2A's inline
-  // FilePart handling. Unlike `store`, unset is not an error; a feature that
-  // needs it and finds it missing fails with its own clear, feature-specific
-  // message instead of a startup-time throw.
+  // features that need to persist file bytes — A2A's inline FilePart handling
+  // and the image pipeline step. Unlike `store`, unset is not an error; a
+  // feature that needs it and finds it missing fails with its own clear,
+  // feature-specific message instead of a startup-time throw.
   blobStore?: BlobStore
   // Named model-provider instances, keyed by the name `model.provider` refers
   // to (e.g. `{ anthropic, 'anthropic-eu': createAnthropic({ baseURL }) }`).
@@ -940,6 +943,11 @@ export interface BreadConfig {
   // A Postgres embed ref reads this object on document ingest, document search,
   // knowledge-node write, and knowledge query. A function embed does not.
   embeddings?: EmbeddingRegistry
+  // Image models keyed by the image step's `provider`. Not a ProviderRegistry:
+  // those factories return a LanguageModel. Core has no built-ins — install
+  // @breadai/provider-image. Unset throws IMAGE_NOT_CONFIGURED; an unknown
+  // name throws UNKNOWN_IMAGE_PROVIDER.
+  image?: ImageRegistry
   // The crumb fabric between replicas of this app. Defaults to the embedded
   // Stream transport (single container); set a distributed implementation
   // (e.g. @breadai/transport-redis) so passive subscribers on other replicas
