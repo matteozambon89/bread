@@ -3,6 +3,7 @@ import type { DecisionQuestion, DecisionRegistry } from './decision.js'
 import type { EmbeddingRegistry } from './embedding.js'
 import type { ModelRef, ProviderRegistry } from './model-provider.js'
 import type { BlobStore, FileOutput } from './storage/blob-store.js'
+import type { Graph, GraphQuery } from './storage/graph.js'
 import type { BreadStore } from './storage/store.js'
 import type { BreadTransport } from './transport.js'
 
@@ -730,6 +731,8 @@ export interface AgentConfig<I, O> {
   // Ids of one-shot tasks to expose to this agent as tools (resolved from the
   // task registry by the runner).
   tasks?: string[]
+  // Catalog query names this agent may call. Cypher stays in `graphCatalog`.
+  graph?: string[]
   // Opaque, per-plugin agent configuration, keyed by plugin name — e.g.
   // `{ mcp_client: { servers: [...] } }`. Core never inspects the contents;
   // a plugin reads its own key here inside `BreadPlugin.resolveAgentTools`.
@@ -919,6 +922,12 @@ export interface BreadConfig {
   // needs it and finds it missing fails with its own clear, feature-specific
   // message instead of a startup-time throw.
   blobStore?: BlobStore
+  // Named-query graph. Unset is not a startup error; an agent that lists
+  // `graph` names and finds this missing fails with GRAPH_NOT_CONFIGURED.
+  // Not a BreadStore — sessions stay on `store`.
+  graph?: Graph
+  // Static Cypher catalog. The model never sends the statement.
+  graphCatalog?: Record<string, GraphQuery>
   // Named model-provider instances, keyed by the name `model.provider` refers
   // to (e.g. `{ anthropic, 'anthropic-eu': createAnthropic({ baseURL }) }`).
   // Core has no built-ins of its own — install @breadai/provider-llm for the
