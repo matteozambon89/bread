@@ -1,4 +1,5 @@
 import { createDocTools } from './documents.js'
+import { createGraphTool, assertGraphQuery } from './graph-tools.js'
 import { buildLoopTools, loopSummary } from './loop.js'
 import type { LoopRuntime } from './loop.js'
 import { TOOL_SCOPES, gateAskDefaults, leafName, resolvePermissions } from './permissions.js'
@@ -86,6 +87,25 @@ export async function assembleTools(
         hooks: ctx.hooks,
       })
       sources.push({ origin: { scope: TOOL_SCOPES.TASK, name: def.name }, def })
+    }
+  }
+
+  if (cfg.graph?.length) {
+    if (!ctx.graph) {
+      throw new BreadError('Graph is not configured.', 'GRAPH_NOT_CONFIGURED', { agentId })
+    }
+    for (const name of cfg.graph) {
+      const query = ctx.graphCatalog?.[name]
+      if (!query) {
+        throw new BreadError('Graph query not found.', 'GRAPH_QUERY_NOT_FOUND', {
+          agentId,
+          name,
+          available: ctx.graphCatalog ? Object.keys(ctx.graphCatalog) : [],
+        })
+      }
+      assertGraphQuery(name, query)
+      const def = createGraphTool(name, query, ctx.graph)
+      sources.push({ origin: coreOrigin(def.name), def })
     }
   }
 

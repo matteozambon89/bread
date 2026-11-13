@@ -176,6 +176,7 @@ export function createBread(
       pluginToolResolvers = []
       pluginHooks = []
       await store?.close?.()
+      await config.graph?.close?.()
       await fabric?.close?.()
       await events?.close()
       events = null
@@ -205,6 +206,8 @@ export function createBread(
         onHumanRequired: opts?.onHumanRequired,
         signal: opts?.signal,
         blobStore: config.blobStore,
+        graph: config.graph,
+        graphCatalog: config.graphCatalog,
       }
 
       if (opts?.mode === 'sync') {
@@ -272,6 +275,8 @@ export function createBread(
         hooks: config.hooks,
         signal: opts?.signal,
         blobStore: config.blobStore,
+        graph: config.graph,
+        graphCatalog: config.graphCatalog,
       }
       return (async function* () {
         if (inFlight >= max) {
@@ -321,6 +326,8 @@ export function createBread(
         hooks: config.hooks,
         signal: opts?.signal,
         blobStore: config.blobStore,
+        graph: config.graph,
+        graphCatalog: config.graphCatalog,
       }
       return (async function* () {
         if (inFlight >= max) {
