@@ -17,7 +17,7 @@ import { z } from 'zod'
 const ctx: ToolContext = { agentId: 'a', sessionId: 's', runId: 'r', credentials: envProvider() }
 
 // An extraction task: pre loads a stored document, the model extracts entities,
-// post persists each as a KG node and shapes the tool result.
+// and post returns the names without writing them.
 function extractTask() {
   return defineTask({
     name: 'doc_extract_entities',
@@ -42,14 +42,7 @@ function extractTask() {
       async afterRun(c) {
         const out = c.output as { entities: { name: string; type?: string }[] }
         const { documentId } = c.input as { documentId: string; content: string }
-        let stored = 0
-        if (c.store.addKnowledgeNode) {
-          for (const e of out.entities) {
-            await c.store.addKnowledgeNode({ agentId: c.agentId, sessionId: c.sessionId, label: e.name })
-            stored++
-          }
-        }
-        return { output: { documentId, entities: out.entities, stored } }
+        return { output: { documentId, entities: out.entities } }
       },
     },
   })
@@ -62,7 +55,7 @@ describe('createTaskTool', () => {
     expect(tool.description).toContain('Extract entities')
   })
 
-  test('runs pre -> model -> post, persists entities and an audited run, emits task crumbs', async () => {
+  test('runs pre -> model -> post, returns entities and an audited run, emits task crumbs', async () => {
     const testStore = store()
     const { id } = await testStore.ingestDocument!({
       agentId: 'a',
@@ -77,15 +70,10 @@ describe('createTaskTool', () => {
     })
 
     const result = (await tool.execute({ documentId: id }, ctx)) as {
+      documentId: string
       entities: unknown[]
-      stored: number
     }
-    expect(result.entities).toEqual([{ name: 'Ada', type: 'person' }])
-    expect(result.stored).toBe(1)
-
-    // The entity is persisted as a KG node.
-    const nodes = await testStore.queryKnowledge!({ agentId: 'a', query: 'Ada' })
-    expect(nodes.length).toBeGreaterThanOrEqual(1)
+    expect(result).toEqual({ documentId: id, entities: [{ name: 'Ada', type: 'person' }] })
 
     // The run is recorded for audit.
     const runs = await testStore.listTaskRuns!()
@@ -241,7 +229,6 @@ describe('runner task-tool resolution', () => {
     )
     expect(toolResult).toBeTruthy()
     expect(crumbs.map((c) => c.type)).toContain('task:end')
-    expect((await testStore.queryKnowledge!({ agentId: 'a', query: 'Ada' })).length).toBeGreaterThanOrEqual(1)
     await stop()
   })
 

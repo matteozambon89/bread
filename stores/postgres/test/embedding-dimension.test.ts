@@ -6,7 +6,8 @@ import { store } from '@breadai/store-postgres'
 import { type PgliteHandle, withPglite } from '@breadai/test-utils'
 
 const document = { agentId: 'memory', title: 'note', content: 'hello' }
-const node = { agentId: 'memory', sessionId: 's1', label: 'hello' }
+const principal = { iss: 'https://idp.example', sub: 'ada' }
+const memory = { agentId: 'memory', principal, content: 'hello' }
 
 function model(width: number): EmbeddingModel {
   return {
@@ -44,8 +45,7 @@ describe('embedding dimensions', () => {
     const admin = postgres(url, { max: 1, onnotice: () => {} })
     try {
       await admin`DELETE FROM bread_documents`
-      await admin`DELETE FROM bread_kg_edges`
-      await admin`DELETE FROM bread_kg_nodes`
+      await admin`DELETE FROM bread_memories`
       await admin`DELETE FROM bread_embedding_widths`
     } finally {
       await admin.end({ timeout: 5 })
@@ -102,70 +102,74 @@ describe('embedding dimensions', () => {
     })
   })
 
-  test('knowledge-node write accepts the first length and rejects a different one', async () => {
+  test('memory write accepts the first length and rejects a different one', async () => {
     await withBackend(async () => [1, 0, 0, 0], async (backend) => {
-      const first = await settle(backend.addKnowledgeNode!(node))
-      expect(first).toMatchObject({ label: 'hello' })
+      const first = await settle(backend.addMemory!(memory))
+      expect(first).toMatchObject({ content: 'hello' })
     })
     await withBackend(async () => [1, 0], async (backend) => {
-      const mismatch = await settle(backend.addKnowledgeNode!(node))
+      const mismatch = await settle(backend.addMemory!(memory))
       expect(mismatch).toMatchObject({
         code: 'EMBEDDING_DIMENSION',
-        context: { relation: 'bread_kg_nodes', stored: 4, length: 2 },
+        context: { relation: 'bread_memories', stored: 4, length: 2 },
       })
       expect((mismatch as Error).message).toContain('4')
       expect((mismatch as Error).message).toContain('2')
     })
   })
 
-  test('knowledge query rejects a length that differs from stored knowledge vectors', async () => {
+  test('memory search rejects a length that differs from stored memory vectors', async () => {
     await withBackend(async () => [1, 0, 0, 0], async (backend) => {
-      const stored = await settle(backend.addKnowledgeNode!(node))
-      expect(stored).toMatchObject({ label: 'hello' })
+      const stored = await settle(backend.addMemory!(memory))
+      expect(stored).toMatchObject({ content: 'hello' })
     })
     await withBackend(async () => [7, 7], async (backend) => {
-      const mismatch = await settle(backend.queryKnowledge!({ agentId: 'memory', query: 'k' }))
+      const mismatch = await settle(
+        backend.searchMemories!({ agentId: 'memory', principal, query: 'k' }),
+      )
       expect(mismatch).toMatchObject({
         code: 'EMBEDDING_DIMENSION',
-        context: { relation: 'bread_kg_nodes', stored: 4, length: 2 },
+        context: { relation: 'bread_memories', stored: 4, length: 2 },
       })
       expect((mismatch as Error).message).toContain('4')
       expect((mismatch as Error).message).toContain('2')
     })
   })
 
-  test('search and query do not lock a width when no vector is stored yet', async () => {
+  test('search and list of an empty relation do not lock a width', async () => {
     await withBackend(async () => [1, 0], async (backend) => {
       const search = await settle(backend.searchDocuments!({ agentId: 'memory', query: 'q' }))
-      const query = await settle(backend.queryKnowledge!({ agentId: 'memory', query: 'k' }))
+      const found = await settle(backend.searchMemories!({ agentId: 'memory', principal, query: 'k' }))
+      const listed = await settle(backend.listMemories!({ agentId: 'memory', principal }))
       expect(search).toEqual([])
-      expect(query).toEqual([])
+      expect(found).toEqual([])
+      expect(listed).toEqual([])
     })
     await withBackend(async () => [1, 0, 0, 0], async (backend) => {
       const ingested = await settle(backend.ingestDocument!(document))
-      const written = await settle(backend.addKnowledgeNode!(node))
+      const written = await settle(backend.addMemory!(memory))
       expect(ingested).toMatchObject({ title: 'note' })
-      expect(written).toMatchObject({ label: 'hello' })
+      expect(written).toMatchObject({ content: 'hello' })
     })
   })
 
-  test('a document width does not constrain knowledge nodes', async () => {
+  test('a document width does not constrain memories', async () => {
     await withBackend(async () => [1, 0, 0], async (backend) => {
       const ingested = await settle(backend.ingestDocument!(document))
       expect(ingested).toMatchObject({ title: 'note' })
     })
     await withBackend(async () => [1, 0], async (backend) => {
-      const written = await settle(backend.addKnowledgeNode!(node))
-      expect(written).toMatchObject({ label: 'hello' })
+      const written = await settle(backend.addMemory!(memory))
+      expect(written).toMatchObject({ content: 'hello' })
     })
   })
 
   test('a ref names the provider and model on every vector operation', async () => {
     await withBackend(async () => [1, 0, 0], async (backend) => {
       const ingested = await settle(backend.ingestDocument!(document))
-      const written = await settle(backend.addKnowledgeNode!(node))
+      const written = await settle(backend.addMemory!(memory))
       expect(ingested).toMatchObject({ title: 'note' })
-      expect(written).toMatchObject({ label: 'hello' })
+      expect(written).toMatchObject({ content: 'hello' })
     })
 
     const backend = store({
@@ -180,8 +184,8 @@ describe('embedding dimensions', () => {
       const failures = [
         await settle(backend.ingestDocument!(document)),
         await settle(backend.searchDocuments!({ agentId: 'memory', query: 'q' })),
-        await settle(backend.addKnowledgeNode!(node)),
-        await settle(backend.queryKnowledge!({ agentId: 'memory', query: 'k' })),
+        await settle(backend.addMemory!(memory)),
+        await settle(backend.searchMemories!({ agentId: 'memory', principal, query: 'k' })),
       ]
       for (const failure of failures) {
         expect(failure).toMatchObject({

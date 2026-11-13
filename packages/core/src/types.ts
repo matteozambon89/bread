@@ -637,13 +637,8 @@ export interface HumanToolDefinition<S extends z.ZodType> {
 }
 
 // ---------------------------------------------------------------------------
-// Knowledge & Documents
+// Documents
 // ---------------------------------------------------------------------------
-
-export interface KnowledgeConfig {
-  autoInject?: boolean
-  maxTokens?: number
-}
 
 // `documents: {}` attaches core_doc_* when the store supports documents.
 // core_doc_load allows public https hosts, optionally limited by urlAllowlist.
@@ -731,7 +726,6 @@ export interface AgentConfig<I, O> {
   }
   permissions?: { allow?: string[]; ask?: string[]; deny?: string[] }
   steps?: { max?: number } // max tool-call steps per run (not concurrency)
-  knowledge?: KnowledgeConfig
   documents?: DocumentConfig
   // Ids of one-shot tasks to expose to this agent as tools (resolved from the
   // task registry by the runner).
@@ -938,7 +932,7 @@ export interface BreadConfig {
   // Named embedding-model factories. Separate from `providers` (a LanguageModel).
   // Core has no built-ins — install @breadai/provider-embeddings. Unset is fine.
   // A Postgres embed ref reads this object on document ingest, document search,
-  // knowledge-node write, and knowledge query. A function embed does not.
+  // memory write, and memory search. A function embed does not.
   embeddings?: EmbeddingRegistry
   // The crumb fabric between replicas of this app. Defaults to the embedded
   // Stream transport (single container); set a distributed implementation

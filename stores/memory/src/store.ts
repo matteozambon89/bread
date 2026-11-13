@@ -6,7 +6,6 @@ import type {
   CleanupOptions,
   CrumbLogEntry,
   DocumentRecord,
-  KnowledgeNode,
   LoopIteration,
   LoopRecord,
   Session,
@@ -14,20 +13,13 @@ import type {
   TaskRunRecord,
 } from '@breadai/core'
 
-interface KgNode {
+interface MemoryRow {
   id: string
   agentId: string
-  sessionId: string
-  label: string
-  data: Record<string, unknown>
+  principalIss: string
+  principalSub: string
+  content: string
   createdAt: number
-}
-
-interface KgEdge {
-  id: string
-  fromId: string
-  toId: string
-  relation: string
 }
 
 interface Doc {
@@ -50,8 +42,7 @@ export function store(): BreadStore {
   const loopIterations = new Map<string, LoopIteration[]>()
   const taskRuns = new Map<string, TaskRunRecord>()
   const crumbs = new Map<string, CrumbLogEntry[]>() // keyed by runId
-  const nodes: KgNode[] = []
-  const edges: KgEdge[] = []
+  const memories: MemoryRow[] = []
   const docs: Doc[] = []
 
   // Mirrors the SQL stores' session_id ON DELETE CASCADE for the crumb log.
@@ -291,43 +282,60 @@ export function store(): BreadStore {
       return rows.reduce((max, e) => (e.seq > max ? e.seq : max), 0)
     },
 
-    // --- Knowledge graph -----------------------------------------------------
-    async addKnowledgeNode({ agentId, sessionId, label, data }) {
+    // --- Memories ------------------------------------------------------------
+    async addMemory({ agentId, principal, content }) {
       const id = uuidv7()
-      nodes.push({ id, agentId, sessionId, label, data: data ?? {}, createdAt: Date.now() })
-      return { id, label }
+      const createdAt = Date.now()
+      memories.push({
+        id,
+        agentId,
+        principalIss: principal.iss,
+        principalSub: principal.sub,
+        content,
+        createdAt,
+      })
+      return { id, content, createdAt }
     },
 
-    async addKnowledgeEdge({ fromId, toId, relation }) {
-      edges.push({ id: uuidv7(), fromId, toId, relation })
-    },
-
-    async queryKnowledge({ agentId, query, limit }) {
+    async searchMemories({ agentId, principal, query, limit }) {
       const q = query.toLowerCase()
-      return nodes
-        .filter((n) => n.agentId === agentId && n.label.toLowerCase().includes(q))
+      return memories
+        .filter(
+          (row) =>
+            row.agentId === agentId &&
+            row.principalIss === principal.iss &&
+            row.principalSub === principal.sub &&
+            row.content.toLowerCase().includes(q),
+        )
         .sort((a, b) => b.createdAt - a.createdAt)
         .slice(0, limit ?? 10)
-        .map((n): KnowledgeNode => ({ id: n.id, label: n.label, data: n.data }))
+        .map((row) => ({ id: row.id, content: row.content, createdAt: row.createdAt }))
     },
 
-    async forgetKnowledge({ id }) {
-      const idx = nodes.findIndex((n) => n.id === id)
-      if (idx === -1) return { deleted: false }
-      nodes.splice(idx, 1)
-      // Drop edges touching the removed node, mirroring ON DELETE CASCADE.
-      for (let i = edges.length - 1; i >= 0; i--) {
-        if (edges[i]!.fromId === id || edges[i]!.toId === id) edges.splice(i, 1)
-      }
-      return { deleted: true }
-    },
-
-    async knowledgeContext({ agentId, sessionId, limit }) {
-      return nodes
-        .filter((n) => n.agentId === agentId && n.sessionId === sessionId)
+    async listMemories({ agentId, principal, limit }) {
+      return memories
+        .filter(
+          (row) =>
+            row.agentId === agentId &&
+            row.principalIss === principal.iss &&
+            row.principalSub === principal.sub,
+        )
         .sort((a, b) => b.createdAt - a.createdAt)
         .slice(0, limit ?? 100)
-        .map((n) => ({ label: n.label, data: n.data }))
+        .map((row) => ({ id: row.id, content: row.content, createdAt: row.createdAt }))
+    },
+
+    async forgetMemory({ agentId, principal, id }) {
+      const idx = memories.findIndex(
+        (row) =>
+          row.id === id &&
+          row.agentId === agentId &&
+          row.principalIss === principal.iss &&
+          row.principalSub === principal.sub,
+      )
+      if (idx === -1) return { deleted: false }
+      memories.splice(idx, 1)
+      return { deleted: true }
     },
 
     // --- Documents -----------------------------------------------------------

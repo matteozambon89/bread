@@ -17,7 +17,7 @@ export type {
   CheckpointRecord,
   PendingDelegation,
   CrumbLogEntry,
-  KnowledgeNode,
+  MemoryRecord,
   DocumentRecord,
   LoopRecord,
   LoopIteration,
@@ -60,7 +60,6 @@ export type { Skill, SkillMeta, SkillToolEntry } from './skills.js'
 export { injectSkillPrompt, loadSkill, loadSkillMeta } from './skills.js'
 export { runPipeline } from './pipeline.js'
 export { buildSupervisorTools, supervisorSummary } from './supervisor.js'
-export { createKgTools, buildKgContext } from './kg.js'
 export { createDocTools } from './documents.js'
 export { createTaskTool } from './task.js'
 export type { TaskRegistry, TaskToolDeps } from './task.js'
@@ -134,7 +133,6 @@ export type {
   HumanRequiredHandler,
   HumanResumedCrumb,
   HumanToolDefinition,
-  KnowledgeConfig,
   LoopConfig,
   LoopHooks,
   LoopStatus,

@@ -7,7 +7,7 @@
 # @breadai/store-postgres
 
 Postgres `BreadStore` — bread's production-default persistence: sessions, messages, checkpoints,
-loops, task runs, knowledge graph, and documents, with optional
+loops, task runs, memories, and documents, with optional
 [pgvector](https://github.com/pgvector/pgvector) semantic search when you pass `embed`.
 
 ```bash
@@ -26,7 +26,7 @@ export default defineConfig({
 
 `embed` is either `(text: string) => Promise<number[]>` or `{ provider, model }`.
 A function is called as-is and does not read `config.embeddings`. A ref is resolved
-on document ingest, document search, knowledge-node write, and knowledge query,
+on document ingest, document search, memory write, and memory search,
 not when the config module is imported.
 Pass the store through `defineConfig` so that ref can see `config.embeddings`.
 

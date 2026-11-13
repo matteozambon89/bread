@@ -70,22 +70,16 @@ CREATE TABLE IF NOT EXISTS bread_loop_iterations (
 );
 CREATE INDEX IF NOT EXISTS idx_bread_loop_iter_loop ON bread_loop_iterations(loop_id);
 
-CREATE TABLE IF NOT EXISTS bread_kg_nodes (
+-- Leftover bread_kg_* tables are not dropped. This migration does not read them.
+CREATE TABLE IF NOT EXISTS bread_memories (
   id TEXT PRIMARY KEY,
   agent_id TEXT NOT NULL,
-  session_id TEXT,
-  label TEXT NOT NULL,
-  data JSONB NOT NULL DEFAULT '{}',
+  principal_iss TEXT NOT NULL,
+  principal_sub TEXT NOT NULL,
+  content TEXT NOT NULL,
   created_at BIGINT NOT NULL
 );
-CREATE TABLE IF NOT EXISTS bread_kg_edges (
-  id TEXT PRIMARY KEY,
-  from_id TEXT NOT NULL REFERENCES bread_kg_nodes(id) ON DELETE CASCADE,
-  to_id TEXT NOT NULL REFERENCES bread_kg_nodes(id) ON DELETE CASCADE,
-  relation TEXT NOT NULL
-);
-CREATE INDEX IF NOT EXISTS idx_bread_kg_nodes_agent ON bread_kg_nodes(agent_id);
-CREATE INDEX IF NOT EXISTS idx_bread_kg_edges_from ON bread_kg_edges(from_id);
+CREATE INDEX IF NOT EXISTS idx_bread_memories_owner ON bread_memories(agent_id, principal_iss, principal_sub);
 
 CREATE TABLE IF NOT EXISTS bread_documents (
   id TEXT PRIMARY KEY,
@@ -141,7 +135,7 @@ CREATE TABLE IF NOT EXISTS bread_embedding_widths (
 // requires the `vector` extension (enabled here, needs a superuser/owner role).
 const VECTOR = `
 CREATE EXTENSION IF NOT EXISTS vector;
-ALTER TABLE bread_kg_nodes ADD COLUMN IF NOT EXISTS embedding vector;
+ALTER TABLE bread_memories ADD COLUMN IF NOT EXISTS embedding vector;
 ALTER TABLE bread_documents ADD COLUMN IF NOT EXISTS embedding vector;
 `
 

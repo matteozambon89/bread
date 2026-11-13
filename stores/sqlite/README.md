@@ -8,7 +8,7 @@
 
 SQLite `BreadStore` on Bun's built-in [`bun:sqlite`](https://bun.sh/docs/api/sqlite) — a local
 file, no service, no native addon. The full store contract: sessions, messages, checkpoints,
-loops, task runs, knowledge graph, documents.
+loops, task runs, memories, documents.
 
 ```bash
 bun add @breadai/store-sqlite
