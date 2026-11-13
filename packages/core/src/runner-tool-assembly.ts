@@ -1,5 +1,4 @@
 import { createDocTools } from './documents.js'
-import { buildKgContext, createKgTools } from './kg.js'
 import { buildLoopTools, loopSummary } from './loop.js'
 import type { LoopRuntime } from './loop.js'
 import { TOOL_SCOPES, gateAskDefaults, leafName, resolvePermissions } from './permissions.js'
@@ -26,7 +25,7 @@ import type {
 import { BreadError } from './types.js'
 
 // Built-in tool defs already carry their full `core_`-prefixed name (see
-// documents.ts/kg.ts/loop.ts/skills.ts) — strip it back off so leafName(origin)
+// documents.ts/loop.ts/skills.ts) — strip it back off so leafName(origin)
 // round-trips to the same string instead of double-prefixing.
 export function coreOrigin(name: string): ToolOrigin {
   const prefix = `${TOOL_SCOPES.CORE}_`
@@ -34,7 +33,7 @@ export function coreOrigin(name: string): ToolOrigin {
 }
 
 // Collects every tool source for one run segment — agent tools, plugin tools,
-// built-in doc/kg/loop tools, tasks, skills, MCP — tags each with its
+// built-in doc/loop tools, tasks, skills, MCP — tags each with its
 // structured origin, then resolves cfg.permissions to filter the allowed set
 // and mark ask-gated leaves. Shared by continueRun (drives the model) and
 // resumeRun (looks up the real tool behind an approved checkpoint), so both
@@ -62,13 +61,9 @@ export async function assembleTools(
     sources.push({ origin: { scope: TOOL_SCOPES.PLUGIN, sub: plugin, name: def.name }, def })
   }
 
-  // Built-in document / knowledge-graph tools, auto-attached when the agent opts
-  // into either feature and the store supports it.
+  // Built-in document tools, auto-attached when the agent opts in and the store supports it.
   if (cfg.documents && ctx.store.readDocument) {
     for (const def of createDocTools(agentId, ctx.store, cfg.documents)) sources.push({ origin: coreOrigin(def.name), def })
-  }
-  if (cfg.knowledge && ctx.store.addKnowledgeNode) {
-    for (const def of createKgTools(agentId, ctx.store)) sources.push({ origin: coreOrigin(def.name), def })
   }
 
   // One-shot task tools: resolve each id the agent lists in `cfg.tasks` from the
@@ -95,10 +90,6 @@ export async function assembleTools(
   }
 
   let system: string | undefined = ctx.systemPrompt ?? (cfg as any)._systemPrompt ?? undefined
-  if (cfg.knowledge?.autoInject && ctx.store.knowledgeContext) {
-    const kgCtx = await buildKgContext(ctx.store, agentId, sessionId, cfg.knowledge.maxTokens)
-    if (kgCtx) system = system ? `${system}\n\n${kgCtx}` : kgCtx
-  }
 
   // Skills. agentDir is attached by the CLI loader; without it (e.g. in-process
   // tests) skill loading is skipped.

@@ -47,7 +47,7 @@ export async function resolveEmbeddingModel(
 
 // Function specs are called as-is and do not read `config.embeddings`.
 // A ref is resolved here, from the object `defineConfig` bound, on document
-// ingest, document search, knowledge-node write, and knowledge query.
+// ingest, document search, memory write, and memory search.
 export async function embedStoreText(
   store: object,
   spec: StoreEmbed,

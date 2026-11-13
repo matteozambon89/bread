@@ -10,8 +10,8 @@ import {
   type CleanupOptions,
   type CrumbLogEntry,
   type DocumentRecord,
-  type KnowledgeNode,
   type LoopIteration,
+  type MemoryRecord,
   type LoopRecord,
   type LoopStatus,
   type Session,
@@ -29,9 +29,9 @@ export interface PostgresStoreOptions {
   // Connection string. Defaults to process.env.DATABASE_URL; throws if neither.
   url?: string
   // Optional embedder. A function is called as-is. A ref is resolved on
-  // document ingest, document search, knowledge-node write, and knowledge
-  // query, not in this constructor. Without it, search stays keyword (ILIKE);
-  // with it, pgvector cosine similarity.
+  // document ingest, document search, memory write, and memory search, not in
+  // this constructor. Without it, search stays keyword (ILIKE); with it,
+  // pgvector cosine similarity.
   embed?: StoreEmbed
 }
 
@@ -234,11 +234,15 @@ function vec(embedding: number[]): string {
 }
 
 const DOCUMENT_EMBEDDINGS = 'bread_documents'
-const KNOWLEDGE_EMBEDDINGS = 'bread_kg_nodes'
+const MEMORY_EMBEDDINGS = 'bread_memories'
+
+function rowToMemory(row: { id: string; content: string; created_at: string | number }): MemoryRecord {
+  return { id: row.id, content: row.content, createdAt: Number(row.created_at) }
+}
 
 // The default BreadStore: PostgreSQL via postgres.js. All tables are `bread_`
 // prefixed and created by migrate(). Pass `embed` to enable pgvector semantic
-// search over documents and knowledge nodes. A ref is not resolved here.
+// search over documents and memories. A ref is not resolved here.
 export function store(opts: PostgresStoreOptions = {}): BreadStore {
   const url = opts.url ?? process.env.DATABASE_URL
   if (!url) {
@@ -597,54 +601,64 @@ export function store(opts: PostgresStoreOptions = {}): BreadStore {
       return rows[0]?.max != null ? Number(rows[0].max) : 0
     },
 
-    // --- Knowledge graph -----------------------------------------------------
-    async addKnowledgeNode({ agentId, sessionId, label, data }) {
+    // --- Memories ------------------------------------------------------------
+    async addMemory({ agentId, principal, content }) {
       const id = uuidv7()
       const now = Date.now()
       if (embed) {
-        const e = await embeddingLiteral(KNOWLEDGE_EMBEDDINGS, label, true)
-        await sql`INSERT INTO bread_kg_nodes (id, agent_id, session_id, label, data, embedding, created_at)
-                  VALUES (${id}, ${agentId}, ${sessionId}, ${label}, ${j(data ?? {})}, ${e}::vector, ${now})`
+        const e = await embeddingLiteral(MEMORY_EMBEDDINGS, content, true)
+        await sql`INSERT INTO bread_memories (id, agent_id, principal_iss, principal_sub, content, embedding, created_at)
+                  VALUES (${id}, ${agentId}, ${principal.iss}, ${principal.sub}, ${content}, ${e}::vector, ${now})`
       } else {
-        await sql`INSERT INTO bread_kg_nodes (id, agent_id, session_id, label, data, created_at)
-                  VALUES (${id}, ${agentId}, ${sessionId}, ${label}, ${j(data ?? {})}, ${now})`
+        await sql`INSERT INTO bread_memories (id, agent_id, principal_iss, principal_sub, content, created_at)
+                  VALUES (${id}, ${agentId}, ${principal.iss}, ${principal.sub}, ${content}, ${now})`
       }
-      return { id, label }
+      return { id, content, createdAt: now }
     },
 
-    async addKnowledgeEdge({ fromId, toId, relation }) {
-      await sql`INSERT INTO bread_kg_edges (id, from_id, to_id, relation)
-                VALUES (${uuidv7()}, ${fromId}, ${toId}, ${relation})`
-    },
-
-    async queryKnowledge({ agentId, query, limit }) {
+    async searchMemories({ agentId, principal, query, limit }) {
       const n = limit ?? 10
       if (embed) {
-        const embedding = await embeddingLiteral(KNOWLEDGE_EMBEDDINGS, query, false)
-        const rows = await sql<Array<{ id: string; label: string; data: Record<string, unknown> }>>`
-            SELECT id, label, data FROM bread_kg_nodes
-            WHERE agent_id = ${agentId} AND embedding IS NOT NULL
+        const embedding = await embeddingLiteral(MEMORY_EMBEDDINGS, query, false)
+        // Same owner predicate as keyword search. Documents have no principal;
+        // a WHERE of only agent_id would return another caller's rows.
+        const rows = await sql<Array<{ id: string; content: string; created_at: string }>>`
+            SELECT id, content, created_at FROM bread_memories
+            WHERE agent_id = ${agentId}
+              AND principal_iss = ${principal.iss}
+              AND principal_sub = ${principal.sub}
+              AND embedding IS NOT NULL
             ORDER BY embedding <=> ${embedding}::vector LIMIT ${n}`
-        return rows.map((r): KnowledgeNode => ({ id: r.id, label: r.label, data: r.data ?? {} }))
+        return rows.map(rowToMemory)
       }
-      const rows = await sql<Array<{ id: string; label: string; data: Record<string, unknown> }>>`
-            SELECT id, label, data FROM bread_kg_nodes
-            WHERE agent_id = ${agentId} AND label ILIKE ${`%${query}%`}
+      const rows = await sql<Array<{ id: string; content: string; created_at: string }>>`
+            SELECT id, content, created_at FROM bread_memories
+            WHERE agent_id = ${agentId}
+              AND principal_iss = ${principal.iss}
+              AND principal_sub = ${principal.sub}
+              AND content ILIKE ${`%${query}%`}
             ORDER BY created_at DESC LIMIT ${n}`
-      return rows.map((r): KnowledgeNode => ({ id: r.id, label: r.label, data: r.data ?? {} }))
+      return rows.map(rowToMemory)
     },
 
-    async forgetKnowledge({ id }) {
-      const res = await sql`DELETE FROM bread_kg_nodes WHERE id = ${id}`
-      return { deleted: res.count > 0 }
-    },
-
-    async knowledgeContext({ agentId, sessionId, limit }) {
-      const rows = await sql<Array<{ label: string; data: Record<string, unknown> }>>`
-        SELECT label, data FROM bread_kg_nodes
-        WHERE agent_id = ${agentId} AND session_id = ${sessionId}
+    async listMemories({ agentId, principal, limit }) {
+      const rows = await sql<Array<{ id: string; content: string; created_at: string }>>`
+        SELECT id, content, created_at FROM bread_memories
+        WHERE agent_id = ${agentId}
+          AND principal_iss = ${principal.iss}
+          AND principal_sub = ${principal.sub}
         ORDER BY created_at DESC LIMIT ${limit ?? 100}`
-      return rows.map((r) => ({ label: r.label, data: r.data ?? {} }))
+      return rows.map(rowToMemory)
+    },
+
+    async forgetMemory({ agentId, principal, id }) {
+      const res = await sql`
+        DELETE FROM bread_memories
+        WHERE id = ${id}
+          AND agent_id = ${agentId}
+          AND principal_iss = ${principal.iss}
+          AND principal_sub = ${principal.sub}`
+      return { deleted: res.count > 0 }
     },
 
     // --- Documents -----------------------------------------------------------
