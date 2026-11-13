@@ -1,4 +1,5 @@
 import { BreadError, type BreadStore } from '@breadai/core'
+import type { MemoryBackend } from './backend.js'
 
 const MEMORY_METHODS = ['addMemory', 'searchMemories', 'listMemories', 'forgetMemory'] as const
 
@@ -19,4 +20,42 @@ export function requireMemory(store: BreadStore): MemoryStore {
     )
   }
   return store as MemoryStore
+}
+
+export function storeMemoryBackend(store: BreadStore): MemoryBackend {
+  const memory = requireMemory(store)
+  return {
+    addMemory(input) {
+      return memory.addMemory({
+        agentId: input.agentId,
+        principal: input.principal,
+        content: input.content,
+      })
+    },
+    searchMemories(input) {
+      return memory.searchMemories({
+        agentId: input.agentId,
+        principal: input.principal,
+        query: input.query,
+        ...(input.limit !== undefined ? { limit: input.limit } : {}),
+      })
+    },
+    listMemories(input) {
+      return memory.listMemories({
+        agentId: input.agentId,
+        principal: input.principal,
+        ...(input.limit !== undefined ? { limit: input.limit } : {}),
+      })
+    },
+    forgetMemory(input) {
+      return memory.forgetMemory({
+        agentId: input.agentId,
+        principal: input.principal,
+        id: input.id,
+      })
+    },
+    getMessages(sessionId) {
+      return memory.getMessages(sessionId)
+    },
+  }
 }
