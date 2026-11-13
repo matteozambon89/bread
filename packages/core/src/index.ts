@@ -33,6 +33,10 @@ export { decodeLastOutput, encodeLastOutput } from './last-output.js'
 export type { BlobStore, FileOutput } from './storage/blob-store.js'
 export { isFileOutput } from './storage/blob-store.js'
 
+// Named-query graph (config.graph). Drivers live in their own packages.
+// Core does not import one, and this is not a BreadStore.
+export type { Graph, GraphMode, GraphQuery, GraphResult } from './storage/graph.js'
+
 // Internals used by the CLI loader and tests. @internal — not semver-stable;
 // external callers should stay on the BreadInstance surface (run/resume/
 // runPipeline/runTask + the registry getters).

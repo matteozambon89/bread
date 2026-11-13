@@ -36,6 +36,8 @@ At run time the runner merges tools from several sources into one set:
   under `cfg.plugins.<plugin-name>`. [MCP](./mcp-client.md) server tools an agent opts into work this
   way (`cfg.plugins.mcp_client`), and it's how any other plugin can offer the same per-agent,
   config-driven pattern — see [plugins.md](./plugins.md).
+- **graph catalog** — each name in `cfg.graph` becomes `core_<name>`. The model sends catalog
+  parameters only. Cypher stays in `config.graphCatalog` — see [graph.md](./graph.md).
 
 ## `ToolContext`
 
