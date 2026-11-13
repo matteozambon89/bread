@@ -57,7 +57,7 @@ Server runners do not read stdin for init or add.
 | `@breadai/cli` | `packages/cli` | `bread` bin; depends on `@breadai/server` |
 | `@breadai/test-utils` | `packages/test-utils` | Private test harness (`makeBread`, mock models, `storeContractCases`) — not published |
 | `@breadai/otel` | `extensions/otel` | OpenTelemetry plugin |
-| `@breadai/memory` | `extensions/memory` | Store-backed memory plugin (`memorize`, `recall`, `forget`, `dream`) |
+| `@breadai/memory` | `extensions/memory` | Memory plugin with a store, graph, or combined backend (`memorize`, `recall`, `forget`, `dream`) |
 | `@breadai/store-postgres` | `stores/postgres` | Postgres `BreadStore` (default; optional pgvector) |
 | `@breadai/store-sqlite` | `stores/sqlite` | SQLite store via `bun:sqlite` |
 | `@breadai/store-memory` | `stores/memory` | In-memory store (tests, ephemeral) |

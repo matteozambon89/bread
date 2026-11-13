@@ -34,12 +34,26 @@ export default defineConfig({
 })
 ```
 
-The backend in this package is `{ kind: 'store', store }`. SQLite and the memory store search by
-keyword. Postgres uses the document embed path when `embed` is set. Dream calls the model you pass,
-not the agent model.
+`memory({ backend, model })` takes one backend. `{ kind: 'store', store }` writes the `BreadStore`.
+`{ kind: 'graph', graph, store }` writes `:BreadMemory` through `Graph.run`. That `store` is only
+there so dream can read the transcript. `{ kind: 'combined', store, graph }` writes the store first
+and a graph node with the same id. Recall reads the store, so a Postgres `embed` still applies
+there. If the graph write throws, the store row stays. A returned row dropped for size is not an
+owner mismatch, and dream does not write that id again. `forget` deletes the owned graph node first
+and does not report `{ deleted: true }` when that delete throws.
+
+```ts
+memory({ backend: { kind: 'graph', graph, store: backend }, model: () => myLanguageModel })
+memory({ backend: { kind: 'combined', store: backend, graph }, model: () => myLanguageModel })
+```
+
+`graph` is the same value as `config.graph`. This package does not take a driver URL. The Cypher is
+owned by the package. SQLite and the memory store search by keyword. Dream calls the model you
+pass, not the agent model.
 
 Part of **[bread](https://github.com/matteozambon89/bread)** — an explicit-by-design framework for AI agents.
 Docs: [memory](https://matteozambon89.github.io/bread/memory.html) ·
+[graph](https://matteozambon89.github.io/bread/graph.html) ·
 [all docs](https://matteozambon89.github.io/bread/).
 
 ## License
