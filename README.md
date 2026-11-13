@@ -78,8 +78,8 @@ export default defineConfig({
 Embedding models are a separate registry. [`@breadai/provider-embeddings`](./providers/embeddings)
 exports `providerEmbeddings` for `config.embeddings` (an AI SDK `EmbeddingModel`,
 not a `LanguageModel`). Postgres `embed` accepts a `{ provider, model }` ref,
-resolved on document ingest, document search, knowledge-node write, and
-knowledge query, not when the config is imported, or a custom
+resolved on document ingest, document search, memory write, and
+memory search, not when the config is imported, or a custom
 `(text: string) => Promise<number[]>` function that does not read the registry.
 SQLite and memory stay keyword-only. See [`docs/providers.md`](./docs/providers.md)
 and [`docs/store.md`](./docs/store.md).
@@ -197,7 +197,7 @@ export default defineConfig({
 })
 ```
 
-Available: `@breadai/otel`, `@breadai/protocol-ag-ui`, `@breadai/protocol-a2a-server`, `@breadai/a2ui`,
+Available: `@breadai/memory`, `@breadai/otel`, `@breadai/protocol-ag-ui`, `@breadai/protocol-a2a-server`, `@breadai/a2ui`,
 `@breadai/protocol-mcp-client`, `@breadai/protocol-mcp-server`. Write your own by implementing
 `BreadPlugin` — see [`docs/plugins.md`](./docs/plugins.md). `@breadai/auth-api-key`/`-jwt`/`-oauth2`/`-trusted`
 are standalone auth strategy/signer factories, not plugins themselves — wrap one with
@@ -229,6 +229,7 @@ Start with [`docs/architecture.md`](./docs/architecture.md), then:
 [A2A server](./docs/a2a.md) ·
 [auth](./docs/auth.md) ·
 [otel](./docs/otel.md) ·
+[memory](./docs/memory.md) ·
 [AG-UI](./docs/ag-ui.md) ·
 [orb](./docs/orb.md) ·
 [HTTP API](./docs/http-api.md) ·

@@ -69,6 +69,7 @@ export default withMermaid({
           { text: 'A2UI', link: '/a2ui' },
           { text: 'Auth', link: '/auth' },
           { text: 'OTel', link: '/otel' },
+          { text: 'Memory', link: '/memory' },
           { text: 'AG-UI', link: '/ag-ui' },
           { text: 'Orb', link: '/orb' },
         ],

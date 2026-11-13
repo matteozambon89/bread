@@ -101,6 +101,7 @@ Compose agents without reaching for a second framework:
 
 <div class="bread-pills">
 <span class="bread-pill">@breadai/otel</span>
+<span class="bread-pill">@breadai/memory</span>
 <span class="bread-pill">@breadai/protocol-ag-ui</span>
 <span class="bread-pill">@breadai/protocol-a2a-server</span>
 <span class="bread-pill">@breadai/a2ui</span>
@@ -169,6 +170,7 @@ Compose agents without reaching for a second framework:
 - [A2UI](./a2ui.md)
 - [Auth](./auth.md)
 - [OTel](./otel.md)
+- [Memory](./memory.md)
 - [AG-UI](./ag-ui.md)
 
 </div>
