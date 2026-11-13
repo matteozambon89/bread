@@ -2,7 +2,7 @@
 
 A plugin extends or integrates with bread. Add plugins to `config.plugins`; bread runs their
 lifecycle and merges their contributions on `start()`. First-party plugins with their own doc
-pages: [otel](./otel.md) · [ag-ui](./ag-ui.md) · [MCP client](./mcp-client.md) ·
+pages: [memory](./memory.md) · [otel](./otel.md) · [ag-ui](./ag-ui.md) · [MCP client](./mcp-client.md) ·
 [MCP server](./mcp-server.md) · [auth](./auth.md).
 
 > Model providers are a config-level seam, not a plugin one — see
@@ -100,8 +100,8 @@ second plugin mechanism; both implement the same `BreadPlugin` interface above:
 - **`protocols/`** (`@breadai/protocol-ag-ui`, `@breadai/protocol-a2a-server`,
   `@breadai/protocol-mcp-client`, `@breadai/protocol-mcp-server`) — adapters for a specific wire
   protocol (AG-UI, A2A, MCP).
-- **`extensions/`** (`@breadai/otel`, `@breadai/a2ui`) — everything else that attaches as a
-  `BreadPlugin`: observability, UI generation. (`@breadai/auth-api-key`/`-jwt`/`-oauth2`/`-trusted` also live
+- **`extensions/`** (`@breadai/memory`, `@breadai/otel`, `@breadai/a2ui`) — everything else that attaches as a
+  `BreadPlugin`: memory, observability, UI generation. (`@breadai/auth-api-key`/`-jwt`/`-oauth2`/`-trusted` also live
   under `extensions/` but are standalone `BreadAuthStrategy`/`BreadSigner` factories, not
   `BreadPlugin`s themselves — wrap one with `authPlugin()` from `@breadai/server` to attach it, see
   [auth.md](./auth.md).)
