@@ -31,6 +31,7 @@ export default defineAgent({
 | `steps?` | `{ max }` | Max tool-call steps per run (default 20). |
 | `documents?` | `{ urlAllowlist?: string[], fileRoot?: string }` | Attach the `core_doc_*` tools (requires a store with document support). `core_doc_load` loads public https URLs only. `urlAllowlist` is an optional list of exact hostnames (case-insensitive, no wildcards or ports): omit it to allow any public https host, or pass `[]` to deny every URL. Local files are off unless `fileRoot` is one directory; a relative `fileRoot` resolves from the process cwd. |
 | `tasks?` | `string[]` | Ids of one-shot tasks to expose as tools, resolved from the task registry — see [tasks.md](./tasks.md). |
+| `graph?` | `string[]` | Catalog query names to expose as `core_<name>` tools. Cypher stays on `config.graphCatalog` — see [graph.md](./graph.md). |
 | `plugins?` | `Record<string, unknown>` | Opaque, per-plugin agent config, keyed by plugin name — e.g. `{ memory: {} }` or `{ mcp_client: { servers: [...] } }`. Core never inspects the contents; see [memory.md](./memory.md) and [mcp-client.md](./mcp-client.md). |
 | `supervisor?` | `{ max?, agents }` | Inject the `core_delegate` tool: the model delegates to sub-agents at runtime — see [pipelines.md](./pipelines.md#supervisors). |
 | `loop?` | `{ pool, maxIterations, hooks?, errorHandling? }` | Inject the `core_start_loop` / `core_iterate_loop` / `core_finish_loop` tools: the model composes a pipeline from `pool` and re-runs it until satisfied — see [loops.md](./loops.md). |

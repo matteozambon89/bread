@@ -181,6 +181,7 @@ Compose agents without reaching for a second framework:
 
 - [HTTP API](./http-api.md)
 - [Store](./store.md)
+- [Graph](./graph.md)
 - [Glossary](./glossary.md)
 
 </div>

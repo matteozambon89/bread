@@ -106,7 +106,8 @@ second plugin mechanism; both implement the same `BreadPlugin` interface above:
   `BreadPlugin`s themselves — wrap one with `authPlugin()` from `@breadai/server` to attach it, see
   [auth.md](./auth.md).)
 
-See [architecture.md](./architecture.md#package-families) for the full five-family package map.
+See [architecture.md](./architecture.md#package-families) for the full six-family package map.
+Graph is a config seam (`config.graph`), not a `BreadPlugin`.
 
 ## Publishing
 

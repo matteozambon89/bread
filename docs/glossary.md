@@ -46,7 +46,7 @@ label on its step-end crumb and leaves the value passed onward unchanged), **bra
 pipeline step: one arm, strict string equality on `on` or the latest decision label, required
 default), **supervisor** (LLM-driven delegation to sub-agents via
 `core_delegate`), **store**
-(`BreadStore` persistence), **session**, **checkpoint** (HITL suspension point), **HITL**
+(`BreadStore` persistence), **graph** (`Graph`, `config.graph`), **session**, **checkpoint** (HITL suspension point), **HITL**
 (human-in-the-loop), **remote agent** (`RemoteAgent`, `remoteAgent()` — the peer-transport seam to
 another bread instance), and **frame** (`BusFrame`/`CrumbFrame` — the local/wire envelope for a
 crumb). Each has a doc page under [docs/](./).

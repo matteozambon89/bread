@@ -12,6 +12,7 @@ the moving parts.
 | `@breadai/cli` | The `bread` binary |
 | `@breadai/runtime-bun`, `@breadai/runtime-node` | Listen adapters (`Bun.serve` / `@hono/node-server`, or mTLS when `config.server.tls` is set); CLI selects via `--runtime` / `config.server.runtime` |
 | `@breadai/store-postgres`, `@breadai/store-sqlite`, `@breadai/store-memory` | `BreadStore` backends — see [store.md](./store.md) |
+| `@breadai/graph-neo4j` | `Graph.run` for named catalog queries. Not a `BreadStore` — see [graph.md](./graph.md) |
 | `@breadai/provider-llm` | The 21 language-model providers as a `ProviderRegistry`. `@breadai/provider-catalog` re-exports it — see [providers.md](./providers.md) |
 | `@breadai/provider-embeddings` | 16 embedding providers as an `EmbeddingRegistry` for `config.embeddings` — see [providers.md](./providers.md#embedding-models) and [store.md](./store.md#semantic-vector-search) |
 | `@breadai/provider-decisions` | System One hosts as a `DecisionRegistry` for `config.decisions` — see [decisions.md](./decisions.md) |
@@ -23,7 +24,7 @@ the moving parts.
 
 ## Package families
 
-Beyond `packages/*` (core/server/cli), everything installable lives in one of five workspace
+Beyond `packages/*` (core/server/cli), everything installable lives in one of six workspace
 folders, each with its own `@breadai/*` npm prefix:
 
 | Folder | npm packages | Covers |
@@ -33,11 +34,13 @@ folders, each with its own `@breadai/*` npm prefix:
 | `protocols/` | `@breadai/protocol-ag-ui`, `@breadai/protocol-a2a-server`, `@breadai/protocol-mcp-client`, `@breadai/protocol-mcp-server` | Wire-protocol adapters (`BreadPlugin`s) |
 | `extensions/` | `@breadai/memory`, `@breadai/otel`, `@breadai/a2ui` (attach as `BreadPlugin`s); `@breadai/auth-api-key`, `@breadai/auth-jwt`, `@breadai/auth-oauth2`, `@breadai/auth-trusted` (standalone auth factories, see [auth.md](./auth.md)) | Memory, observability, UI generation, auth strategies/signers |
 | `transports/` | `@breadai/transport-http-chunked`, `@breadai/transport-http-sse`, `@breadai/transport-redis`, `@breadai/transport-stdout` | `BreadTransport` implementations — see [transports.md](./transports.md) |
+| `graphs/` | `@breadai/graph-neo4j` | `Graph` driver. Not a `BreadStore` — see [graph.md](./graph.md) |
 
 Protocols and most extensions plug in through the same `BreadPlugin` mechanism (see
 [plugins.md](./plugins.md)) — the folder split is a naming/discovery convention, not a second
 plugin system. The four `@breadai/auth-*` extensions are the one exception: they're standalone
 `BreadAuthStrategy`/`BreadSigner` factories, not `BreadPlugin`s — see [auth.md](./auth.md).
+`graphs/` is a config seam (`Graph`), not a `BreadPlugin` and not a `BreadStore`.
 
 ## From folder to running service
 

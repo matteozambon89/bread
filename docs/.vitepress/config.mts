@@ -79,6 +79,7 @@ export default withMermaid({
         items: [
           { text: 'HTTP API', link: '/http-api' },
           { text: 'Store', link: '/store' },
+          { text: 'Graph', link: '/graph' },
           { text: 'Glossary', link: '/glossary' },
         ],
       },
