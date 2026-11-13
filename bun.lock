@@ -354,6 +354,7 @@
       "dependencies": {
         "@breadai/core": "workspace:>=0.1.1 <1.0.0",
         "ai": "^7.0.93",
+        "uuid": "^11.1.0",
         "zod": "^4.4.3",
       },
       "devDependencies": {

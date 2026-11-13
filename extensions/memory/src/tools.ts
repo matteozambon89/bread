@@ -1,8 +1,8 @@
 import type { ToolDefinition } from '@breadai/core'
 import { z } from 'zod'
+import type { MemoryBackend } from './backend.js'
 import { dream, type MemoryModel } from './dream.js'
 import { memoryScope } from './scope.js'
-import type { MemoryStore } from './store-backend.js'
 
 const memorizeSchema = z.object({ content: z.string().min(1) })
 const recallSchema = z.object({
@@ -12,7 +12,7 @@ const recallSchema = z.object({
 const forgetSchema = z.object({ id: z.string().min(1) })
 const dreamArgsSchema = z.object({})
 
-export function createMemoryTools(store: MemoryStore, model: MemoryModel): ToolDefinition[] {
+export function createMemoryTools(backend: MemoryBackend, model: MemoryModel): ToolDefinition[] {
   return [
     {
       name: 'memorize',
@@ -20,7 +20,11 @@ export function createMemoryTools(store: MemoryStore, model: MemoryModel): ToolD
       schema: memorizeSchema,
       async execute(args, ctx) {
         const { content } = memorizeSchema.parse(args)
-        return store.addMemory({ ...memoryScope(ctx), content })
+        return backend.addMemory({
+          ...memoryScope(ctx),
+          content,
+          ...(ctx.signal ? { signal: ctx.signal } : {}),
+        })
       },
     },
     {
@@ -29,9 +33,10 @@ export function createMemoryTools(store: MemoryStore, model: MemoryModel): ToolD
       schema: recallSchema,
       async execute(args, ctx) {
         const parsed = recallSchema.parse(args)
-        return store.searchMemories({
+        return backend.searchMemories({
           ...memoryScope(ctx),
           query: parsed.query,
+          ...(ctx.signal ? { signal: ctx.signal } : {}),
           ...(parsed.limit !== undefined ? { limit: parsed.limit } : {}),
         })
       },
@@ -43,7 +48,11 @@ export function createMemoryTools(store: MemoryStore, model: MemoryModel): ToolD
       ask: true,
       async execute(args, ctx) {
         const { id } = forgetSchema.parse(args)
-        return store.forgetMemory({ ...memoryScope(ctx), id })
+        return backend.forgetMemory({
+          ...memoryScope(ctx),
+          id,
+          ...(ctx.signal ? { signal: ctx.signal } : {}),
+        })
       },
     },
     {
@@ -52,7 +61,7 @@ export function createMemoryTools(store: MemoryStore, model: MemoryModel): ToolD
       schema: dreamArgsSchema,
       ask: true,
       execute(_args, ctx) {
-        return dream({ store, model, ctx })
+        return dream({ backend, model, ctx })
       },
     },
   ]
