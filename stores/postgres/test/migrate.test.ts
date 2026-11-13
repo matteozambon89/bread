@@ -23,12 +23,16 @@ test('migrate creates bread_documents before the vector extension', async () => 
 
   const admin = postgres(pg.url, { max: 1, onnotice: () => {} })
   try {
-    const rows = await admin<Array<{ documents: string | null; nodes: string | null; widths: string | null }>>`
+    const rows = await admin<
+      Array<{ documents: string | null; memories: string | null; nodes: string | null; widths: string | null }>
+    >`
       SELECT to_regclass('public.bread_documents') AS documents,
+             to_regclass('public.bread_memories') AS memories,
              to_regclass('public.bread_kg_nodes') AS nodes,
              to_regclass('public.bread_embedding_widths') AS widths`
     expect(rows[0]?.documents).toBe('bread_documents')
-    expect(rows[0]?.nodes).toBe('bread_kg_nodes')
+    expect(rows[0]?.memories).toBe('bread_memories')
+    expect(rows[0]?.nodes).toBeNull()
     expect(rows[0]?.widths).toBe('bread_embedding_widths')
   } finally {
     await admin.end({ timeout: 5 })

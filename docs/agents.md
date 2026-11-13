@@ -29,10 +29,9 @@ export default defineAgent({
 | `output.format` | `'text' \| 'json' \| 'markdown' \| CustomFormat` | `json` switches to structured generation (no tool access). `text`/`markdown` stream raw text — `outputSchema` must resolve to `string`. `CustomFormat` (`{ name, parse(raw) => O }`) streams text like `text` (tools allowed) but reshapes it into a non-string `O` afterward. |
 | `permissions?` | `{ allow?, ask?, deny? }` | Selector lists gating the agent's tools — see [Permissions](#permissions). |
 | `steps?` | `{ max }` | Max tool-call steps per run (default 20). |
-| `knowledge?` | `{ autoInject, maxTokens }` | Auto-inject KG context — see [skills/store]. |
 | `documents?` | `{ urlAllowlist?: string[], fileRoot?: string }` | Attach the `core_doc_*` tools (requires a store with document support). `core_doc_load` loads public https URLs only. `urlAllowlist` is an optional list of exact hostnames (case-insensitive, no wildcards or ports): omit it to allow any public https host, or pass `[]` to deny every URL. Local files are off unless `fileRoot` is one directory; a relative `fileRoot` resolves from the process cwd. |
 | `tasks?` | `string[]` | Ids of one-shot tasks to expose as tools, resolved from the task registry — see [tasks.md](./tasks.md). |
-| `plugins?` | `Record<string, unknown>` | Opaque, per-plugin agent config, keyed by plugin name — e.g. `{ mcp_client: { servers: [...] } }`. Core never inspects the contents; see [mcp-client.md](./mcp-client.md) for the leading example. |
+| `plugins?` | `Record<string, unknown>` | Opaque, per-plugin agent config, keyed by plugin name — e.g. `{ memory: {} }` or `{ mcp_client: { servers: [...] } }`. Core never inspects the contents; see [memory.md](./memory.md) and [mcp-client.md](./mcp-client.md). |
 | `supervisor?` | `{ max?, agents }` | Inject the `core_delegate` tool: the model delegates to sub-agents at runtime — see [pipelines.md](./pipelines.md#supervisors). |
 | `loop?` | `{ pool, maxIterations, hooks?, errorHandling? }` | Inject the `core_start_loop` / `core_iterate_loop` / `core_finish_loop` tools: the model composes a pipeline from `pool` and re-runs it until satisfied — see [loops.md](./loops.md). |
 | `errorHandling?` | `{ retry }` | Bounds `onError`'s `retry` action — see [Hooks](#hooks). |
@@ -63,7 +62,7 @@ contributed it), and its name. Selectors address that origin:
 | `skill` | `skill:deep_research/cite` | a skill's script tool | `skill_deep_research_cite` |
 | `task` | `task:doc_extract` | a one-shot task tool | `task_doc_extract` |
 | `plugin` | `plugin:mcp_client/fs__read` | any plugin-contributed tool | `plugin_mcp_client_fs__read` |
-| `core` | `core:doc_ingest` | built-ins (`core_doc_*`, `core_kg_*`, loop tools, `core_load_skill`) | `core_doc_ingest` |
+| `core` | `core:doc_ingest` | built-ins (`core_doc_*`, loop tools, `core_load_skill`) | `core_doc_ingest` |
 | `human` | — not targetable — | HITL tools, always available | `human_approve` |
 
 A full `*` globs one segment: `plugin:mcp_client/*`, `skill:*`, `core:*`. A segment may also embed

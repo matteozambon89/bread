@@ -10,6 +10,7 @@
   "dependencies": {
     "@breadai/cli": "workspace:*",
     "@breadai/core": "workspace:*",
+    "@breadai/memory": "workspace:*",
     "@breadai/provider-embeddings": "workspace:*",
     "@breadai/provider-llm": "workspace:*",
     "@breadai/store-postgres": "workspace:*",

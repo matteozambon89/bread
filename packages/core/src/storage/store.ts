@@ -11,7 +11,7 @@ import type {
 
 // The single storage abstraction. A backend implements this one flat interface;
 // the framework never wires per-domain adapters. Sessions and checkpoints are
-// required (the runner always needs them); knowledge-graph and document methods
+// required (the runner always needs them); memory and document methods
 // are optional framework features a store may omit.
 //
 // Concrete implementations live in their own packages (@breadai/store-postgres,
@@ -148,10 +148,10 @@ export interface CrumbLogEntry {
   createdAt: number
 }
 
-export interface KnowledgeNode {
+export interface MemoryRecord {
   id: string
-  label: string
-  data: Record<string, unknown>
+  content: string
+  createdAt: number
 }
 
 export interface DocumentRecord {
@@ -239,20 +239,28 @@ export interface BreadStore {
   // choke point's counter so resumed runs extend the original run's log.
   getMaxCrumbSeq?(runId: string): Promise<number>
 
-  // --- Knowledge graph (optional) -------------------------------------------
-  addKnowledgeNode?(input: {
+  // --- Memories (optional) ---------------------------------------------------
+  addMemory?(input: {
     agentId: string
-    sessionId: string
-    label: string
-    data?: Record<string, unknown>
-  }): Promise<{ id: string; label: string }>
-  addKnowledgeEdge?(input: { fromId: string; toId: string; relation: string }): Promise<void>
-  queryKnowledge?(input: { agentId: string; query: string; limit?: number }): Promise<KnowledgeNode[]>
-  forgetKnowledge?(input: { id: string }): Promise<{ deleted: boolean }>
-  // Recent nodes for a session, used to build the auto-injected prompt context.
-  knowledgeContext?(input: { agentId: string; sessionId: string; limit?: number }): Promise<
-    Array<{ label: string; data: Record<string, unknown> }>
-  >
+    principal: Principal
+    content: string
+  }): Promise<MemoryRecord>
+  searchMemories?(input: {
+    agentId: string
+    principal: Principal
+    query: string
+    limit?: number
+  }): Promise<MemoryRecord[]>
+  listMemories?(input: {
+    agentId: string
+    principal: Principal
+    limit?: number
+  }): Promise<MemoryRecord[]>
+  forgetMemory?(input: {
+    agentId: string
+    principal: Principal
+    id: string
+  }): Promise<{ deleted: boolean }>
 
   // --- Documents (optional) --------------------------------------------------
   ingestDocument?(input: {

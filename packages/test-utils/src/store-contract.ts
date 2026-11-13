@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import type { BreadStore, CheckpointRecord, CrumbLogEntry, LoopRecord, TaskRunRecord } from '@breadai/core'
+import type { BreadStore, CheckpointRecord, CrumbLogEntry, LoopRecord, Principal, TaskRunRecord } from '@breadai/core'
 
 // A behavioral contract every BreadStore implementation must satisfy, expressed
 // as runner-agnostic cases (node:assert works fine under Bun). Stores register
@@ -672,55 +672,77 @@ export function storeContractCases(): StoreCase[] {
     },
     // --- Optional features (runners skip these when the store lacks them) -----
     {
-      name: 'knowledge graph: stores and queries nodes',
-      requires: ['addKnowledgeNode', 'queryKnowledge'],
+      name: 'memories: search stays inside agent and principal',
+      requires: ['addMemory', 'searchMemories'],
       fn: async (store) => {
-        const node = await store.addKnowledgeNode!({
-          agentId: 'a',
-          sessionId: 's',
-          label: 'Ada',
-          data: { role: 'engineer' },
-        })
-        assert.ok(node.id)
-        assert.ok((await store.queryKnowledge!({ agentId: 'a', query: 'Ada' })).length >= 1)
-      },
-    },
-    {
-      name: 'knowledge graph: links nodes with edges and forgets a node',
-      requires: ['addKnowledgeNode', 'addKnowledgeEdge', 'queryKnowledge', 'forgetKnowledge'],
-      fn: async (store) => {
-        const ada = await store.addKnowledgeNode!({
-          agentId: 'a',
-          sessionId: 's',
-          label: 'Ada',
-          data: {},
-        })
-        const babbage = await store.addKnowledgeNode!({
-          agentId: 'a',
-          sessionId: 's',
-          label: 'Babbage',
-          data: {},
-        })
-        await store.addKnowledgeEdge!({ fromId: ada.id, toId: babbage.id, relation: 'knows' })
-
-        assert.deepEqual(await store.forgetKnowledge!({ id: ada.id }), { deleted: true })
-        assert.equal((await store.queryKnowledge!({ agentId: 'a', query: 'Ada' })).length, 0)
-        // Forgetting an already-gone node reports it wasn't there.
-        assert.deepEqual(await store.forgetKnowledge!({ id: ada.id }), { deleted: false })
-        // The other endpoint survives.
-        assert.equal((await store.queryKnowledge!({ agentId: 'a', query: 'Babbage' })).length, 1)
-      },
-    },
-    {
-      name: 'knowledge graph: knowledgeContext returns session-scoped nodes',
-      requires: ['addKnowledgeNode', 'knowledgeContext'],
-      fn: async (store) => {
-        await store.addKnowledgeNode!({ agentId: 'a', sessionId: 's1', label: 'InS1', data: {} })
-        await store.addKnowledgeNode!({ agentId: 'a', sessionId: 's2', label: 'InS2', data: {} })
-        const ctx = await store.knowledgeContext!({ agentId: 'a', sessionId: 's1' })
+        const ada: Principal = { iss: 'https://idp.example', sub: 'ada' }
+        const bob: Principal = { iss: 'https://idp.example', sub: 'bob' }
+        const own = await store.addMemory!({ agentId: 'a', principal: ada, content: 'shared fact' })
+        await store.addMemory!({ agentId: 'a', principal: bob, content: 'shared fact' })
+        await store.addMemory!({ agentId: 'b', principal: ada, content: 'shared fact' })
+        const hits = await store.searchMemories!({ agentId: 'a', principal: ada, query: 'shared' })
         assert.deepEqual(
-          ctx.map((n) => n.label),
-          ['InS1'],
+          hits.map((row) => row.id),
+          [own.id],
+        )
+      },
+    },
+    {
+      name: 'memories: tenant is not an ownership key',
+      requires: ['addMemory', 'searchMemories'],
+      fn: async (store) => {
+        const row = await store.addMemory!({
+          agentId: 'a',
+          principal: { iss: 'https://idp.example', sub: 'ada', tenant: 'one' },
+          content: 'tenant fact',
+        })
+        const hits = await store.searchMemories!({
+          agentId: 'a',
+          principal: { iss: 'https://idp.example', sub: 'ada', tenant: 'two' },
+          query: 'tenant',
+        })
+        assert.deepEqual(
+          hits.map((hit) => hit.id),
+          [row.id],
+        )
+      },
+    },
+    {
+      name: 'memories: forgets only the owning principal',
+      requires: ['addMemory', 'forgetMemory', 'listMemories'],
+      fn: async (store) => {
+        const ada: Principal = { iss: 'https://idp.example', sub: 'ada' }
+        const bob: Principal = { iss: 'https://idp.example', sub: 'bob' }
+        const row = await store.addMemory!({ agentId: 'a', principal: ada, content: 'keep' })
+        assert.deepEqual(await store.forgetMemory!({ agentId: 'a', principal: bob, id: row.id }), {
+          deleted: false,
+        })
+        assert.deepEqual(
+          (await store.listMemories!({ agentId: 'a', principal: ada })).map((item) => item.id),
+          [row.id],
+        )
+        assert.deepEqual(await store.forgetMemory!({ agentId: 'a', principal: ada, id: row.id }), {
+          deleted: true,
+        })
+        assert.deepEqual(await store.forgetMemory!({ agentId: 'a', principal: ada, id: row.id }), {
+          deleted: false,
+        })
+      },
+    },
+    {
+      name: 'memories: listMemories returns every owned row',
+      requires: ['addMemory', 'listMemories'],
+      fn: async (store) => {
+        const ada: Principal = { iss: 'https://idp.example', sub: 'ada' }
+        const bob: Principal = { iss: 'https://idp.example', sub: 'bob' }
+        const first = await store.addMemory!({ agentId: 'a', principal: ada, content: 'one' })
+        await sleep(5)
+        const second = await store.addMemory!({ agentId: 'a', principal: ada, content: 'two' })
+        await store.addMemory!({ agentId: 'a', principal: bob, content: 'other' })
+        const rows = await store.listMemories!({ agentId: 'a', principal: ada })
+        assert.deepEqual(
+          rows.map((row) => row.id),
+          [second.id, first.id],
         )
       },
     },

@@ -57,6 +57,7 @@ Server runners do not read stdin for init or add.
 | `@breadai/cli` | `packages/cli` | `bread` bin; depends on `@breadai/server` |
 | `@breadai/test-utils` | `packages/test-utils` | Private test harness (`makeBread`, mock models, `storeContractCases`) — not published |
 | `@breadai/otel` | `extensions/otel` | OpenTelemetry plugin |
+| `@breadai/memory` | `extensions/memory` | Store-backed memory plugin (`memorize`, `recall`, `forget`, `dream`) |
 | `@breadai/store-postgres` | `stores/postgres` | Postgres `BreadStore` (default; optional pgvector) |
 | `@breadai/store-sqlite` | `stores/sqlite` | SQLite store via `bun:sqlite` |
 | `@breadai/store-memory` | `stores/memory` | In-memory store (tests, ephemeral) |
@@ -161,8 +162,8 @@ The CLI loader (`packages/server/src/loader.ts`) attaches private fields to each
   `config.providers`. `@breadai/provider-embeddings` fills it. Postgres `embed`
   accepts `{ provider, model }` or a function. `defineConfig` binds the config
   object to that store. A ref calls `resolveEmbeddingModel` on
-  `config.embeddings` for document ingest, document search, knowledge-node
-  write, and knowledge query, not at import; a
+  `config.embeddings` for document ingest, document search, memory write,
+  and memory search, not at import; a
   missing key throws `UNKNOWN_EMBEDDING_PROVIDER`, and a store with no binding
   throws `EMBEDDINGS_NOT_BOUND`. A function is called as-is and does not read
   the registry. `embedStoreText` calls `ai.embed` with `maxRetries: 0`, so
@@ -208,8 +209,9 @@ The CLI loader (`packages/server/src/loader.ts`) attaches private fields to each
   outputSchema, hooks }`) compiles to an LLM-callable tool via `createTaskTool` (`packages/core/src/task.ts`):
   `pre(args) → generateObject → post(output)`. The runner resolves each id in `cfg.tasks` from
   `ctx.tasks` and appends the tool (unknown id → `TASK_NOT_FOUND`); it also auto-attaches the built-in
-  `createDocTools`/`createKgTools` when `cfg.documents`/`cfg.knowledge` is set and the store supports
-  it. Each run emits `task:start`/`task:end` crumbs and persists a `TaskRunRecord` via the optional
+  `createDocTools` when `cfg.documents` is set and the store supports it. Memory tools are not
+  attached here — `@breadai/memory` resolves them from `cfg.plugins.memory`. Each run emits
+  `task:start`/`task:end` crumbs and persists a `TaskRunRecord` via the optional
   `createTaskRun`/`finishTaskRun`/`getTaskRun`/`listTaskRuns` store methods, surfaced at `GET /tasks`.
   See [`docs/tasks.md`](./docs/tasks.md).
 
