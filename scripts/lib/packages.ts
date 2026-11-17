@@ -1,7 +1,7 @@
 import { join } from 'node:path'
 import { readdirSync } from 'node:fs'
 
-export const PACKAGE_ROOTS = ['packages', 'stores', 'providers', 'protocols', 'extensions', 'transports'] as const
+export const PACKAGE_ROOTS = ['packages', 'stores', 'providers', 'protocols', 'extensions', 'transports', 'graphs'] as const
 
 export type Manifest = {
   name: string

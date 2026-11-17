@@ -234,9 +234,10 @@ Start with [`docs/architecture.md`](./docs/architecture.md), then:
 [orb](./docs/orb.md) ·
 [HTTP API](./docs/http-api.md) ·
 [store](./docs/store.md) ·
+[graph](./docs/graph.md) ·
 [glossary](./docs/glossary.md).
 
-Runnable [`examples/`](./examples) cover hello-world through supervisors, HITL, pipelines, loops, and plugins.
+Runnable [`examples/`](./examples) cover hello-world through supervisors, HITL, pipelines, loops, plugins, and the kitchen station walk.
 
 ## Changelog
 

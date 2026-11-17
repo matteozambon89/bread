@@ -62,6 +62,7 @@ Server runners do not read stdin for init or add.
 | `@breadai/store-sqlite` | `stores/sqlite` | SQLite store via `bun:sqlite` |
 | `@breadai/store-memory` | `stores/memory` | In-memory store (tests, ephemeral) |
 | `@breadai/store-s3` | `stores/s3` | S3-backed `BlobStore` — binary/file storage via presigned URLs |
+| `@breadai/graph-neo4j` | `graphs/neo4j` | Neo4j `Graph` (`graph()`). Not a `BreadStore` |
 | `@breadai/provider-llm` | `providers/llm` | The 21 language-model providers as a `ProviderRegistry` (`providerLlm`) |
 | `@breadai/provider-catalog` | `providers/catalog` | Re-exports `providerLlm` and `providerEntries` from `@breadai/provider-llm` |
 | `@breadai/provider-embeddings` | `providers/embeddings` | 16 embedding providers as an `EmbeddingRegistry` (`providerEmbeddings`) for `config.embeddings` |

@@ -1,6 +1,7 @@
 import type { LoopRuntime } from './loop.js'
 import type { SupervisorRuntime } from './supervisor.js'
 import type { BlobStore } from './storage/blob-store.js'
+import type { Graph, GraphQuery } from './storage/graph.js'
 import type { BreadStore } from './storage/store.js'
 import type { TaskRegistry } from './task.js'
 import type { DecisionRegistry } from './decision.js'
@@ -41,6 +42,8 @@ export interface RunnerContext {
   remoteAgents?: Record<string, RemoteAgent> | undefined
   credentials?: CredentialProvider | undefined
   blobStore?: BlobStore | undefined
+  graph?: Graph | undefined
+  graphCatalog?: Record<string, GraphQuery> | undefined
   // Global hook chain tail: plugin-contributed hooks (config.plugins order),
   // then BreadConfig.hooks itself — always the last link in every scope's
   // beforeRun/afterRun/onError/onSuspend chain (see runner-helpers.ts's chain helpers).
