@@ -1,8 +1,8 @@
 import { generateObject, type LanguageModel } from 'ai'
 import { BreadError, type MemoryRecord, type SessionMessage, type ToolContext } from '@breadai/core'
 import { z } from 'zod'
+import type { MemoryBackend } from './backend.js'
 import { memoryScope } from './scope.js'
-import type { MemoryStore } from './store-backend.js'
 
 const DREAM_MEMORY_LIMIT = 100
 const DREAM_MESSAGE_LIMIT = 50
@@ -47,19 +47,22 @@ function dreamPrompt(memories: MemoryRecord[], messages: SessionMessage[]): stri
 }
 
 export async function dream(input: {
-  store: MemoryStore
+  backend: MemoryBackend
   model: MemoryModel
   ctx: ToolContext
 }): Promise<{ written: MemoryRecord[]; forgotten: string[] }> {
   const scope = memoryScope(input.ctx)
   if (input.ctx.signal?.aborted) throw dreamFailed(input.ctx, input.ctx.signal.reason)
 
-  const memories = await input.store.listMemories({
-    agentId: scope.agentId,
-    principal: scope.principal,
+  const memories = await input.backend.listMemories({
+    ...scope,
     limit: DREAM_MEMORY_LIMIT,
+    ...(input.ctx.signal ? { signal: input.ctx.signal } : {}),
   })
-  const messages = await input.store.getMessages(input.ctx.sessionId)
+  if (input.backend.linkMissing) {
+    await input.backend.linkMissing(memories, scope, input.ctx.signal)
+  }
+  const messages = await input.backend.getMessages(input.ctx.sessionId)
   const transcript = messages.slice(-DREAM_MESSAGE_LIMIT)
 
   let languageModel: LanguageModel
@@ -99,10 +102,10 @@ export async function dream(input: {
   const written: MemoryRecord[] = []
   for (const item of planned.memories) {
     written.push(
-      await input.store.addMemory({
-        agentId: scope.agentId,
-        principal: scope.principal,
+      await input.backend.addMemory({
+        ...scope,
         content: item.content,
+        ...(input.ctx.signal ? { signal: input.ctx.signal } : {}),
       }),
     )
   }
@@ -110,10 +113,10 @@ export async function dream(input: {
   // No transaction with the writes above: a failed forget must leave the new row.
   const forgotten: string[] = []
   for (const id of replaceIds) {
-    const result = await input.store.forgetMemory({
-      agentId: scope.agentId,
-      principal: scope.principal,
+    const result = await input.backend.forgetMemory({
+      ...scope,
       id,
+      ...(input.ctx.signal ? { signal: input.ctx.signal } : {}),
     })
     if (result.deleted) forgotten.push(id)
   }

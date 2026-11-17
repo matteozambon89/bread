@@ -118,6 +118,20 @@
         "zod": "^4.4.3",
       },
     },
+    "examples/guest-notes": {
+      "name": "@bread-examples/guest-notes",
+      "version": "0.0.0",
+      "dependencies": {
+        "@breadai/cli": "workspace:*",
+        "@breadai/core": "workspace:*",
+        "@breadai/graph-neo4j": "workspace:*",
+        "@breadai/memory": "workspace:*",
+        "@breadai/provider-llm": "workspace:*",
+        "@breadai/store-sqlite": "workspace:*",
+        "@breadai/transport-http-chunked": "workspace:*",
+        "zod": "^4.4.3",
+      },
+    },
     "examples/hello-world": {
       "name": "@bread-examples/hello-world",
       "version": "0.0.0",
@@ -257,6 +271,20 @@
         "zod": "^4.4.3",
       },
     },
+    "examples/shared-notes": {
+      "name": "@bread-examples/shared-notes",
+      "version": "0.0.0",
+      "dependencies": {
+        "@breadai/cli": "workspace:*",
+        "@breadai/core": "workspace:*",
+        "@breadai/graph-neo4j": "workspace:*",
+        "@breadai/memory": "workspace:*",
+        "@breadai/provider-llm": "workspace:*",
+        "@breadai/store-sqlite": "workspace:*",
+        "@breadai/transport-http-chunked": "workspace:*",
+        "zod": "^4.4.3",
+      },
+    },
     "examples/store-showcase": {
       "name": "@bread-examples/store-showcase",
       "version": "0.0.0",
@@ -354,6 +382,7 @@
       "dependencies": {
         "@breadai/core": "workspace:>=0.1.1 <1.0.0",
         "ai": "^7.0.93",
+        "uuid": "^11.1.0",
         "zod": "^4.4.3",
       },
       "devDependencies": {
@@ -940,6 +969,8 @@
 
     "@bread-examples/evals": ["@bread-examples/evals@workspace:examples/evals"],
 
+    "@bread-examples/guest-notes": ["@bread-examples/guest-notes@workspace:examples/guest-notes"],
+
     "@bread-examples/hello-world": ["@bread-examples/hello-world@workspace:examples/hello-world"],
 
     "@bread-examples/hitl-approval": ["@bread-examples/hitl-approval@workspace:examples/hitl-approval"],
@@ -959,6 +990,8 @@
     "@bread-examples/remote-agent": ["@bread-examples/remote-agent@workspace:examples/remote-agent"],
 
     "@bread-examples/researcher-writer": ["@bread-examples/researcher-writer@workspace:examples/researcher-writer"],
+
+    "@bread-examples/shared-notes": ["@bread-examples/shared-notes@workspace:examples/shared-notes"],
 
     "@bread-examples/store-showcase": ["@bread-examples/store-showcase@workspace:examples/store-showcase"],
 
