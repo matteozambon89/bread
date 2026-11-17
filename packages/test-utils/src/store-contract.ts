@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import type { BreadStore, CheckpointRecord, CrumbLogEntry, LoopRecord, TaskRunRecord } from '@breadai/core'
+import type { BreadStore, CheckpointRecord, CrumbLogEntry, LoopRecord, Principal, TaskRunRecord } from '@breadai/core'
 
 // A behavioral contract every BreadStore implementation must satisfy, expressed
 // as runner-agnostic cases (node:assert works fine under Bun). Stores register
@@ -23,6 +23,16 @@ interface StoreCase {
 }
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
+
+// updated_at follows the message timestamp. A short sleep loses to a pglite
+// appendCrumbs transaction, which does not bump updated_at, so cleanup then
+// deletes the session the case just created.
+const STALE_BEFORE_MS = 120_000
+const CLEANUP_WITHIN_MS = 60_000
+
+function staleTimestamp(): number {
+  return Date.now() - STALE_BEFORE_MS
+}
 
 function checkpoint(over: Partial<CheckpointRecord> = {}): CheckpointRecord {
   return {
@@ -210,9 +220,9 @@ export function storeContractCases(): StoreCase[] {
       name: 'cleanupSessions deletes only sessions older than the window',
       fn: async (store) => {
         const old = await store.createSession()
-        await sleep(30)
+        await store.addMessage(old.id, { role: 'user', content: 'old', timestamp: staleTimestamp() })
         const fresh = await store.createSession()
-        const deleted = await store.cleanupSessions({ olderThanMs: 20 })
+        const deleted = await store.cleanupSessions({ olderThanMs: CLEANUP_WITHIN_MS })
         assert.equal(deleted, 1)
         assert.equal(await store.getSession(old.id), undefined)
         assert.ok(await store.getSession(fresh.id))
@@ -232,8 +242,9 @@ export function storeContractCases(): StoreCase[] {
       fn: async (store) => {
         const doomed = await store.createSession({ tags: { env: 'a' } })
         const spared = await store.createSession({ tags: { env: 'b' } })
-        await sleep(30)
-        const deleted = await store.cleanupSessions({ olderThanMs: 20, tags: { env: 'a' } })
+        await store.addMessage(doomed.id, { role: 'user', content: 'a', timestamp: staleTimestamp() })
+        await store.addMessage(spared.id, { role: 'user', content: 'b', timestamp: staleTimestamp() })
+        const deleted = await store.cleanupSessions({ olderThanMs: CLEANUP_WITHIN_MS, tags: { env: 'a' } })
         assert.equal(deleted, 1)
         assert.equal(await store.getSession(doomed.id), undefined)
         assert.ok(await store.getSession(spared.id))
@@ -244,15 +255,16 @@ export function storeContractCases(): StoreCase[] {
       fn: async (store) => {
         const stale = await store.createSession()
         const touched = await store.createSession()
-        await sleep(80)
+        await store.addMessage(stale.id, { role: 'user', content: 'old', timestamp: staleTimestamp() })
+        await store.addMessage(touched.id, { role: 'user', content: 'old', timestamp: staleTimestamp() })
         await store.addMessage(touched.id, { role: 'user', content: 'still here', timestamp: Date.now() })
-        const deleted = await store.cleanupSessions({ olderThanMs: 40 })
+        const deleted = await store.cleanupSessions({ olderThanMs: CLEANUP_WITHIN_MS })
         assert.equal(deleted, 1)
         assert.equal(await store.getSession(stale.id), undefined)
         assert.ok(await store.getSession(touched.id))
         assert.deepEqual(
           (await store.getMessages(touched.id)).map((message) => message.content),
-          ['still here'],
+          ['old', 'still here'],
         )
       },
     },
@@ -268,10 +280,14 @@ export function storeContractCases(): StoreCase[] {
           principal: { iss: caller.iss, sub: 'user-2', tenant: 'acme' },
         })
         const plain = await store.createSession()
-        await sleep(30)
+        const staleAt = staleTimestamp()
+        await store.addMessage(mine.id, { role: 'user', content: 'old', timestamp: staleAt })
+        await store.addMessage(sameIssSub.id, { role: 'user', content: 'old', timestamp: staleAt })
+        await store.addMessage(theirs.id, { role: 'user', content: 'old', timestamp: staleAt })
+        await store.addMessage(plain.id, { role: 'user', content: 'old', timestamp: staleAt })
         const fresh = await store.createSession({ principal: caller })
         const deleted = await store.cleanupSessions({
-          olderThanMs: 20,
+          olderThanMs: CLEANUP_WITHIN_MS,
           principal: { iss: caller.iss, sub: caller.sub },
         })
         assert.equal(deleted, 2)
@@ -600,11 +616,11 @@ export function storeContractCases(): StoreCase[] {
       name: 'cleanupSessions cascades checkpoints of the deleted sessions',
       fn: async (store) => {
         const old = await store.createSession()
+        await store.addMessage(old.id, { role: 'user', content: 'old', timestamp: staleTimestamp() })
         await store.saveCheckpoint(checkpoint({ id: 'cp-old', sessionId: old.id }))
-        await sleep(30)
         const fresh = await store.createSession()
         await store.saveCheckpoint(checkpoint({ id: 'cp-fresh', sessionId: fresh.id }))
-        const deleted = await store.cleanupSessions({ olderThanMs: 15 })
+        const deleted = await store.cleanupSessions({ olderThanMs: CLEANUP_WITHIN_MS })
         assert.equal(deleted, 1)
         assert.equal(await store.getCheckpoint('cp-old'), undefined)
         assert.equal((await store.getCheckpoint('cp-fresh'))?.id, 'cp-fresh')
@@ -672,55 +688,77 @@ export function storeContractCases(): StoreCase[] {
     },
     // --- Optional features (runners skip these when the store lacks them) -----
     {
-      name: 'knowledge graph: stores and queries nodes',
-      requires: ['addKnowledgeNode', 'queryKnowledge'],
+      name: 'memories: search stays inside agent and principal',
+      requires: ['addMemory', 'searchMemories'],
       fn: async (store) => {
-        const node = await store.addKnowledgeNode!({
-          agentId: 'a',
-          sessionId: 's',
-          label: 'Ada',
-          data: { role: 'engineer' },
-        })
-        assert.ok(node.id)
-        assert.ok((await store.queryKnowledge!({ agentId: 'a', query: 'Ada' })).length >= 1)
-      },
-    },
-    {
-      name: 'knowledge graph: links nodes with edges and forgets a node',
-      requires: ['addKnowledgeNode', 'addKnowledgeEdge', 'queryKnowledge', 'forgetKnowledge'],
-      fn: async (store) => {
-        const ada = await store.addKnowledgeNode!({
-          agentId: 'a',
-          sessionId: 's',
-          label: 'Ada',
-          data: {},
-        })
-        const babbage = await store.addKnowledgeNode!({
-          agentId: 'a',
-          sessionId: 's',
-          label: 'Babbage',
-          data: {},
-        })
-        await store.addKnowledgeEdge!({ fromId: ada.id, toId: babbage.id, relation: 'knows' })
-
-        assert.deepEqual(await store.forgetKnowledge!({ id: ada.id }), { deleted: true })
-        assert.equal((await store.queryKnowledge!({ agentId: 'a', query: 'Ada' })).length, 0)
-        // Forgetting an already-gone node reports it wasn't there.
-        assert.deepEqual(await store.forgetKnowledge!({ id: ada.id }), { deleted: false })
-        // The other endpoint survives.
-        assert.equal((await store.queryKnowledge!({ agentId: 'a', query: 'Babbage' })).length, 1)
-      },
-    },
-    {
-      name: 'knowledge graph: knowledgeContext returns session-scoped nodes',
-      requires: ['addKnowledgeNode', 'knowledgeContext'],
-      fn: async (store) => {
-        await store.addKnowledgeNode!({ agentId: 'a', sessionId: 's1', label: 'InS1', data: {} })
-        await store.addKnowledgeNode!({ agentId: 'a', sessionId: 's2', label: 'InS2', data: {} })
-        const ctx = await store.knowledgeContext!({ agentId: 'a', sessionId: 's1' })
+        const ada: Principal = { iss: 'https://idp.example', sub: 'ada' }
+        const bob: Principal = { iss: 'https://idp.example', sub: 'bob' }
+        const own = await store.addMemory!({ agentId: 'a', principal: ada, content: 'shared fact' })
+        await store.addMemory!({ agentId: 'a', principal: bob, content: 'shared fact' })
+        await store.addMemory!({ agentId: 'b', principal: ada, content: 'shared fact' })
+        const hits = await store.searchMemories!({ agentId: 'a', principal: ada, query: 'shared' })
         assert.deepEqual(
-          ctx.map((n) => n.label),
-          ['InS1'],
+          hits.map((row) => row.id),
+          [own.id],
+        )
+      },
+    },
+    {
+      name: 'memories: tenant is not an ownership key',
+      requires: ['addMemory', 'searchMemories'],
+      fn: async (store) => {
+        const row = await store.addMemory!({
+          agentId: 'a',
+          principal: { iss: 'https://idp.example', sub: 'ada', tenant: 'one' },
+          content: 'tenant fact',
+        })
+        const hits = await store.searchMemories!({
+          agentId: 'a',
+          principal: { iss: 'https://idp.example', sub: 'ada', tenant: 'two' },
+          query: 'tenant',
+        })
+        assert.deepEqual(
+          hits.map((hit) => hit.id),
+          [row.id],
+        )
+      },
+    },
+    {
+      name: 'memories: forgets only the owning principal',
+      requires: ['addMemory', 'forgetMemory', 'listMemories'],
+      fn: async (store) => {
+        const ada: Principal = { iss: 'https://idp.example', sub: 'ada' }
+        const bob: Principal = { iss: 'https://idp.example', sub: 'bob' }
+        const row = await store.addMemory!({ agentId: 'a', principal: ada, content: 'keep' })
+        assert.deepEqual(await store.forgetMemory!({ agentId: 'a', principal: bob, id: row.id }), {
+          deleted: false,
+        })
+        assert.deepEqual(
+          (await store.listMemories!({ agentId: 'a', principal: ada })).map((item) => item.id),
+          [row.id],
+        )
+        assert.deepEqual(await store.forgetMemory!({ agentId: 'a', principal: ada, id: row.id }), {
+          deleted: true,
+        })
+        assert.deepEqual(await store.forgetMemory!({ agentId: 'a', principal: ada, id: row.id }), {
+          deleted: false,
+        })
+      },
+    },
+    {
+      name: 'memories: listMemories returns every owned row',
+      requires: ['addMemory', 'listMemories'],
+      fn: async (store) => {
+        const ada: Principal = { iss: 'https://idp.example', sub: 'ada' }
+        const bob: Principal = { iss: 'https://idp.example', sub: 'bob' }
+        const first = await store.addMemory!({ agentId: 'a', principal: ada, content: 'one' })
+        await sleep(5)
+        const second = await store.addMemory!({ agentId: 'a', principal: ada, content: 'two' })
+        await store.addMemory!({ agentId: 'a', principal: bob, content: 'other' })
+        const rows = await store.listMemories!({ agentId: 'a', principal: ada })
+        assert.deepEqual(
+          rows.map((row) => row.id),
+          [second.id, first.id],
         )
       },
     },
@@ -909,12 +947,11 @@ export function storeContractCases(): StoreCase[] {
       requires: CRUMB_METHODS,
       fn: async (store) => {
         const old = await store.createSession()
-        await store.addMessage(old.id, { role: 'user', content: 'x', timestamp: Date.now() })
+        await store.addMessage(old.id, { role: 'user', content: 'x', timestamp: staleTimestamp() })
         await store.appendCrumbs!([crumbEntry('r1', 1, { sessionId: old.id })])
-        await sleep(30)
         const fresh = await store.createSession()
         await store.appendCrumbs!([crumbEntry('r2', 1, { sessionId: fresh.id })])
-        const deleted = await store.cleanupSessions({ olderThanMs: 15 })
+        const deleted = await store.cleanupSessions({ olderThanMs: CLEANUP_WITHIN_MS })
         assert.equal(deleted, 1)
         assert.equal((await store.getCrumbs!('r1')).length, 0)
         assert.equal((await store.getCrumbs!('r2')).length, 1)

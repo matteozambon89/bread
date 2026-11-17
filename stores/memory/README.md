@@ -7,7 +7,7 @@
 # @breadai/store-memory
 
 In-memory `BreadStore` — ephemeral, zero-setup, gone when the process exits. The full store
-contract (sessions, messages, checkpoints, loops, task runs, knowledge graph, documents) for
+contract (sessions, messages, checkpoints, loops, task runs, memories, documents) for
 tests, examples, and quick local tries. Works on both Bun and Node.
 
 ```bash

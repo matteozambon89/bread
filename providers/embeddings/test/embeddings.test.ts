@@ -176,8 +176,8 @@ test('README and providers docs name the four embed operations', () => {
     for (const operation of [
       'document ingest',
       'document search',
-      'knowledge-node write',
-      'knowledge query',
+      'memory write',
+      'memory search',
     ]) {
       expect(text).toContain(operation)
     }

@@ -37,13 +37,10 @@ export default defineTask({
       const doc = await ctx.store.readDocument({ agentId: ctx.agentId, id: documentId })
       return { action: 'continue', input: { documentId, content: doc.content } }
     },
-    // model output -> tool result (e.g. persist entities to the knowledge graph)
+    // model output -> tool result. Names are returned and not stored.
     async afterRun(ctx) {
       const { documentId } = ctx.input
-      for (const e of ctx.output.entities) {
-        await ctx.store.addKnowledgeNode?.({ agentId: ctx.agentId, sessionId: ctx.sessionId, label: e.name })
-      }
-      return { output: { documentId, ...ctx.output } }
+      return { output: { documentId, entities: ctx.output.entities } }
     },
   },
   errorHandling: { retry: { attempts: 3 } },
@@ -71,8 +68,8 @@ flowchart LR
 - **`afterRun(ctx)`** may replace the final tool result. `void`/no return = unchanged.
 
 `ctx` (a `TaskRunContext`) carries `agentId`, `sessionId`, `runId`, `taskName`, `credentials`, and
-the `store`, so a hook can do I/O — load a document, persist [knowledge-graph](./store.md) nodes,
-etc. Like every other scope, a task's hooks run first, then any plugin-contributed hooks, then
+the `store`, so a hook can do I/O — load a document, or shape the names the agent may
+memorize. Like every other scope, a task's hooks run first, then any plugin-contributed hooks, then
 `BreadConfig.hooks` — see [agents.md#chain-order](./agents.md#chain-order).
 
 ## Attach to an agent
@@ -92,9 +89,10 @@ defineAgent({
 The runner resolves each id from the registry, compiles it with `createTaskTool`, and adds it to the
 agent's tool set. An unknown id fails the run with `TASK_NOT_FOUND`.
 
-> Document and knowledge-graph **storage** tools (`core_doc_ingest`, `core_doc_read`, `core_kg_store`, …) are
-> separate: they attach automatically when the agent sets `documents` / `knowledge` and the store
-> supports them. A task uses the store directly in its hooks; it does not need those tools.
+> Document **storage** tools (`core_doc_ingest`, `core_doc_read`, …) are separate: they attach
+> automatically when the agent sets `documents` and the store supports them. Memory tools come from
+> [`@breadai/memory`](./memory.md), not from core. A task uses the store directly in its hooks; it
+> does not need those tools.
 
 ## Observability & audit
 

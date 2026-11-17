@@ -7,7 +7,7 @@ the moving parts.
 
 | Package | Responsibility |
 |---------|----------------|
-| `@breadai/core` | SDK: `defineAgent`/`defineTool`/…, the runner, sessions, KG/documents, checkpoints, plugins, types |
+| `@breadai/core` | SDK: `defineAgent`/`defineTool`/…, the runner, sessions, memories, documents, checkpoints, plugins, types |
 | `@breadai/server` | File-system loader + Hono server (importable library) |
 | `@breadai/cli` | The `bread` binary |
 | `@breadai/runtime-bun`, `@breadai/runtime-node` | Listen adapters (`Bun.serve` / `@hono/node-server`, or mTLS when `config.server.tls` is set); CLI selects via `--runtime` / `config.server.runtime` |
@@ -15,7 +15,7 @@ the moving parts.
 | `@breadai/provider-llm` | The 21 language-model providers as a `ProviderRegistry`. `@breadai/provider-catalog` re-exports it — see [providers.md](./providers.md) |
 | `@breadai/provider-embeddings` | 16 embedding providers as an `EmbeddingRegistry` for `config.embeddings` — see [providers.md](./providers.md#embedding-models) and [store.md](./store.md#semantic-vector-search) |
 | `@breadai/provider-decisions` | System One hosts as a `DecisionRegistry` for `config.decisions` — see [decisions.md](./decisions.md) |
-| `@breadai/otel`, `@breadai/protocol-ag-ui`, `@breadai/protocol-a2a-server`, `@breadai/a2ui`, `@breadai/protocol-mcp-client`, `@breadai/protocol-mcp-server` | Plugins |
+| `@breadai/memory`, `@breadai/otel`, `@breadai/protocol-ag-ui`, `@breadai/protocol-a2a-server`, `@breadai/a2ui`, `@breadai/protocol-mcp-client`, `@breadai/protocol-mcp-server` | Plugins |
 | `@breadai/auth-api-key`, `@breadai/auth-jwt`, `@breadai/auth-oauth2`, `@breadai/auth-trusted` | Standalone `BreadAuthStrategy`/`BreadSigner` factories — not plugins themselves; wrap with `@breadai/server`'s `authPlugin()` to attach — see [auth.md](./auth.md) |
 | `@breadai/transport-http-chunked`, `@breadai/transport-http-sse` | HTTP ingress `BreadTransport`s — `mount()` the four streaming routes + `remoteAgent()` for `config.remoteAgents` (`transports/http-chunked`, `transports/http-sse`) — see [transports.md](./transports.md) |
 | `@breadai/transport-redis` | Redis Streams `BreadTransport` — cross-replica crumb fan-out, no `mount` (`transports/redis`) |
@@ -31,7 +31,7 @@ folders, each with its own `@breadai/*` npm prefix:
 | `stores/` | `@breadai/store-postgres`, `@breadai/store-sqlite`, `@breadai/store-memory` | `BreadStore` backends — see [store.md](./store.md) |
 | `providers/` | `@breadai/provider-llm`, `@breadai/provider-catalog`, `@breadai/provider-embeddings`, `@breadai/provider-decisions` | Language-model registries, the embedding `EmbeddingRegistry`, and the System One `DecisionRegistry`. `provider-catalog` re-exports `provider-llm` — see [providers.md](./providers.md) and [decisions.md](./decisions.md) |
 | `protocols/` | `@breadai/protocol-ag-ui`, `@breadai/protocol-a2a-server`, `@breadai/protocol-mcp-client`, `@breadai/protocol-mcp-server` | Wire-protocol adapters (`BreadPlugin`s) |
-| `extensions/` | `@breadai/otel`, `@breadai/a2ui` (attach as `BreadPlugin`s); `@breadai/auth-api-key`, `@breadai/auth-jwt`, `@breadai/auth-oauth2`, `@breadai/auth-trusted` (standalone auth factories, see [auth.md](./auth.md)) | Observability, UI generation, auth strategies/signers |
+| `extensions/` | `@breadai/memory`, `@breadai/otel`, `@breadai/a2ui` (attach as `BreadPlugin`s); `@breadai/auth-api-key`, `@breadai/auth-jwt`, `@breadai/auth-oauth2`, `@breadai/auth-trusted` (standalone auth factories, see [auth.md](./auth.md)) | Memory, observability, UI generation, auth strategies/signers |
 | `transports/` | `@breadai/transport-http-chunked`, `@breadai/transport-http-sse`, `@breadai/transport-redis`, `@breadai/transport-stdout` | `BreadTransport` implementations — see [transports.md](./transports.md) |
 
 Protocols and most extensions plug in through the same `BreadPlugin` mechanism (see
@@ -114,7 +114,7 @@ See [plugins.md](./plugins.md) for the `BreadPlugin` interface.
 
 ## Storage
 
-All state — sessions, HITL checkpoints, the knowledge graph, documents, and task-run audit records —
+All state — sessions, HITL checkpoints, memories, documents, and task-run audit records —
 persists through a single **`BreadStore`** interface, set as `config.store`. PostgreSQL is the recommended backend
 (`@breadai/store-postgres`'s `store()` reads `DATABASE_URL` itself); SQLite (`@breadai/store-sqlite`, `bun:sqlite`) and
 in-memory implementations ship as alternatives, and any custom backend can be passed as `store`. Neither core nor

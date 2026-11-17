@@ -37,7 +37,7 @@ ephemeral fallback or an interactive prompt.
 ## What is stored
 
 A `BreadStore` covers several concerns uniformly. Sessions, checkpoints, and loops are required;
-the crumb log, knowledge graph, document, and task-run methods are optional (a store may omit
+the crumb log, memory, document, and task-run methods are optional (a store may omit
 them).
 
 | Data | Tables (Postgres) | Notes |
@@ -46,11 +46,12 @@ them).
 | HITL checkpoints | `bread_checkpoints` | survive restart; see [hitl.md](./hitl.md) |
 | Agent-driven loops | `bread_loops`, `bread_loop_iterations` | required; see [loops.md](./loops.md) |
 | Crumb log | `bread_crumbs` | optional; per-run crumb history powering `Last-Event-ID` catch-up on `GET /runs/:runId/stream` — `text:delta`s stored aggregated; rows cascade with their session; see [transports.md](./transports.md) |
-| Knowledge graph | `bread_kg_nodes`, `bread_kg_edges` | optional |
+| Memories | `bread_memories` | optional. Scoped by agent id and principal `iss`/`sub`. See [memory.md](./memory.md). |
 | Documents | `bread_documents` | optional |
 | Task runs (audit) | `bread_task_runs` | optional; see [tasks.md](./tasks.md) |
 
 `migrate()` runs `CREATE TABLE IF NOT EXISTS` at startup, so the schema is created automatically.
+It does not drop leftover `bread_kg_*` tables.
 
 ## Store packages
 
@@ -66,7 +67,7 @@ All three implement the same flat `BreadStore`, so swapping is a one-line change
 ## Bring your own store
 
 Implement the `BreadStore` interface and pass it as `store`. Sessions and checkpoint methods are
-required, including `claimSessionPrincipal` and `deleteSessionForPrincipal`; implement the knowledge/document methods only if your agents use them, and the crumb-log
+required, including `claimSessionPrincipal` and `deleteSessionForPrincipal`; implement the memory and document methods only if your agents use them, and the crumb-log
 methods (`appendCrumbs`/`getCrumbs`/`getMaxCrumbSeq`) if you want `Last-Event-ID` catch-up on the
 passive run stream (without them, `GET /runs/:runId/stream` degrades to live-tail-only). All
 first-party stores implement the full interface.
@@ -93,15 +94,16 @@ first-party stores implement the full interface.
 
 Postgres `store` accepts an optional `embed` value. It is either a function,
 `(text: string) => Promise<number[]>`, or a ref, `{ provider: string, model: string }`.
-When it is set, document ingest, document search, knowledge-node writes, and
-knowledge queries embed the text and rank matches by cosine similarity via
+When it is set, document ingest, document search, memory write, and
+memory search embed the text and rank matches by cosine similarity via
 [pgvector](https://github.com/pgvector/pgvector). Without it, search is keyword
-(`ILIKE`).
+(`ILIKE`). Memory search still filters `agent_id`, `principal_iss`, and
+`principal_sub`. See [memory.md](./memory.md).
 
 A function is called as-is. It does not read `config.embeddings`.
 
-A ref is resolved on document ingest, document search, knowledge-node write,
-and knowledge query, not when the config module is imported and not inside
+A ref is resolved on document ingest, document search, memory write,
+and memory search, not when the config module is imported and not inside
 `store()` or `defineConfig`. `defineConfig` keeps that config object for the
 store. Each of those operations reads `config.embeddings` from the object, so
 a later assignment is the registry the next operation uses. The registry is the
@@ -135,7 +137,7 @@ SQLite and memory stay keyword-only and take no `embed` option, including when
 `config.embeddings` is set.
 [`examples/knowledge-graph`](https://github.com/matteozambon89/bread/tree/HEAD/examples/knowledge-graph)
 passes an `ollama` / `nomic-embed-text` ref, resolved on document ingest,
-document search, knowledge-node write, and knowledge query.
+document search, memory write, and memory search.
 [`examples/custom-embed`](https://github.com/matteozambon89/bread/tree/HEAD/examples/custom-embed)
 passes a function.
 
@@ -160,7 +162,7 @@ export default defineConfig({
 
 Unlike `store`, `blobStore` is **optional** — there's no `BLOB_STORE_NOT_CONFIGURED` startup throw.
 A feature that needs it fails with its own clear, feature-specific error only when it's actually
-used without one configured, the same way `BreadStore`'s optional knowledge/document methods
+used without one configured, the same way `BreadStore`'s optional memory and document methods
 degrade gracefully rather than crashing at startup. Current consumers:
 
 - `@breadai/protocol-a2a-server`'s inline `FilePart` handling (input-side) and output-side `FilePart`

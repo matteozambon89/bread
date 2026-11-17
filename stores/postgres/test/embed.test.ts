@@ -17,7 +17,8 @@ function throwingModel(): EmbeddingModel {
 }
 
 const document = { agentId: 'memory', title: 'note', content: 'hello' }
-const node = { agentId: 'memory', sessionId: 's1', label: 'hello' }
+const principal = { iss: 'https://idp.example', sub: 'ada' }
+const memory = { agentId: 'memory', principal, content: 'hello' }
 
 describe('postgres embed', () => {
   test('store() and defineConfig do not resolve a ref', () => {
@@ -33,7 +34,7 @@ describe('postgres embed', () => {
     expect(calls).toBe(0)
   })
 
-  test('a function is called as-is on document and knowledge operations', async () => {
+  test('a function is called as-is on document and memory operations', async () => {
     let calls = 0
     let registryCalls = 0
     const backend = store({
@@ -57,10 +58,10 @@ describe('postgres embed', () => {
     await expect(backend.searchDocuments?.({ agentId: 'memory', query: 'q' })).rejects.toThrow(
       'stop before sql:q',
     )
-    await expect(backend.addKnowledgeNode?.(node)).rejects.toThrow('stop before sql:hello')
-    await expect(backend.queryKnowledge?.({ agentId: 'memory', query: 'k' })).rejects.toThrow(
-      'stop before sql:k',
-    )
+    await expect(backend.addMemory?.(memory)).rejects.toThrow('stop before sql:hello')
+    await expect(
+      backend.searchMemories?.({ agentId: 'memory', principal, query: 'k' }),
+    ).rejects.toThrow('stop before sql:k')
     expect(calls).toBe(4)
     expect(registryCalls).toBe(0)
   })
@@ -73,10 +74,12 @@ describe('postgres embed', () => {
     await expect(backend.searchDocuments?.({ agentId: 'memory', query: 'q' })).rejects.toMatchObject({
       code: 'EMBEDDINGS_NOT_BOUND',
     })
-    await expect(backend.addKnowledgeNode?.(node)).rejects.toMatchObject({
+    await expect(backend.addMemory?.(memory)).rejects.toMatchObject({
       code: 'EMBEDDINGS_NOT_BOUND',
     })
-    await expect(backend.queryKnowledge?.({ agentId: 'memory', query: 'k' })).rejects.toMatchObject({
+    await expect(
+      backend.searchMemories?.({ agentId: 'memory', principal, query: 'k' }),
+    ).rejects.toMatchObject({
       code: 'EMBEDDINGS_NOT_BOUND',
     })
   })
@@ -108,10 +111,10 @@ describe('postgres embed', () => {
     await expect(backend.searchDocuments?.({ agentId: 'memory', query: 'q' })).rejects.toThrow(
       'stop before sql',
     )
-    await expect(backend.addKnowledgeNode?.(node)).rejects.toThrow('stop before sql')
-    await expect(backend.queryKnowledge?.({ agentId: 'memory', query: 'k' })).rejects.toThrow(
-      'stop before sql',
-    )
+    await expect(backend.addMemory?.(memory)).rejects.toThrow('stop before sql')
+    await expect(
+      backend.searchMemories?.({ agentId: 'memory', principal, query: 'k' }),
+    ).rejects.toThrow('stop before sql')
     expect(calls).toBe(4)
     expect(config.embeddings).toBe(embeddings)
   })

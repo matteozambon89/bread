@@ -142,8 +142,8 @@ for a server that speaks the embeddings API: the factory calls
 
 Registering `embeddings` does not turn on vector search by itself. Postgres
 `embed` accepts either a function or a `{ provider, model }` ref. The ref is
-resolved on document ingest, document search, knowledge-node write, and
-knowledge query, not when the config is imported, from the
+resolved on document ingest, document search, memory write, and
+memory search, not when the config is imported, from the
 `config.embeddings` object bound to that store. A function is called as-is and
 does not read the registry. SQLite and memory stay keyword-only and take no
 `embed` option. See [store.md](./store.md#semantic-vector-search).
@@ -161,8 +161,8 @@ store: store({
 ```
 
 [`examples/knowledge-graph`](https://github.com/matteozambon89/bread/tree/HEAD/examples/knowledge-graph)
-passes the `ollama` / `nomic-embed-text` ref next to its document and knowledge
-auto-inject.
+passes the `ollama` / `nomic-embed-text` ref for documents and memories.
+Nothing is pasted into a later run.
 [`examples/custom-embed`](https://github.com/matteozambon89/bread/tree/HEAD/examples/custom-embed)
 passes a function.
 `ollama` reads optional `OLLAMA_BASE_URL` via `createOllama({ baseURL })`.

@@ -9,7 +9,6 @@ import {
   type CleanupOptions,
   type CrumbLogEntry,
   type DocumentRecord,
-  type KnowledgeNode,
   type LoopIteration,
   type LoopRecord,
   type LoopStatus,
@@ -90,22 +89,16 @@ CREATE TABLE IF NOT EXISTS loop_iterations (
 );
 CREATE INDEX IF NOT EXISTS idx_loop_iter_loop ON loop_iterations(loop_id);
 
-CREATE TABLE IF NOT EXISTS kg_nodes (
+-- Leftover kg_nodes and kg_edges are not dropped. This schema does not read them.
+CREATE TABLE IF NOT EXISTS memories (
   id TEXT PRIMARY KEY,
   agent_id TEXT NOT NULL,
-  session_id TEXT,
-  label TEXT NOT NULL,
-  data TEXT NOT NULL DEFAULT '{}',
+  principal_iss TEXT NOT NULL,
+  principal_sub TEXT NOT NULL,
+  content TEXT NOT NULL,
   created_at INTEGER NOT NULL
 );
-CREATE TABLE IF NOT EXISTS kg_edges (
-  id TEXT PRIMARY KEY,
-  from_id TEXT NOT NULL REFERENCES kg_nodes(id) ON DELETE CASCADE,
-  to_id TEXT NOT NULL REFERENCES kg_nodes(id) ON DELETE CASCADE,
-  relation TEXT NOT NULL
-);
-CREATE INDEX IF NOT EXISTS idx_kg_nodes_agent ON kg_nodes(agent_id);
-CREATE INDEX IF NOT EXISTS idx_kg_edges_from ON kg_edges(from_id);
+CREATE INDEX IF NOT EXISTS idx_memories_owner ON memories(agent_id, principal_iss, principal_sub);
 
 CREATE TABLE IF NOT EXISTS documents (
   id TEXT PRIMARY KEY,
@@ -755,58 +748,53 @@ export function store(opts: SqliteStoreOptions = {}): BreadStore {
       return row?.max ?? 0
     },
 
-    // --- Knowledge graph -----------------------------------------------------
-    async addKnowledgeNode({ agentId, sessionId, label, data }) {
+    // --- Memories ------------------------------------------------------------
+    async addMemory({ agentId, principal, content }) {
       const id = uuidv7()
+      const createdAt = Date.now()
       db.prepare(
-        'INSERT INTO kg_nodes (id, agent_id, session_id, label, data, created_at) VALUES (?, ?, ?, ?, ?, ?)',
-      ).run(id, agentId, sessionId, label, JSON.stringify(data ?? {}), Date.now())
-      return { id, label }
+        'INSERT INTO memories (id, agent_id, principal_iss, principal_sub, content, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+      ).run(id, agentId, principal.iss, principal.sub, content, createdAt)
+      return { id, content, createdAt }
     },
 
-    async addKnowledgeEdge({ fromId, toId, relation }) {
-      db.prepare('INSERT INTO kg_edges (id, from_id, to_id, relation) VALUES (?, ?, ?, ?)').run(
-        uuidv7(),
-        fromId,
-        toId,
-        relation,
-      )
-    },
-
-    async queryKnowledge({ agentId, query, limit }) {
+    async searchMemories({ agentId, principal, query, limit }) {
       const rows = db
         .prepare(
-          `SELECT id, label, data FROM kg_nodes
-           WHERE agent_id = ? AND label LIKE ?
+          `SELECT id, content, created_at FROM memories
+           WHERE agent_id = ? AND principal_iss = ? AND principal_sub = ? AND content LIKE ?
            ORDER BY created_at DESC LIMIT ?`,
         )
-        .all(agentId, `%${query}%`, limit ?? 10) as Array<{ id: string; label: string; data: string }>
-      return rows.map(
-        (r): KnowledgeNode => ({
-          id: r.id,
-          label: r.label,
-          data: JSON.parse(r.data) as Record<string, unknown>,
-        }),
-      )
+        .all(agentId, principal.iss, principal.sub, `%${query}%`, limit ?? 10) as Array<{
+        id: string
+        content: string
+        created_at: number
+      }>
+      return rows.map((row) => ({ id: row.id, content: row.content, createdAt: row.created_at }))
     },
 
-    async forgetKnowledge({ id }) {
-      const info = db.prepare('DELETE FROM kg_nodes WHERE id = ?').run(id)
+    async listMemories({ agentId, principal, limit }) {
+      const rows = db
+        .prepare(
+          `SELECT id, content, created_at FROM memories
+           WHERE agent_id = ? AND principal_iss = ? AND principal_sub = ?
+           ORDER BY created_at DESC LIMIT ?`,
+        )
+        .all(agentId, principal.iss, principal.sub, limit ?? 100) as Array<{
+        id: string
+        content: string
+        created_at: number
+      }>
+      return rows.map((row) => ({ id: row.id, content: row.content, createdAt: row.created_at }))
+    },
+
+    async forgetMemory({ agentId, principal, id }) {
+      const info = db
+        .prepare(
+          'DELETE FROM memories WHERE id = ? AND agent_id = ? AND principal_iss = ? AND principal_sub = ?',
+        )
+        .run(id, agentId, principal.iss, principal.sub)
       return { deleted: info.changes > 0 }
-    },
-
-    async knowledgeContext({ agentId, sessionId, limit }) {
-      const rows = db
-        .prepare(
-          `SELECT label, data FROM kg_nodes
-           WHERE agent_id = ? AND session_id = ?
-           ORDER BY created_at DESC LIMIT ?`,
-        )
-        .all(agentId, sessionId, limit ?? 100) as Array<{ label: string; data: string }>
-      return rows.map((r) => ({
-        label: r.label,
-        data: JSON.parse(r.data) as Record<string, unknown>,
-      }))
     },
 
     // --- Documents -----------------------------------------------------------

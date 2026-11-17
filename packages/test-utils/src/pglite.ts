@@ -12,14 +12,14 @@ export interface PgliteHandle {
   close: () => Promise<void>
 }
 
-// All bread_ tables. CASCADE clears dependents (messages, loop iterations, edges, crumbs).
+// All bread_ tables. CASCADE clears dependents (messages, loop iterations, crumbs).
 const TABLES = [
   'bread_sessions',
   'bread_checkpoints',
   'bread_loops',
   'bread_task_runs',
   'bread_crumbs',
-  'bread_kg_nodes',
+  'bread_memories',
   'bread_documents',
 ].join(', ')
 

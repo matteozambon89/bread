@@ -1,0 +1,53 @@
+{
+  "name": "@breadai/memory",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    ".": {
+      "bread-source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "dependencies": {
+    "@breadai/core": "workspace:>=0.1.1 <1.0.0",
+    "ai": "^7.0.93",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@breadai/store-memory": "workspace:*",
+    "@breadai/test-utils": "workspace:*",
+    "@types/bun": "latest",
+    "typescript": "^5.8.3"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "bun build ./src/index.ts --outdir dist --target node --format esm --packages external && tsc --emitDeclarationOnly --outDir dist"
+  },
+  "description": "Memory plugin for bread — memorize, recall, forget, and dream, scoped to the agent and the run principal.",
+  "license": "MIT",
+  "author": "Matteo Zambon <matteo@yeeti.co>",
+  "keywords": [
+    "ai",
+    "agents",
+    "memory",
+    "bread",
+    "plugin"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/matteozambon89/bread.git",
+    "directory": "extensions/memory"
+  },
+  "homepage": "https://github.com/matteozambon89/bread",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
+}
