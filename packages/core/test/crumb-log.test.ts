@@ -115,6 +115,34 @@ describe('CrumbLogWriter', () => {
     expect(await store.getCrumbs!('r')).toEqual([])
   })
 
+  test('persists file:generated when it has a session and skips it when it does not', async () => {
+    const store = await seededStore()
+    const writer = createCrumbLogWriter({ store })
+    const logged = await writer.process({
+      type: 'file:generated',
+      agentId: 'a',
+      runId: 'r',
+      sessionId: 's',
+      timestamp: 1,
+      uri: 'memory://a',
+      mimeType: 'image/png',
+    })
+    const skipped = await writer.process({
+      type: 'file:generated',
+      agentId: 'image',
+      runId: 'step',
+      timestamp: 1,
+      uri: 'memory://b',
+      mimeType: 'image/png',
+    })
+    await writer.finalize()
+
+    expect(logged.seq).toBe(1)
+    expect(skipped.seq).toBe(1)
+    expect((await store.getCrumbs!('r')).map((entry) => entry.type)).toEqual(['file:generated'])
+    expect(await store.getCrumbs!('step')).toEqual([])
+  })
+
   test('sequences pipeline:step crumbs without persisting them', async () => {
     const store = await seededStore()
     const writer = createCrumbLogWriter({ store })

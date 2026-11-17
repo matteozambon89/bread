@@ -136,8 +136,9 @@ export interface TaskRunFilter {
 // One durable crumb-log row. `seq` is the per-run monotonic position assigned
 // by the instance choke point; `crumb` is the wire-safe JSON crumb (aggregated
 // `text:delta` entries carry the joined delta). `sessionId` anchors cleanup —
-// rows cascade when their session is deleted; `pipeline:step:*` and
-// `pipeline:branch:taken` crumbs are never logged (no session anchor).
+// rows cascade when their session is deleted. `pipeline:step:*`,
+// `pipeline:branch:taken`, and a `file:generated` with no session are never
+// logged (no session anchor).
 export interface CrumbLogEntry {
   runId: string
   seq: number

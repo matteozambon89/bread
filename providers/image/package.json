@@ -1,0 +1,127 @@
+{
+  "name": "@breadai/provider-image",
+  "version": "0.1.0",
+  "description": "Image-model providers for bread — 18 lazily-imported AI SDK providers as a ready-made ImageRegistry for config.image.",
+  "license": "MIT",
+  "author": "Matteo Zambon <matteo@yeeti.co>",
+  "keywords": [
+    "ai",
+    "agents",
+    "bread",
+    "provider",
+    "image",
+    "ai-sdk"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/matteozambon89/bread.git",
+    "directory": "providers/image"
+  },
+  "homepage": "https://github.com/matteozambon89/bread",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "bread-source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "bun build ./src/index.ts --outdir dist --target node --format esm --packages external && tsc --emitDeclarationOnly --outDir dist"
+  },
+  "dependencies": {
+    "@breadai/core": "workspace:>=0.1.1 <1.0.0"
+  },
+  "peerDependencies": {
+    "@ai-sdk/amazon-bedrock": ">=5.0",
+    "@ai-sdk/azure": ">=4.0",
+    "@ai-sdk/black-forest-labs": ">=2.0",
+    "@ai-sdk/bytedance": ">=2.0",
+    "@ai-sdk/deepinfra": ">=3.0",
+    "@ai-sdk/fal": ">=3.0",
+    "@ai-sdk/fireworks": ">=3.0",
+    "@ai-sdk/google": ">=4.0",
+    "@ai-sdk/google-vertex": ">=5.0",
+    "@ai-sdk/luma": ">=3.0",
+    "@ai-sdk/openai": ">=4.0",
+    "@ai-sdk/openai-compatible": ">=3.0",
+    "@ai-sdk/prodia": ">=2.0",
+    "@ai-sdk/quiverai": ">=2.0",
+    "@ai-sdk/replicate": ">=3.0",
+    "@ai-sdk/togetherai": ">=3.0",
+    "@ai-sdk/topaz": ">=3.0",
+    "@ai-sdk/xai": ">=4.0"
+  },
+  "peerDependenciesMeta": {
+    "@ai-sdk/amazon-bedrock": {
+      "optional": true
+    },
+    "@ai-sdk/azure": {
+      "optional": true
+    },
+    "@ai-sdk/black-forest-labs": {
+      "optional": true
+    },
+    "@ai-sdk/bytedance": {
+      "optional": true
+    },
+    "@ai-sdk/deepinfra": {
+      "optional": true
+    },
+    "@ai-sdk/fal": {
+      "optional": true
+    },
+    "@ai-sdk/fireworks": {
+      "optional": true
+    },
+    "@ai-sdk/google": {
+      "optional": true
+    },
+    "@ai-sdk/google-vertex": {
+      "optional": true
+    },
+    "@ai-sdk/luma": {
+      "optional": true
+    },
+    "@ai-sdk/openai": {
+      "optional": true
+    },
+    "@ai-sdk/openai-compatible": {
+      "optional": true
+    },
+    "@ai-sdk/prodia": {
+      "optional": true
+    },
+    "@ai-sdk/quiverai": {
+      "optional": true
+    },
+    "@ai-sdk/replicate": {
+      "optional": true
+    },
+    "@ai-sdk/togetherai": {
+      "optional": true
+    },
+    "@ai-sdk/topaz": {
+      "optional": true
+    },
+    "@ai-sdk/xai": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "ai": "^7.0.93",
+    "typescript": "^5.8.3"
+  }
+}

@@ -43,6 +43,8 @@ export type { Graph, GraphMode, GraphQuery, GraphResult } from './storage/graph.
 export type { AgentRegistry, RunnerContext } from './runner.js'
 export { resolveModel } from './model-provider.js'
 export type { ModelRef, ProviderRegistry } from './model-provider.js'
+export { resolveImageModel } from './image.js'
+export type { ImageRegistry } from './image.js'
 export type {
   DecisionBucket,
   DecisionClient,
