@@ -51,6 +51,10 @@ memory({ backend: { kind: 'combined', store: backend, graph }, model: () => myLa
 owned by the package. SQLite and the memory store search by keyword. Dream calls the model you
 pass, not the agent model.
 
+[guest-notes](https://github.com/matteozambon89/bread/tree/HEAD/examples/guest-notes) uses the graph
+backend. [shared-notes](https://github.com/matteozambon89/bread/tree/HEAD/examples/shared-notes)
+uses the combined backend.
+
 Part of **[bread](https://github.com/matteozambon89/bread)** — an explicit-by-design framework for AI agents.
 Docs: [memory](https://matteozambon89.github.io/bread/memory.html) ·
 [graph](https://matteozambon89.github.io/bread/graph.html) ·

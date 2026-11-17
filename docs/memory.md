@@ -50,6 +50,11 @@ Combined writes the store first, then a `:BreadMemory` node with the same id. If
 throws, the store row stays. There is no delete and no retry. Recall does not call `Graph.run`, so
 a Postgres `embed` still applies on combined recall. The graph copy is not what recall reads.
 
+[`examples/guest-notes`](https://github.com/matteozambon89/bread/tree/HEAD/examples/guest-notes)
+keeps the session in SQLite and the notes on `:BreadMemory`.
+[`examples/shared-notes`](https://github.com/matteozambon89/bread/tree/HEAD/examples/shared-notes)
+keeps the notes in SQLite and mirrors each id onto the graph. `matching_notes` reads that copy.
+
 ## Tools
 
 | Tool | Model-facing name | Selector | Asks |
