@@ -22,7 +22,7 @@
     "@breadai/transport-http-sse": "workspace:*",
     "ai": "^7.0.93",
     "postgres": "^3.4.5",
-    "uuid": "^11.1.0",
+    "uuid": "^14.0.3",
     "zod": "^4.4.3"
   },
   "devDependencies": {
