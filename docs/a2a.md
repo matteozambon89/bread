@@ -114,7 +114,8 @@ whether it arrived by reference or as inline bytes:
   error names which case applies.
 
 `@breadai/core`'s runner sends an `image/*` file (`{ uri, mimeType }`, or a `{ file: { uri, mimeType } }`
-part in a parts array) to the model as an image part. Any other non-string `input` is JSON-serialized
+part in a parts array) to the model as an image part only when `blobStore.get` returns the bytes.
+Any other image uri, including https, stays ordinary JSON text and is not fetched. Any other non-string `input` is JSON-serialized
 into the model prompt
 (`typeof input === 'string' ? input : JSON.stringify(input)`) — the same path
 `@breadai/protocol-mcp-server` already uses for structured input — so passing an object or array here

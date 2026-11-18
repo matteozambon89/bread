@@ -73,18 +73,16 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
-// Our blob (memory://<key>, or a url whose key blobStore.get can resolve) is
-// loaded here. https that is not ours is left for the provider. file:// that
-// get cannot resolve is not read.
+// An image part is only the bytes blobStore.get returns. Any other image
+// uri, including https, stays ordinary JSON text and is not fetched.
 async function toImagePart(
   uri: string,
   mimeType: string,
   blobStore: BlobStore | undefined,
 ): Promise<ImagePart | undefined> {
   const bytes = await ownedBytes(uri, blobStore)
-  if (bytes) return { type: 'image', image: imageBytes(bytes), mediaType: mimeType }
-  if (isHttps(uri)) return { type: 'image', image: uri, mediaType: mimeType }
-  return undefined
+  if (!bytes) return undefined
+  return { type: 'image', image: imageBytes(bytes), mediaType: mimeType }
 }
 
 async function ownedBytes(uri: string, blobStore: BlobStore | undefined): Promise<Uint8Array | undefined> {
@@ -97,14 +95,6 @@ async function ownedBytes(uri: string, blobStore: BlobStore | undefined): Promis
   } catch (err) {
     if (uri.startsWith(MEMORY_PREFIX)) throw err
     return undefined
-  }
-}
-
-function isHttps(uri: string): boolean {
-  try {
-    return new URL(uri).protocol === 'https:'
-  } catch {
-    return false
   }
 }
 

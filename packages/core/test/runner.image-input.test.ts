@@ -5,7 +5,6 @@ import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import type { LanguageModelV4CallOptions } from '@ai-sdk/provider'
 import type { BlobStore } from '@breadai/core'
-import { MockLanguageModelV4, simulateReadableStream } from 'ai/test'
 import {
   defineTestAgent,
   makeBread,
@@ -13,11 +12,6 @@ import {
   mockRecordingTextModel,
   runCollect,
 } from '@breadai/test-utils'
-
-const noUsage = {
-  inputTokens: { total: 0, noCache: 0, cacheRead: 0, cacheWrite: 0 },
-  outputTokens: { total: 0, text: 0, reasoning: 0 },
-}
 
 type PromptPart = {
   type: string
@@ -39,35 +33,6 @@ function imageBytes(part: PromptPart | undefined): Uint8Array | undefined {
   if (raw instanceof Uint8Array) return raw
   if (typeof raw === 'string' && !/^[a-z][a-z0-9+.-]*:/i.test(raw)) return Buffer.from(raw, 'base64')
   return undefined
-}
-
-function imageUrl(part: PromptPart | undefined): string | undefined {
-  if (!part?.mediaType?.startsWith('image/')) return undefined
-  const url = part.data?.url ?? (part.type === 'image' ? part.image : undefined)
-  if (url instanceof URL) return url.toString()
-  if (typeof url === 'string') return url
-  return undefined
-}
-
-function recordingModel(supportedUrls: Record<string, RegExp[]>) {
-  const calls: LanguageModelV4CallOptions[] = []
-  const model = new MockLanguageModelV4({
-    supportedUrls,
-    doStream: async (options) => {
-      calls.push(options)
-      return {
-        stream: simulateReadableStream({
-          chunks: [
-            { type: 'text-start', id: '1' },
-            { type: 'text-delta', id: '1', delta: 'seen' },
-            { type: 'text-end', id: '1' },
-            { type: 'finish', finishReason: { unified: 'stop', raw: undefined }, usage: noUsage },
-          ],
-        }),
-      }
-    },
-  })
-  return { model, calls }
 }
 
 describe('runner — image input', () => {
@@ -126,12 +91,12 @@ describe('runner — image input', () => {
   })
 
   test('an https image is passed as a url and not fetched', async () => {
-    const uri = 'https://images.example/cat.png'
-    const { model, calls } = recordingModel({ 'image/*': [/^https:\/\//] })
+    const input = { uri: 'https://images.example/cat.png', mimeType: 'image/png' }
+    const { model, calls } = mockRecordingTextModel('seen')
     const fetches: string[] = []
     const original = globalThis.fetch
-    globalThis.fetch = (async (input: unknown) => {
-      fetches.push(String(input))
+    globalThis.fetch = (async (resource: unknown) => {
+      fetches.push(String(resource))
       throw new Error('bread fetched a url')
     }) as typeof fetch
     const { bread, stop } = await makeBread({
@@ -140,9 +105,11 @@ describe('runner — image input', () => {
       config: { blobStore: memoryBlobStore() },
     })
     try {
-      await runCollect(bread, 'chef', { uri, mimeType: 'image/png' })
+      await runCollect(bread, 'chef', input)
       expect(fetches).toEqual([])
-      expect(imageUrl(userParts(calls[0]!)[0])).toBe(uri)
+      const parts = userParts(calls[0]!)
+      expect(parts).toEqual([{ type: 'text', text: JSON.stringify(input) }])
+      expect(parts.some((part) => part.type === 'image' || part.mediaType?.startsWith('image/'))).toBe(false)
     } finally {
       globalThis.fetch = original
       await stop()
