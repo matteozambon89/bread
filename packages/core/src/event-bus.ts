@@ -1,4 +1,4 @@
-import { Effect, Fiber, pipe, PubSub } from 'effect'
+import { Effect, Fiber, pipe, PubSub, Scheduler } from 'effect'
 import type { BreadCrumb, HumanRequiredEvent, HumanRequiredHandler } from './types.js'
 
 export type BreadEventMap = {
@@ -12,6 +12,11 @@ type AnyBreadEvent = {
 
 type HandlerFn = (...args: unknown[]) => unknown
 
+// publish resumes a waiting subscriber inline, and the default scheduler
+// waits for setImmediate. Yielding onto the sync scheduler delivers on the
+// next microtask, which is what listeners observed under Effect 3.
+const scheduler = new Scheduler.MixedScheduler('sync')
+
 export class BreadEventBus {
   private pubsub!: PubSub.PubSub<AnyBreadEvent>
   private dispatchFiber!: Fiber.Fiber<never, never>
@@ -22,7 +27,7 @@ export class BreadEventBus {
   static async create(): Promise<BreadEventBus> {
     const bus = new BreadEventBus()
     bus.pubsub = await Effect.runPromise(PubSub.unbounded<AnyBreadEvent>())
-    bus.dispatchFiber = Effect.runFork(bus.dispatchLoop())
+    bus.dispatchFiber = Effect.runFork(bus.dispatchLoop(), { scheduler })
     return bus
   }
 
@@ -65,7 +70,13 @@ export class BreadEventBus {
   }
 
   emit<E extends keyof BreadEventMap>(event: E, payload: BreadEventMap[E]): void {
-    Effect.runFork(PubSub.publish(this.pubsub, { type: event, payload } as AnyBreadEvent))
+    Effect.runFork(
+      Effect.andThen(
+        Effect.yieldNow,
+        PubSub.publish(this.pubsub, { type: event, payload } as AnyBreadEvent),
+      ),
+      { scheduler },
+    )
   }
 
   async close(): Promise<void> {
