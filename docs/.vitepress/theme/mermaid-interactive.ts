@@ -1,8 +1,7 @@
 // Client-only: wraps each rendered mermaid diagram with an expand button that
 // opens it in a fullscreen overlay with drag-to-pan and wheel/button zoom.
-// vitepress-plugin-mermaid re-renders a diagram's innerHTML (v-html) on every
-// light/dark toggle, so this watches the DOM instead of hooking the plugin —
-// the wrapper + button survive because they sit outside the div it rewrites.
+// Mermaid.vue rewrites the diagram div's innerHTML on theme change, so this
+// watches the DOM. The wrapper and button sit outside the div it rewrites.
 
 let observer: MutationObserver | null = null
 let scanQueued = false
