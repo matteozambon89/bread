@@ -1,0 +1,33 @@
+# In-range bumps touch bun.lock only. A published package.json change
+# is a release, so the manifest moves only when the version falls
+# outside the range. @types/bun stays on the floating "latest" tag.
+version: 2
+updates:
+  - package-ecosystem: bun
+    directory: /
+    schedule:
+      interval: weekly
+    versioning-strategy: increase-if-necessary
+    commit-message:
+      prefix: chore
+      prefix-development: chore
+      include: scope
+    ignore:
+      - dependency-name: "@types/bun"
+    groups:
+      bun-minor-and-patch:
+        update-types:
+          - minor
+          - patch
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: chore
+      include: scope
+    groups:
+      actions-minor-and-patch:
+        update-types:
+          - minor
+          - patch
