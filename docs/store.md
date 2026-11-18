@@ -54,7 +54,7 @@ them).
 
 The journal relation is `bread_migrations` (`id`, `checksum`, `applied_at`). Creating it is not a numbered step. `0001_baseline` is the current idempotent schema. Postgres keeps `CREATE EXTENSION vector` on `0002_vector`, and runs that step only when `embed` is set. An already-applied `0002_vector` is accepted when `embed` is unset. Checksums are SHA-256 of the step text. A changed step does not rewrite a stored checksum. There is no down migration. `migrate()` does not drop leftover `bread_kg_*` tables. SQLite does not drop leftover `kg_nodes` or `kg_edges`.
 
-SQLite `store()` only opens the file. Call `migrate()` before querying, or use `bread start`, which still migrates by default. `bread build` loads config and does not require a migrated database. The memory store's journal is empty: no lock and no relation.
+SQLite `store()` only opens the file. Call `migrate()` before querying, or use `bread start`, which still migrates by default. `bread build` loads config and does not require a migrated database. The memory store's journal is empty: no lock and no relation. MongoDB `store()` reads `MONGODB_URL` and does not create collections until `migrate()`. Keyword search only. No vector step. Cleartext or no auth needs `loopback: true` and a loopback host.
 
 `bread migrate` loads config, applies the journal, prints `applied <id>` and `skipped <id>`, and closes the store. It does not listen or init plugins, and it ignores `server.migrate`. `bread sessions list` and `bread sessions cleanup` only read the journal. See [CLI](./cli.md#migrations).
 
@@ -65,9 +65,10 @@ SQLite `store()` only opens the file. Call `migrate()` before querying, or use `
 | `@breadai/store-postgres` | PostgreSQL | Recommended for production; `store()` reads `DATABASE_URL` |
 | `@breadai/store-sqlite` | SQLite via `bun:sqlite` | Local dev — works out of the box, no external service |
 | `@breadai/store-memory` | In-memory | Unit tests, ephemeral runs |
+| `@breadai/store-mongodb` | MongoDB | Keyword search only; `store()` reads `MONGODB_URL` |
 
-All three implement the same flat `BreadStore`, so swapping is a one-line change to `store`. See the
-[`store-showcase`](https://github.com/matteozambon89/bread/tree/HEAD/examples/store-showcase) example for all three side by side.
+These packages implement the same flat `BreadStore`, so swapping is a one-line change to `store`. See the
+[`store-showcase`](https://github.com/matteozambon89/bread/tree/HEAD/examples/store-showcase) example for each backend side by side.
 
 ## Bring your own store
 
@@ -138,7 +139,7 @@ store: store({
 ```
 
 When `embed` is set, `migrate()` also applies `0002_vector` (`CREATE EXTENSION IF NOT EXISTS vector` and the embedding columns). That step is not part of `0001_baseline`.
-SQLite and memory stay keyword-only and take no `embed` option, including when
+SQLite, memory, and MongoDB stay keyword-only and take no `embed` option, including when
 `config.embeddings` is set.
 [`examples/knowledge-graph`](https://github.com/matteozambon89/bread/tree/HEAD/examples/knowledge-graph)
 passes an `ollama` / `nomic-embed-text` ref, resolved on document ingest,

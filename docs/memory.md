@@ -123,7 +123,7 @@ changed, so the owner predicate has to be in the statement.
 `searchMemories` on a store backend defaults `limit` to 10. `listMemories` defaults it to 100 and
 never embeds. Both return newest first on the keyword path. Search matches `content` only.
 
-SQLite (`content LIKE`) and `@breadai/store-memory` (`includes`, case-insensitive) are keyword-only.
+SQLite (`content LIKE`), `@breadai/store-memory` (`includes`, case-insensitive), and `@breadai/store-mongodb` (escaped substring match) are keyword-only.
 They take no `embed` option. Postgres uses the same embed path as documents when `embed` is set:
 memory write embeds `content`, memory search embeds the query and ranks with `<=>`. That vector
 predicate still requires `agent_id`, `principal_iss`, `principal_sub`, and `embedding IS NOT NULL`.
