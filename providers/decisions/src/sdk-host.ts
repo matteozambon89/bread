@@ -43,11 +43,13 @@ export function sdkClient(options: SdkHostOptions): DecisionClient {
   }
 }
 
-// Bun marks a body used after getReader() and releaseLock(). SDK 0.7 does that
-// before text(), so the second read throws. This reader never touches the bytes.
+// SDK 0.7 calls getReader() and releaseLock() before text(). Bun then treats
+// the body as used, so the second read throws. Read once during fetch, while
+// the attempt abort still covers it, and return that string from the stand-in.
 const sdkFetch: Fetch = async (input, init) => {
   const response = await globalThis.fetch(input, init)
-  const text = () => response.text()
+  const cached = await response.text()
+  const text = async () => cached
   const standIn = {
     ok: response.ok,
     status: response.status,

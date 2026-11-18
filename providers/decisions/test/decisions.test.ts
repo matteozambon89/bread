@@ -107,6 +107,17 @@ describe('providerDecisions', () => {
     expect(result.answers[0]).toEqual({ type: 'choice', choice: 'billing', confidence: 0.91 })
   })
 
+  test('posts an empty string when systemOne state is null', async () => {
+    process.env.TYPESAFE_API_KEY = 'ts-key'
+    delete process.env.TYPESAFE_BASE_URL
+    const hits = installFetch(choiceBody())
+    await (await client('typesafe', 'jev-latest')).systemOne({
+      state: null,
+      questions: [choiceQuestion],
+    })
+    expect(hits[0]!.body.state).toBe('')
+  })
+
   test('typesafe honors TYPESAFE_BASE_URL for OpenRouter and Vercel', async () => {
     process.env.TYPESAFE_API_KEY = 'gw-key'
     process.env.TYPESAFE_BASE_URL = 'https://openrouter.ai/api'
