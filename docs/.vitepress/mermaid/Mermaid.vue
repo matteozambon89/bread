@@ -4,7 +4,7 @@
 
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref } from 'vue'
-import { mermaidDiagramConfig } from '../config.mts'
+import { mermaidInitializeConfig } from './initialize.ts'
 
 const props = defineProps<{ graph: string }>()
 const svg = ref('')
@@ -15,11 +15,7 @@ async function renderChart(): Promise<void> {
   const seq = ++renderSeq
   const { default: mermaid } = await import('mermaid')
   const dark = document.documentElement.classList.contains('dark')
-  mermaid.initialize({
-    startOnLoad: false,
-    ...mermaidDiagramConfig,
-    theme: dark ? 'dark' : mermaidDiagramConfig.theme,
-  })
+  mermaid.initialize(mermaidInitializeConfig(dark))
   const id = `bread-mermaid-${seq.toString(36)}-${Math.random().toString(36).slice(2)}`
   const { svg: rendered } = await mermaid.render(id, decodeURIComponent(props.graph))
   if (seq !== renderSeq) return

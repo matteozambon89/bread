@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { mermaidDiagramConfig } from '../config.mts'
+import { mermaidInitializeConfig } from './initialize.ts'
 import { useMermaidFence } from './fence.ts'
 
 type Token = { info: string; content: string }
@@ -52,9 +52,12 @@ describe('useMermaidFence', () => {
   })
 })
 
-describe('mermaidDiagramConfig', () => {
-  test('keeps the dagre layout and classic look', () => {
-    expect(mermaidDiagramConfig.layout).toBe('dagre')
-    expect(mermaidDiagramConfig.look).toBe('classic')
+describe('mermaidInitializeConfig', () => {
+  test('pins layout to dagre and look to classic', () => {
+    for (const dark of [false, true]) {
+      const config = mermaidInitializeConfig(dark)
+      expect(config.layout).toBe('dagre')
+      expect(config.look).toBe('classic')
+    }
   })
 })
