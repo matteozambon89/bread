@@ -79,6 +79,21 @@ describe('BreadEventBus', () => {
     expect(okCalls).toBeGreaterThanOrEqual(1)
   })
 
+  test('delivers on a later microtask, not inside emit', async () => {
+    bus = await BreadEventBus.create()
+    let calls = 0
+    bus.on('crumb', () => {
+      calls++
+    })
+    bus.emit('crumb', crumb)
+    bus.emit('crumb', crumb)
+    expect(calls).toBe(0)
+    await Promise.resolve()
+    expect(calls).toBe(1)
+    await Promise.resolve()
+    expect(calls).toBe(2)
+  })
+
   test('close stops further delivery', async () => {
     bus = await BreadEventBus.create()
     let calls = 0
