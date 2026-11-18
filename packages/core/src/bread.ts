@@ -122,10 +122,6 @@ export function createBread(
 
   const instance = {
     async start() {
-      events = await BreadEventBus.create()
-      fabric = config.transport ?? streamTransport()
-      await fabric.init?.()
-
       if (!config.store) {
         throw new BreadError(
           'No store configured. Set `store` in your config — e.g. `store()` from ' +
@@ -134,8 +130,14 @@ export function createBread(
           'STORE_NOT_CONFIGURED',
         )
       }
+      // Schema before plugins, remote agents, and the transport. A failed
+      // journal must not leave those running.
       store = config.store
       await store.migrate?.()
+
+      events = await BreadEventBus.create()
+      fabric = config.transport ?? streamTransport()
+      await fabric.init?.()
 
       if (config.plugins) {
         for (const plugin of config.plugins) {

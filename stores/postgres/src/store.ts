@@ -4,7 +4,9 @@ import {
   BreadError,
   decodeLastOutput,
   embedStoreText,
+  readMigrationStatus,
   requireExecutionId,
+  runMigrations,
   type BreadStore,
   type CheckpointRecord,
   type CleanupOptions,
@@ -21,7 +23,7 @@ import {
   type TaskRunStatus,
   encodeLastOutput,
 } from '@breadai/core'
-import { migrate } from './migrate.js'
+import { postgresMigration } from './migrate.js'
 
 export type { EmbedFn, EmbeddingRef } from '@breadai/core'
 
@@ -248,7 +250,7 @@ export function store(opts: PostgresStoreOptions = {}): BreadStore {
   if (!url) {
     throw new Error(
       'store: no connection string. Pass `url` or set DATABASE_URL ' +
-        '(e.g. postgres://user:pass@host:5432/db).',
+        '(e.g. postgres://<host>:5432/<db>).',
     )
   }
   const embed = opts.embed
@@ -701,7 +703,13 @@ export function store(opts: PostgresStoreOptions = {}): BreadStore {
 
     // --- Lifecycle -----------------------------------------------------------
     async migrate() {
-      await migrate(sql, Boolean(embed))
+      const plan = postgresMigration(sql, Boolean(embed))
+      return runMigrations(plan.journal, plan.steps, plan.knownIds)
+    },
+
+    async migrations() {
+      const plan = postgresMigration(sql, Boolean(embed))
+      return readMigrationStatus(plan.journal, plan.steps, plan.knownIds)
     },
 
     async close() {

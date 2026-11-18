@@ -3,7 +3,9 @@ import { v7 as uuidv7 } from 'uuid'
 import {
   decodeLastOutput,
   principalVisible,
+  readMigrationStatus,
   requireExecutionId,
+  runMigrations,
   type BreadStore,
   type CheckpointRecord,
   type CleanupOptions,
@@ -18,130 +20,12 @@ import {
   type TaskRunStatus,
   encodeLastOutput,
 } from '@breadai/core'
+import { sqliteMigration } from './migrate.js'
 
 export interface SqliteStoreOptions {
   // File path for persistence, or ':memory:' (default) for an ephemeral db.
   path?: string
 }
-
-const SCHEMA = `
-CREATE TABLE IF NOT EXISTS sessions (
-  id TEXT PRIMARY KEY,
-  created_at INTEGER NOT NULL,
-  updated_at INTEGER NOT NULL,
-  agent_id TEXT,
-  tags TEXT NOT NULL DEFAULT '{}',
-  principal TEXT
-);
-CREATE TABLE IF NOT EXISTS session_messages (
-  id TEXT PRIMARY KEY,
-  session_id TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
-  role TEXT NOT NULL,
-  content TEXT NOT NULL,
-  timestamp INTEGER NOT NULL
-);
-CREATE INDEX IF NOT EXISTS idx_messages_session ON session_messages(session_id);
-CREATE INDEX IF NOT EXISTS idx_sessions_updated ON sessions(updated_at);
-
-CREATE TABLE IF NOT EXISTS checkpoints (
-  id TEXT PRIMARY KEY,
-  agent_id TEXT NOT NULL,
-  run_id TEXT NOT NULL,
-  session_id TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
-  execution_id TEXT NOT NULL DEFAULT '',
-  tool_name TEXT NOT NULL,
-  tool_call_id TEXT NOT NULL,
-  schema TEXT NOT NULL,
-  prompt TEXT,
-  skill TEXT,
-  parent TEXT,
-  pending TEXT,
-  principal TEXT,
-  claimed INTEGER NOT NULL DEFAULT 0,
-  created_at INTEGER NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS loops (
-  id TEXT PRIMARY KEY,
-  agent_id TEXT NOT NULL,
-  session_id TEXT NOT NULL,
-  run_id TEXT NOT NULL,
-  pool TEXT NOT NULL,
-  pipeline TEXT NOT NULL,
-  max_iterations INTEGER NOT NULL,
-  status TEXT NOT NULL,
-  iterations INTEGER NOT NULL DEFAULT 0,
-  result TEXT,
-  last_output TEXT,
-  started_at INTEGER NOT NULL,
-  completed_at INTEGER
-);
-CREATE INDEX IF NOT EXISTS idx_loops_session ON loops(session_id);
-CREATE INDEX IF NOT EXISTS idx_loops_agent ON loops(agent_id);
-CREATE TABLE IF NOT EXISTS loop_iterations (
-  id TEXT PRIMARY KEY,
-  loop_id TEXT NOT NULL REFERENCES loops(id) ON DELETE CASCADE,
-  idx INTEGER NOT NULL,
-  input TEXT,
-  output TEXT,
-  started_at INTEGER NOT NULL,
-  completed_at INTEGER NOT NULL
-);
-CREATE INDEX IF NOT EXISTS idx_loop_iter_loop ON loop_iterations(loop_id);
-
--- Leftover kg_nodes and kg_edges are not dropped. This schema does not read them.
-CREATE TABLE IF NOT EXISTS memories (
-  id TEXT PRIMARY KEY,
-  agent_id TEXT NOT NULL,
-  principal_iss TEXT NOT NULL,
-  principal_sub TEXT NOT NULL,
-  content TEXT NOT NULL,
-  created_at INTEGER NOT NULL
-);
-CREATE INDEX IF NOT EXISTS idx_memories_owner ON memories(agent_id, principal_iss, principal_sub);
-
-CREATE TABLE IF NOT EXISTS documents (
-  id TEXT PRIMARY KEY,
-  agent_id TEXT NOT NULL,
-  title TEXT NOT NULL,
-  content TEXT NOT NULL,
-  source TEXT,
-  created_at INTEGER NOT NULL
-);
-CREATE INDEX IF NOT EXISTS idx_documents_agent ON documents(agent_id);
-
-CREATE TABLE IF NOT EXISTS crumbs (
-  run_id TEXT NOT NULL,
-  seq INTEGER NOT NULL,
-  session_id TEXT REFERENCES sessions(id) ON DELETE CASCADE,
-  agent_id TEXT,
-  type TEXT NOT NULL,
-  crumb TEXT NOT NULL,
-  created_at INTEGER NOT NULL,
-  PRIMARY KEY (run_id, seq)
-);
-CREATE INDEX IF NOT EXISTS idx_crumbs_session ON crumbs(session_id);
-
-CREATE TABLE IF NOT EXISTS task_runs (
-  id TEXT PRIMARY KEY,
-  task_id TEXT NOT NULL,
-  agent_id TEXT,
-  session_id TEXT,
-  run_id TEXT,
-  model TEXT NOT NULL,
-  input TEXT,
-  output TEXT,
-  status TEXT NOT NULL,
-  usage TEXT,
-  error TEXT,
-  duration_ms INTEGER,
-  created_at INTEGER NOT NULL,
-  completed_at INTEGER
-);
-CREATE INDEX IF NOT EXISTS idx_task_runs_task ON task_runs(task_id);
-CREATE INDEX IF NOT EXISTS idx_task_runs_session ON task_runs(session_id);
-CREATE INDEX IF NOT EXISTS idx_task_runs_agent ON task_runs(agent_id);
-`
 
 interface SessionRow {
   id: string
@@ -342,34 +226,11 @@ function rowToCrumbEntry(r: CrumbRow): CrumbLogEntry {
 
 // A SQLite BreadStore over Bun's built-in driver. Bun-only — uses bun:sqlite,
 // not a native addon. A file path persists; ':memory:' (default) is ephemeral.
+// store() only opens the file. Call migrate() or bread.start() before querying.
 export function store(opts: SqliteStoreOptions = {}): BreadStore {
   const db = new Database(opts.path ?? ':memory:')
   db.exec('PRAGMA journal_mode = WAL')
   db.exec('PRAGMA foreign_keys = ON')
-  db.exec(SCHEMA)
-  // Additive column for tables that predate it — SQLite has no ADD COLUMN IF
-  // NOT EXISTS, so guard with a duplicate-column catch instead.
-  for (const column of [
-    'skill TEXT', 'parent TEXT', 'pending TEXT', 'principal TEXT', 'claimed INTEGER NOT NULL DEFAULT 0',
-    "execution_id TEXT NOT NULL DEFAULT ''",
-  ]) {
-    try {
-      db.exec(`ALTER TABLE checkpoints ADD COLUMN ${column}`)
-    } catch (err) {
-      if (!(err instanceof Error) || !err.message.includes('duplicate column name')) throw err
-    }
-  }
-  db.exec('CREATE INDEX IF NOT EXISTS idx_checkpoints_execution ON checkpoints(execution_id)')
-  try {
-    db.exec('ALTER TABLE sessions ADD COLUMN principal TEXT')
-  } catch (err) {
-    if (!(err instanceof Error) || !err.message.includes('duplicate column name')) throw err
-  }
-  try {
-    db.exec('ALTER TABLE loops ADD COLUMN last_output TEXT')
-  } catch (err) {
-    if (!(err instanceof Error) || !err.message.includes('duplicate column name')) throw err
-  }
 
   function matchTags(tags: Record<string, string>, filter?: Record<string, string>): boolean {
     if (!filter) return true
@@ -829,6 +690,16 @@ export function store(opts: SqliteStoreOptions = {}): BreadStore {
     },
 
     // --- Lifecycle -----------------------------------------------------------
+    async migrate() {
+      const plan = sqliteMigration(db)
+      return runMigrations(plan.journal, plan.steps, plan.knownIds)
+    },
+
+    async migrations() {
+      const plan = sqliteMigration(db)
+      return readMigrationStatus(plan.journal, plan.steps, plan.knownIds)
+    },
+
     async close() {
       db.close()
     },

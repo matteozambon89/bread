@@ -1,6 +1,28 @@
+import {
+  BreadError,
+  migrationChecksum,
+  redactConnectionSecrets,
+  redactError,
+  type MigrationJournal,
+  type MigrationStep,
+} from '@breadai/core'
 import type postgres from 'postgres'
 
 type Sql = ReturnType<typeof postgres>
+type Reserved = Awaited<ReturnType<Sql['reserve']>>
+
+export const BASELINE_ID = '0001_baseline'
+export const VECTOR_ID = '0002_vector'
+
+// Fixed advisory-lock key. Not derived from a request or a tool argument.
+const LOCK_SQL = 'SELECT pg_try_advisory_lock(1651408997, 1835955305) AS locked'
+const UNLOCK_SQL = 'SELECT pg_advisory_unlock(1651408997, 1835955305)'
+const JOURNAL_SQL = `
+CREATE TABLE IF NOT EXISTS bread_migrations (
+  id TEXT PRIMARY KEY,
+  checksum TEXT NOT NULL,
+  applied_at BIGINT NOT NULL
+)`
 
 // All tables are prefixed `bread_` so the store can share a database with an
 // application's own schema without collisions. Timestamps are BIGINT epoch ms.
@@ -152,10 +174,135 @@ ALTER TABLE bread_checkpoints ADD COLUMN IF NOT EXISTS claimed INTEGER NOT NULL 
 ALTER TABLE bread_loops ADD COLUMN IF NOT EXISTS last_output JSONB;
 `
 
-export async function migrate(sql: Sql, withVectors: boolean): Promise<void> {
-  // TABLES before VECTOR: ALTER TABLE on an empty database throws, and that
-  // failure used to skip creating the tables entirely.
-  await sql.unsafe(TABLES)
-  if (withVectors) await sql.unsafe(VECTOR)
-  await sql.unsafe(COLUMNS)
+// TABLES then COLUMNS. VECTOR stays off this text so an unset embed does not
+// hash or run the extension.
+export const BASELINE_TEXT = `${TABLES}${COLUMNS}`
+export const VECTOR_TEXT = VECTOR
+
+const BASELINE_CHECKSUM = migrationChecksum(BASELINE_TEXT)
+const VECTOR_CHECKSUM = migrationChecksum(VECTOR_TEXT)
+
+function sqlState(err: unknown): string | undefined {
+  if (err && typeof err === 'object' && 'code' in err && typeof (err as { code: unknown }).code === 'string') {
+    return (err as { code: string }).code
+  }
+  return undefined
+}
+
+function journalError(err: unknown): BreadError {
+  if (err instanceof BreadError) {
+    return new BreadError(redactConnectionSecrets(err.message), err.code, err.context, redactError(err.cause))
+  }
+  const state = sqlState(err)
+  if (state === '42P01') {
+    return new BreadError('Migration journal is missing.', 'MIGRATION_JOURNAL_MISSING', {}, redactError(err))
+  }
+  if (state === '42501') {
+    return new BreadError('Migration journal could not be read.', 'MIGRATION_JOURNAL_FORBIDDEN', {}, redactError(err))
+  }
+  return new BreadError('Migration journal could not be read.', 'MIGRATION_FAILED', {}, redactError(err))
+}
+
+export function postgresMigration(sql: Sql, withVectors: boolean): {
+  journal: MigrationJournal
+  steps: MigrationStep[]
+  knownIds: string[]
+} {
+  let pinned: Reserved | null = null
+  const conn = (): Reserved => {
+    if (!pinned) throw new BreadError('Could not acquire the migration lock.', 'MIGRATION_LOCK', {})
+    return pinned
+  }
+
+  const journal: MigrationJournal = {
+    async lock() {
+      let reserved: Reserved | null = null
+      try {
+        reserved = await sql.reserve()
+        const rows = await reserved.unsafe<Array<{ locked: boolean }>>(LOCK_SQL)
+        if (rows[0]?.locked !== true) {
+          reserved.release()
+          reserved = null
+          throw new BreadError('Could not acquire the migration lock.', 'MIGRATION_LOCK', {})
+        }
+      } catch (err) {
+        if (reserved) {
+          try {
+            reserved.release()
+          } catch {
+            // The lock error is the one callers need.
+          }
+        }
+        if (err instanceof BreadError && err.code === 'MIGRATION_LOCK') throw err
+        throw new BreadError('Could not acquire the migration lock.', 'MIGRATION_LOCK', {}, redactError(err))
+      }
+      pinned = reserved
+      let released = false
+      const release = async (): Promise<void> => {
+        if (released || !reserved) return
+        released = true
+        try {
+          await reserved.unsafe(UNLOCK_SQL)
+        } finally {
+          pinned = null
+          reserved.release()
+        }
+      }
+      return { commit: release, rollback: release }
+    },
+
+    async applied() {
+      try {
+        const db = conn()
+        const rows = await db<Array<{ id: string; checksum: string }>>`
+          SELECT id, checksum FROM bread_migrations ORDER BY id`
+        return rows.map((row) => ({ id: row.id, checksum: row.checksum }))
+      } catch (err) {
+        throw journalError(err)
+      }
+    },
+
+    async ensure() {
+      try {
+        await conn().unsafe(JOURNAL_SQL)
+      } catch (err) {
+        throw journalError(err)
+      }
+    },
+
+    async record(id, checksum) {
+      if (typeof id !== 'string' || typeof checksum !== 'string') {
+        throw new BreadError('Migration step id is invalid.', 'MIGRATION_INVALID', {})
+      }
+      try {
+        const db = conn()
+        const rows = await db<Array<{ id: string }>>`
+          INSERT INTO bread_migrations (id, checksum, applied_at)
+          VALUES (${id}, ${checksum}, ${Date.now()})
+          ON CONFLICT (id) DO NOTHING
+          RETURNING id`
+        return rows.length > 0
+      } catch (err) {
+        throw journalError(err)
+      }
+    },
+  }
+
+  const exec = async (text: string): Promise<void> => {
+    await conn().unsafe(text)
+  }
+  const baseline: MigrationStep = {
+    id: BASELINE_ID,
+    checksum: BASELINE_CHECKSUM,
+    up: () => exec(BASELINE_TEXT),
+  }
+  const vector: MigrationStep = {
+    id: VECTOR_ID,
+    checksum: VECTOR_CHECKSUM,
+    up: () => exec(VECTOR_TEXT),
+  }
+  // Session lock on the reserved connection. Each step autocommits, so a failed
+  // extension does not roll back the baseline.
+  if (withVectors) return { journal, steps: [baseline, vector], knownIds: [] }
+  return { journal, steps: [baseline], knownIds: [VECTOR_ID] }
 }
