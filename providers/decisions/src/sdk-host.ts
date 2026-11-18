@@ -1,6 +1,6 @@
 import { BreadError } from '@breadai/core'
 import type { DecisionClient } from '@breadai/core'
-import { APIError, TypeSafeClient } from '@typesafe-ai/sdk'
+import { APIError, TypeSafeClient, type Fetch } from '@typesafe-ai/sdk'
 import { asState, normalizeAnswers, wireQuestions } from './wire.js'
 
 export interface SdkHostOptions {
@@ -19,12 +19,13 @@ export function sdkClient(options: SdkHostOptions): DecisionClient {
       const client = new TypeSafeClient({
         apiKey: options.apiKey,
         baseURL: options.baseURL,
-        fetch: globalThis.fetch,
+        fetch: sdkFetch,
         logLevel: 'off',
       })
       try {
+        // 0.7 rejects a null state. An empty string is the empty value it accepts.
         const result = await client.systemOne({
-          state: asState(request.state),
+          state: asState(request.state) ?? '',
           questions: wireQuestions(request.questions),
           model: options.modelId,
         })
@@ -40,4 +41,32 @@ export function sdkClient(options: SdkHostOptions): DecisionClient {
       }
     },
   }
+}
+
+// SDK 0.7 calls getReader() and releaseLock() before text(). Bun then treats
+// the body as used, so the second read throws. Read once during fetch, while
+// the attempt abort still covers it, and return that string from the stand-in.
+const sdkFetch: Fetch = async (input, init) => {
+  const response = await globalThis.fetch(input, init)
+  const cached = await response.text()
+  const text = async () => cached
+  const standIn = {
+    ok: response.ok,
+    status: response.status,
+    headers: response.headers,
+    text,
+    clone() {
+      return standIn
+    },
+    body: {
+      getReader() {
+        return {
+          read: async () => ({ done: true as const, value: undefined }),
+          releaseLock() {},
+          cancel: async () => {},
+        }
+      },
+    },
+  }
+  return standIn as unknown as Response
 }

@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { BreadError } from '@breadai/core'
 import type { DecisionClient, DecisionHostQuestion } from '@breadai/core'
+import { APITimeoutError } from '@typesafe-ai/sdk'
 import { providerDecisions } from '@breadai/provider-decisions'
 
 const ENV_NAMES = [
@@ -106,6 +107,52 @@ describe('providerDecisions', () => {
     })
     expect(result.answers[0]).toEqual({ type: 'choice', choice: 'billing', confidence: 0.91 })
   })
+
+  test('posts an empty string when systemOne state is null', async () => {
+    process.env.TYPESAFE_API_KEY = 'ts-key'
+    delete process.env.TYPESAFE_BASE_URL
+    const hits = installFetch(choiceBody())
+    await (await client('typesafe', 'jev-latest')).systemOne({
+      state: null,
+      questions: [choiceQuestion],
+    })
+    expect(hits[0]!.body.state).toBe('')
+  })
+
+  test('rejects when the attempt timeout aborts a pending body', async () => {
+    // SDK 0.7 clears the attempt timer once getReader returns. Shrink that
+    // 10s timer, and stall the body until its abort. A lazy text() afterwards
+    // never sees the abort, so this hangs instead of rejecting.
+    const originalSetTimeout = globalThis.setTimeout
+    globalThis.setTimeout = ((handler: () => void, delay?: number) =>
+      originalSetTimeout(handler, typeof delay === 'number' && delay >= 10_000 ? 20 : delay)) as typeof setTimeout
+    process.env.TYPESAFE_API_KEY = 'ts-key'
+    delete process.env.TYPESAFE_BASE_URL
+    globalThis.fetch = (async (_input: RequestInfo | URL, init?: RequestInit) => {
+      const stream = new ReadableStream({
+        start(controller) {
+          const signal = init?.signal
+          if (!signal) return
+          const fail = () => controller.error(signal.reason ?? new DOMException('The operation was aborted.', 'AbortError'))
+          if (signal.aborted) fail()
+          else signal.addEventListener('abort', fail, { once: true })
+        },
+      })
+      return new Response(stream, {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      })
+    }) as typeof fetch
+    try {
+      const err = await (await client('typesafe', 'jev-latest'))
+        .systemOne({ state: 'x', questions: [choiceQuestion] })
+        .catch((error: unknown) => error)
+      expect(err).toBeInstanceOf(APITimeoutError)
+      expect((err as APITimeoutError).timeoutMs).toBe(10_000)
+    } finally {
+      globalThis.setTimeout = originalSetTimeout
+    }
+  }, 10_000)
 
   test('typesafe honors TYPESAFE_BASE_URL for OpenRouter and Vercel', async () => {
     process.env.TYPESAFE_API_KEY = 'gw-key'
