@@ -1,5 +1,6 @@
 import { loadAgents, loadConfig, loadTasks } from '../loader.js'
 import type { ListenFn } from './listen.js'
+import { applyNoMigrate } from './migrate.js'
 
 export interface StartOptions {
   cwd: string
@@ -9,10 +10,12 @@ export interface StartOptions {
   port?: number | undefined
   host?: string | undefined
   idleTimeout?: number | undefined
+  noMigrate?: boolean | undefined
 }
 
 export async function runStart(opts: StartOptions): Promise<void> {
   const config = await loadConfig(opts.cwd)
+  applyNoMigrate(config, opts.noMigrate)
   const agents = await loadAgents(opts.cwd, config.entrypoints)
   const tasks = await loadTasks(opts.cwd)
   const { stop } = await opts.listen(

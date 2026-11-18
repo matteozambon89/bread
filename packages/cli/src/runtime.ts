@@ -87,6 +87,7 @@ export interface ServeSpawnOpts {
   port?: number | undefined
   host?: string | undefined
   idleTimeout?: number | undefined
+  noMigrate?: boolean | undefined
 }
 
 /** Build the `node … dist/bin.js <command> …` argv for a Node listen child. */
@@ -95,6 +96,7 @@ export function nodeServeArgv(opts: ServeSpawnOpts, bin = resolveRuntimeNodeBin(
   if (opts.port !== undefined) argv.push('--port', String(opts.port))
   if (opts.host !== undefined) argv.push('--host', opts.host)
   if (opts.idleTimeout !== undefined) argv.push('--idle-timeout', String(opts.idleTimeout))
+  if (opts.noMigrate) argv.push('--no-migrate')
   return argv
 }
 

@@ -97,6 +97,11 @@ describe('nodeServeArgv', () => {
     const argv = nodeServeArgv({ command: 'dev', cwd: '/proj' }, '/abs/dist/bin.js')
     expect(argv).toEqual(['node', '/abs/dist/bin.js', 'dev', '--cwd', '/proj'])
   })
+
+  test('forwards --no-migrate to the node child', () => {
+    const argv = nodeServeArgv({ command: 'start', cwd: '/proj', noMigrate: true }, '/abs/dist/bin.js')
+    expect(argv).toEqual(['node', '/abs/dist/bin.js', 'start', '--cwd', '/proj', '--no-migrate'])
+  })
 })
 
 describe('resolveRuntimeNodeBin', () => {

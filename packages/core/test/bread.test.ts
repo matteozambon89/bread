@@ -135,6 +135,67 @@ describe('createBread — start/stop wiring', () => {
     expect(order).toEqual(['migrate', 'transport', 'plugin'])
     await bread.stop()
   })
+
+  test('server.migrate false checks the journal and does not apply it', async () => {
+    const calls: string[] = []
+    const bread = createBread(
+      baseConfig({
+        server: { migrate: false },
+        store: {
+          ...store(),
+          migrate: async () => {
+            calls.push('migrate')
+            return { applied: ['0001_baseline'], skipped: [] }
+          },
+          migrations: async () => {
+            calls.push('check')
+            return { pending: [] }
+          },
+        },
+        plugins: [{ name: 'order_plugin', init: async () => void calls.push('plugin') }],
+      }),
+    )
+    await bread.start()
+    expect(calls).toEqual(['check', 'plugin'])
+    await bread.stop()
+  })
+
+  test('server.migrate false stops before plugins, remote agents, and the transport', async () => {
+    const calls: string[] = []
+    const base = store()
+    const { migrations: _drop, ...unchecked } = base
+    const bread = createBread(
+      baseConfig({
+        server: { migrate: false },
+        store: {
+          ...unchecked,
+          migrations: async () => ({ pending: ['0001_baseline'] }),
+        },
+        transport: {
+          capability: 'sink',
+          publish() {},
+          init: async () => void calls.push('transport'),
+        },
+        plugins: [{ name: 'order_plugin', init: async () => void calls.push('plugin') }],
+        remoteAgents: {
+          remote: {
+            async *run() {},
+            init: async () => void calls.push('remote'),
+          },
+        },
+      }),
+    )
+    await expect(bread.start()).rejects.toMatchObject({ code: 'MIGRATIONS_PENDING' })
+    expect(calls).toEqual([])
+
+    const missing = createBread(
+      baseConfig({
+        server: { migrate: false },
+        store: unchecked,
+      }),
+    )
+    await expect(missing.start()).rejects.toMatchObject({ code: 'MIGRATIONS_PENDING' })
+  })
 })
 
 describe('createBread — runTask', () => {

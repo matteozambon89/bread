@@ -89,6 +89,42 @@ describe('sessions commands', () => {
     expect(received).toEqual({})
   })
 
+  test('list and cleanup check the journal and do not apply it', async () => {
+    const calls: string[] = []
+    testStore.migrate = async () => {
+      calls.push('migrate')
+      return { applied: [], skipped: [] }
+    }
+    testStore.migrations = async () => {
+      calls.push('check')
+      return { pending: [] }
+    }
+    testStore.listSessions = async () => {
+      calls.push('list')
+      return []
+    }
+    testStore.cleanupSessions = async () => {
+      calls.push('cleanup')
+      return 0
+    }
+
+    await listSessions({ cwd: projectRoot })
+    await cleanupSessions({ cwd: projectRoot })
+    expect(calls).toEqual(['check', 'list', 'check', 'cleanup'])
+  })
+
+  test('a pending journal does not list or delete sessions', async () => {
+    let listed = false
+    testStore.migrations = async () => ({ pending: ['0001_baseline'] })
+    testStore.listSessions = async () => {
+      listed = true
+      return []
+    }
+    await expect(listSessions({ cwd: projectRoot })).rejects.toMatchObject({ code: 'MIGRATIONS_PENDING' })
+    await expect(cleanupSessions({ cwd: projectRoot })).rejects.toMatchObject({ code: 'MIGRATIONS_PENDING' })
+    expect(listed).toBe(false)
+  })
+
   test('listSessions/cleanupSessions actually round-trip through a real store-memory instance', async () => {
     await testStore.createSession({ tags: { env: 'prod' } })
     const logSpy = spyOn(console, 'log')

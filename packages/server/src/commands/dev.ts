@@ -2,6 +2,7 @@ import { watch } from 'chokidar'
 import type { AgentRegistry } from '@breadai/core'
 import { loadAgents, loadConfig, loadTasks } from '../loader.js'
 import type { ListenFn } from './listen.js'
+import { applyNoMigrate } from './migrate.js'
 
 export interface DevOptions {
   cwd: string
@@ -11,6 +12,7 @@ export interface DevOptions {
   port?: number | undefined
   host?: string | undefined
   idleTimeout?: number | undefined
+  noMigrate?: boolean | undefined
 }
 
 export async function runDev(opts: DevOptions): Promise<void> {
@@ -25,6 +27,7 @@ export async function runDev(opts: DevOptions): Promise<void> {
 
     // Bust module cache for hot reload (Bun re-imports the same path)
     const config = await loadConfig(opts.cwd)
+    applyNoMigrate(config, opts.noMigrate)
     agents = await loadAgents(opts.cwd, config.entrypoints)
     const tasks = await loadTasks(opts.cwd)
 

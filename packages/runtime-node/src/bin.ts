@@ -9,61 +9,24 @@
  * Project `.ts` sources need a Node that can import them (Node ≥22.18 with
  * type stripping). engines.node is >=22.18.
  */
-import { resolve } from 'node:path'
 import { runDev, runStart } from '@breadai/server'
+import { parseServeArgs, type ServeFlags } from './args.js'
 import { startServerNode } from './start.js'
-
-interface ServeFlags {
-  command: 'dev' | 'start'
-  cwd: string
-  port?: number
-  host?: string
-  idleTimeout?: number
-}
 
 function usage(): never {
   console.error(
-    'Usage: bread-runtime-node <dev|start> [--cwd <dir>] [--port <n>] [--host <host>] [--idle-timeout <seconds>]',
+    'Usage: bread-runtime-node <dev|start> [--cwd <dir>] [--port <n>] [--host <host>] [--idle-timeout <seconds>] [--no-migrate]',
   )
   process.exit(1)
 }
 
 function parseArgs(argv: string[]): ServeFlags {
-  const command = argv[0]
-  if (command !== 'dev' && command !== 'start') usage()
-
-  let cwd = process.cwd()
-  let port: number | undefined
-  let host: string | undefined
-  let idleTimeout: number | undefined
-
-  for (let i = 1; i < argv.length; i++) {
-    const arg = argv[i]
-    const next = argv[i + 1]
-    if (arg === '--cwd' && next !== undefined) {
-      cwd = resolve(next)
-      i++
-    } else if (arg === '--port' && next !== undefined) {
-      port = parseInt(next, 10)
-      i++
-    } else if (arg === '--host' && next !== undefined) {
-      host = next
-      i++
-    } else if (arg === '--idle-timeout' && next !== undefined) {
-      idleTimeout = parseInt(next, 10)
-      i++
-    } else {
-      console.error(`[bread] Unknown argument: ${arg}`)
-      usage()
-    }
-  }
-
-  return {
-    command,
-    cwd,
-    ...(port !== undefined ? { port } : {}),
-    ...(host !== undefined ? { host } : {}),
-    ...(idleTimeout !== undefined ? { idleTimeout } : {}),
+  try {
+    return parseServeArgs(argv)
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    if (message.startsWith('Unknown argument:')) console.error(`[bread] ${message}`)
+    usage()
   }
 }
 
@@ -120,6 +83,7 @@ async function main(): Promise<void> {
     ...(flags.port !== undefined ? { port: flags.port } : {}),
     ...(flags.host !== undefined ? { host: flags.host } : {}),
     ...(flags.idleTimeout !== undefined ? { idleTimeout: flags.idleTimeout } : {}),
+    ...(flags.noMigrate ? { noMigrate: true } : {}),
   }
 
   if (flags.command === 'dev') {

@@ -970,6 +970,9 @@ export interface BreadConfig {
     idleTimeout?: number
     maxBodyBytes?: number
     runtime?: 'bun' | 'node'
+    // Omitted means apply the store journal at start. false checks it and does
+    // not apply DDL. CLI --no-migrate sets false for that process.
+    migrate?: boolean
     // PEM contents, not paths. When set, both listen adapters require a
     // verified client certificate. Omit it and they stay on plain HTTP.
     tls?: {

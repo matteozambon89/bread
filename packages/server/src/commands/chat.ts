@@ -3,6 +3,7 @@ import { BreadError, createBread, LOCAL_CLI_PRINCIPAL } from '@breadai/core'
 import { v7 as uuidv7 } from 'uuid'
 import type { BreadCrumb } from '@breadai/core'
 import { loadAgents, loadConfig, loadTasks } from '../loader.js'
+import { applyNoMigrate } from './migrate.js'
 import { dim, parseHumanResponse } from './render.js'
 
 export interface ChatOptions {
@@ -10,6 +11,7 @@ export interface ChatOptions {
   agentId?: string
   skill?: string
   session?: string
+  noMigrate?: boolean
 }
 
 // Interactive REPL against one agent. A single session id is reused for every
@@ -19,6 +21,7 @@ export interface ChatOptions {
 // recursively, since the continuation may suspend again).
 export async function runChat(opts: ChatOptions): Promise<void> {
   const config = await loadConfig(opts.cwd)
+  applyNoMigrate(config, opts.noMigrate)
   const agents = await loadAgents(opts.cwd, config.entrypoints)
   const tasks = await loadTasks(opts.cwd)
 

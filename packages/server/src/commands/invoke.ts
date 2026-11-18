@@ -1,6 +1,7 @@
 import { BreadError, createBread, LOCAL_CLI_PRINCIPAL } from '@breadai/core'
 import type { BreadCrumb } from '@breadai/core'
 import { loadAgents, loadConfig, loadTasks } from '../loader.js'
+import { applyNoMigrate } from './migrate.js'
 import { formatToolCall } from './render.js'
 
 export interface InvokeOptions {
@@ -11,6 +12,7 @@ export interface InvokeOptions {
   json?: boolean
   session?: string
   trace?: boolean
+  noMigrate?: boolean
 }
 
 // Run an agent once, non-interactively. There is no HITL here: if the agent
@@ -18,6 +20,7 @@ export interface InvokeOptions {
 // clear message and a non-zero exit instead of hanging on the checkpoint.
 export async function runInvoke(opts: InvokeOptions): Promise<void> {
   const config = await loadConfig(opts.cwd)
+  applyNoMigrate(config, opts.noMigrate)
   const agents = await loadAgents(opts.cwd, config.entrypoints)
   const tasks = await loadTasks(opts.cwd)
 
