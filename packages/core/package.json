@@ -44,7 +44,7 @@
   "dependencies": {
     "ai": "^7.0.93",
     "effect": "^3.21.4",
-    "uuid": "^11.1.0",
+    "uuid": "^14.0.3",
     "zod": "^4.4.3"
   },
   "devDependencies": {
