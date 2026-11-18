@@ -1,4 +1,4 @@
-import { Effect, Fiber, pipe, PubSub, Queue } from 'effect'
+import { Effect, Fiber, pipe, PubSub } from 'effect'
 import type { BreadCrumb, HumanRequiredEvent, HumanRequiredHandler } from './types.js'
 
 export type BreadEventMap = {
@@ -14,7 +14,7 @@ type HandlerFn = (...args: unknown[]) => unknown
 
 export class BreadEventBus {
   private pubsub!: PubSub.PubSub<AnyBreadEvent>
-  private dispatchFiber!: Fiber.RuntimeFiber<unknown, never>
+  private dispatchFiber!: Fiber.Fiber<never, never>
   private handlers: Map<string, Set<HandlerFn>> = new Map()
 
   private constructor() {}
@@ -30,11 +30,11 @@ export class BreadEventBus {
     const handlers = this.handlers
     return Effect.scoped(
       pipe(
-        this.pubsub.subscribe,
-        Effect.flatMap((queue) =>
+        PubSub.subscribe(this.pubsub),
+        Effect.flatMap((subscription) =>
           Effect.forever(
             pipe(
-              Queue.take(queue),
+              PubSub.take(subscription),
               Effect.flatMap((event) =>
                 Effect.sync(() => {
                   const set = handlers.get(event.type)
@@ -52,7 +52,7 @@ export class BreadEventBus {
           ),
         ),
       ),
-    ) as unknown as Effect.Effect<never, never, never>
+    )
   }
 
   on<E extends keyof BreadEventMap>(event: E, handler: (payload: BreadEventMap[E]) => void): void {
@@ -65,7 +65,7 @@ export class BreadEventBus {
   }
 
   emit<E extends keyof BreadEventMap>(event: E, payload: BreadEventMap[E]): void {
-    Effect.runFork(this.pubsub.publish({ type: event, payload } as AnyBreadEvent))
+    Effect.runFork(PubSub.publish(this.pubsub, { type: event, payload } as AnyBreadEvent))
   }
 
   async close(): Promise<void> {
