@@ -24,6 +24,10 @@ export default defineConfig({
 })
 ```
 
+`store()` only opens the file. `migrate()` applies the schema. `bread start` calls it unless
+`--no-migrate` or `server.migrate: false`. A direct `store()` caller must call `migrate()` before
+querying.
+
 Part of **[bread](https://github.com/matteozambon89/bread)** — an explicit-by-design framework for AI agents.
 Docs: [store](https://matteozambon89.github.io/bread/store.html) ·
 [all docs](https://matteozambon89.github.io/bread/).
