@@ -3,6 +3,7 @@ import { RELAYED } from './crumb-log.js'
 import { runAfterRunChain, runBeforeRunChain } from './hooks.js'
 import { agentHookChain, crumbBase, nowMs } from './runner-helpers.js'
 import { continueRun } from './runner-continue.js'
+import { userMessageContent } from './user-content.js'
 import type { RunnerContext } from './runner-types.js'
 import type {
   AgentConfig,
@@ -120,7 +121,7 @@ export async function* runAgent(
     )
     await ctx.store.addMessage(sessionId, {
       role: 'user',
-      content: typeof input === 'string' ? input : JSON.stringify(input),
+      content: await userMessageContent(input, ctx.blobStore),
       timestamp: nowMs(),
     })
     await ctx.store.addMessage(sessionId, {
@@ -142,7 +143,7 @@ export async function* runAgent(
   // session history (including this message) to build the model prompt.
   await ctx.store.addMessage(sessionId, {
     role: 'user',
-    content: typeof input === 'string' ? input : JSON.stringify(input),
+    content: await userMessageContent(input, ctx.blobStore),
     timestamp: nowMs(),
   })
 
