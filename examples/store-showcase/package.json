@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@breadai/store-memory": "workspace:*",
+    "@breadai/store-mongodb": "workspace:*",
     "@breadai/store-postgres": "workspace:*",
     "@breadai/store-sqlite": "workspace:*",
     "@breadai/core": "workspace:*",

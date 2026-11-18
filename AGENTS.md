@@ -63,6 +63,7 @@ Server runners do not read stdin for init or add.
 | `@breadai/store-postgres` | `stores/postgres` | Postgres `BreadStore` (default; optional pgvector) |
 | `@breadai/store-sqlite` | `stores/sqlite` | SQLite store via `bun:sqlite` |
 | `@breadai/store-memory` | `stores/memory` | In-memory store (tests, ephemeral) |
+| `@breadai/store-mongodb` | `stores/mongodb` | MongoDB `BreadStore`. Keyword search only. `store()` reads `MONGODB_URL` |
 | `@breadai/store-s3` | `stores/s3` | S3-backed `BlobStore` — binary/file storage via presigned URLs |
 | `@breadai/graph-neo4j` | `graphs/neo4j` | Neo4j `Graph` (`graph()`). Not a `BreadStore` |
 | `@breadai/provider-llm` | `providers/llm` | The 21 language-model providers as a `ProviderRegistry` (`providerLlm`) |
