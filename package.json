@@ -13,18 +13,17 @@
     "dayjs": "^1.11.21",
     "debug": "^4.4.3",
     "knip": "^6.29.0",
-    "mermaid": "^11.16.1",
+    "mermaid": "^12.3.0",
     "semver": "^7.8.5",
     "svg-pan-zoom": "^3.6.2",
     "typescript": "^5.8.3",
-    "vitepress": "^1.6.4",
-    "vitepress-plugin-mermaid": "^2.0.17"
+    "vitepress": "^1.6.4"
   },
   "private": true,
   "scripts": {
     "build": "bun run --filter='!@bread-examples/*' build",
     "typecheck": "bun run --filter='*' typecheck",
-    "test": "bun test --conditions bread-source && bun test --conditions bread-source ./providers/embeddings/test/resolve.isolated.ts",
+    "test": "bun test --conditions bread-source && bun test --conditions bread-source ./providers/embeddings/test/resolve.isolated.ts && bun test --conditions bread-source ./docs/.vitepress/mermaid/fence.test.ts",
     "test:coverage": "bun test --conditions bread-source --coverage",
     "knip": "knip",
     "bump": "bun scripts/bump.ts",

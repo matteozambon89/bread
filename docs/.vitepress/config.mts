@@ -1,6 +1,50 @@
-import { withMermaid } from 'vitepress-plugin-mermaid'
+import type { MermaidConfig } from 'mermaid'
+import { useMermaidFence } from './mermaid/fence'
 
-export default withMermaid({
+// Mermaid 12 lays flowcharts out with ELK and draws them with the neo look.
+// Pin the pre-12 layout and look. Theme stays 'dark' in both site modes:
+// 'base' drops variables we do not set, and themeVariables still win on color.
+export const mermaidDiagramConfig = {
+  layout: 'dagre',
+  look: 'classic',
+  theme: 'dark',
+  themeVariables: {
+    fontFamily:
+      "ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+    background: '#1c1712',
+    primaryColor: '#221c15',
+    primaryBorderColor: '#e7a64a',
+    primaryTextColor: '#f4e6cc',
+    secondaryColor: '#221c15',
+    secondaryBorderColor: '#3a3226',
+    tertiaryColor: '#1c1712',
+    tertiaryBorderColor: '#3a3226',
+    lineColor: '#e7a64a',
+    textColor: '#f4e6cc',
+    edgeLabelBackground: '#1c1712',
+    clusterBkg: '#1c1712',
+    clusterBorder: '#3a3226',
+    titleColor: '#f4e6cc',
+    actorBkg: '#221c15',
+    actorBorder: '#e7a64a',
+    actorTextColor: '#f4e6cc',
+    actorLineColor: '#3a3226',
+    signalColor: '#e7a64a',
+    signalTextColor: '#f4e6cc',
+    labelBoxBkgColor: '#1c1712',
+    labelBoxBorderColor: '#3a3226',
+    labelTextColor: '#f4e6cc',
+    loopTextColor: '#f4e6cc',
+    noteBkgColor: '#2a2419',
+    noteBorderColor: '#e7a64a',
+    noteTextColor: '#f4e6cc',
+    activationBkgColor: '#221c15',
+    activationBorderColor: '#e7a64a',
+    sequenceNumberColor: '#1a1208',
+  },
+} satisfies MermaidConfig
+
+export default {
   title: 'bread',
   description:
     'Explicit by design. A file-system-convention framework for building, running, and observing AI agents on top of the Vercel AI SDK.',
@@ -104,6 +148,7 @@ export default withMermaid({
 
   markdown: {
     config(md) {
+      useMermaidFence(md)
       const renderLinkOpen = md.renderer.rules.link_open
       md.renderer.rules.link_open = (tokens, idx, options, env, self) => {
         if (!renderLinkOpen) return self.renderToken(tokens, idx, options)
@@ -118,51 +163,4 @@ export default withMermaid({
       }
     },
   },
-
-  // vitepress-plugin-mermaid forces theme:'dark' whenever <html class="dark">
-  // is present (see its Mermaid.vue) — themeVariables survive that override
-  // regardless, so pinning every variable that matters makes diagrams render
-  // identically in both site themes, on-brand rather than mermaid's stock
-  // palette either way.
-  mermaid: {
-    // 'dark' (not 'base') even for the light-mode config value: 'base' has no
-    // built-in derivation for the variables we don't set, and silently drops
-    // most of the diagram in light mode. 'dark' has full derivation, and our
-    // themeVariables below still win on every color that matters.
-    theme: 'dark',
-    themeVariables: {
-      fontFamily:
-        "ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
-      background: '#1c1712',
-      primaryColor: '#221c15',
-      primaryBorderColor: '#e7a64a',
-      primaryTextColor: '#f4e6cc',
-      secondaryColor: '#221c15',
-      secondaryBorderColor: '#3a3226',
-      tertiaryColor: '#1c1712',
-      tertiaryBorderColor: '#3a3226',
-      lineColor: '#e7a64a',
-      textColor: '#f4e6cc',
-      edgeLabelBackground: '#1c1712',
-      clusterBkg: '#1c1712',
-      clusterBorder: '#3a3226',
-      titleColor: '#f4e6cc',
-      actorBkg: '#221c15',
-      actorBorder: '#e7a64a',
-      actorTextColor: '#f4e6cc',
-      actorLineColor: '#3a3226',
-      signalColor: '#e7a64a',
-      signalTextColor: '#f4e6cc',
-      labelBoxBkgColor: '#1c1712',
-      labelBoxBorderColor: '#3a3226',
-      labelTextColor: '#f4e6cc',
-      loopTextColor: '#f4e6cc',
-      noteBkgColor: '#2a2419',
-      noteBorderColor: '#e7a64a',
-      noteTextColor: '#f4e6cc',
-      activationBkgColor: '#221c15',
-      activationBorderColor: '#e7a64a',
-      sequenceNumberColor: '#1a1208',
-    },
-  },
-})
+}
