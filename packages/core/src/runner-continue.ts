@@ -54,11 +54,9 @@ import type {
 } from './types.js'
 import { BreadError } from './types.js'
 
-// Persisted rows are AI SDK ModelMessages: `content` is a plain string (user
-// rows and legacy assistant rows) or an array of structured parts (assistant
-// tool-calls, tool results). Both are valid ModelMessage content, so pass them
-// through unchanged — this preserves tool-call/result context across turns and
-// lets a suspended run be replayed from history.
+// Persisted rows are AI SDK ModelMessages. `content` is a string, or an array
+// of parts (a user image, an assistant tool-call, a tool result). Pass it
+// through unchanged so the next turn still has the image and the tool calls.
 function toModelMessages(prior: Array<{ role: string; content: unknown }>): ModelMessage[] {
   return prior.map((m) => ({ role: m.role, content: m.content }) as ModelMessage)
 }
