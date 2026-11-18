@@ -15,7 +15,7 @@ jobs:
       # against the process environment at run time, not at setup-bun's.
       NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: oven-sh/setup-bun@v2
         with:
           # setup-bun's own registries input writes install.scopes into the
