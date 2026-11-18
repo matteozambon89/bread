@@ -1,6 +1,6 @@
 # store-showcase
 
-One `echo` agent, three storage backends — proof that any `BreadStore` drops into
+One `echo` agent, four storage backends — proof that any `BreadStore` drops into
 the same config. `STORE` is **required**; core has no auto-wired or interactive
 store fallback, so an unset or unknown value fails fast with a message naming the
 valid ones.
@@ -10,11 +10,13 @@ valid ones.
 | `memory` | `@breadai/store-memory` | Ephemeral, no setup. Great for a quick try or tests. |
 | `sqlite-bun` | `@breadai/store-sqlite` | Persists to `./bread.db` via Bun's built-in `bun:sqlite`. |
 | `postgres` | `@breadai/store-postgres` | The recommended backend. Needs `DATABASE_URL`. |
+| `mysql` | `@breadai/store-mysql` | Keyword search. Needs `MYSQL_URL`. Loopback may be cleartext. |
 
 ```bash
 STORE=memory      bread dev     # zero setup
 STORE=sqlite-bun  bread dev     # file-backed, Bun
 DATABASE_URL=postgres://… STORE=postgres bread dev
+MYSQL_URL=mysql://<host>:3306/<db> STORE=mysql bread dev
 ```
 
 `bread dev` with no `STORE` set is a hard error, not a silent default — that's the point of the

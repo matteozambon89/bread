@@ -1,0 +1,53 @@
+{
+  "name": "@breadai/store-mysql",
+  "version": "0.1.0",
+  "description": "MySQL BreadStore for bread. Persists sessions, checkpoints, memories, and documents. Keyword search only.",
+  "license": "MIT",
+  "author": "Matteo Zambon <matteo@yeeti.co>",
+  "keywords": [
+    "ai",
+    "agents",
+    "bread",
+    "storage",
+    "mysql"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/matteozambon89/bread.git",
+    "directory": "stores/mysql"
+  },
+  "homepage": "https://github.com/matteozambon89/bread",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "bread-source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "bun build ./src/index.ts --outdir dist --target node --format esm --packages external && tsc --emitDeclarationOnly --outDir dist"
+  },
+  "dependencies": {
+    "@breadai/core": "workspace:>=0.1.1 <1.0.0",
+    "mysql2": "^3.11.0",
+    "uuid": "^11.1.0"
+  },
+  "devDependencies": {
+    "@breadai/test-utils": "workspace:*",
+    "@testcontainers/mysql": "^11.0.0",
+    "@types/bun": "latest",
+    "typescript": "^5.8.3"
+  }
+}

@@ -10,6 +10,7 @@ import { transport } from '@breadai/transport-http-chunked'
 //   STORE=memory       bread dev   # ephemeral, no setup
 //   STORE=sqlite-bun   bread dev   # ./bread.db via bun:sqlite
 //   STORE=postgres     bread dev   # reads DATABASE_URL
+//   STORE=mysql        bread dev   # reads MYSQL_URL
 async function pickStore(): Promise<BreadStore> {
   switch (process.env.STORE) {
     case 'memory':
@@ -18,9 +19,12 @@ async function pickStore(): Promise<BreadStore> {
       return (await import('@breadai/store-sqlite')).store({ path: './bread.db' })
     case 'postgres':
       return (await import('@breadai/store-postgres')).store()
+    case 'mysql':
+      // loopback permits cleartext only when MYSQL_URL's host is loopback.
+      return (await import('@breadai/store-mysql')).store({ loopback: true })
     default:
       throw new Error(
-        `store-showcase: set STORE to one of memory | sqlite-bun | postgres (got ${
+        `store-showcase: set STORE to one of memory | sqlite-bun | postgres | mysql (got ${
           process.env.STORE === undefined ? 'unset' : `"${process.env.STORE}"`
         })`,
       )
