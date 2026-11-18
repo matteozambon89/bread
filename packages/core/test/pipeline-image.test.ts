@@ -113,7 +113,10 @@ describe('bread.runPipeline — image step', () => {
       expect(logged.map((entry) => entry.type)).toEqual(['agent:run:start', 'file:generated', 'agent:run:end'])
       await bread.store.deleteSession(file.sessionId!)
       expect(await bread.store.getCrumbs!(file.runId)).toEqual([])
-      expect(JSON.stringify(next.doStreamCalls[0]!.prompt)).toContain(file.uri)
+      const nextPrompt = JSON.stringify(next.doStreamCalls[0]!.prompt)
+      expect(nextPrompt).toContain('"mediaType":"image/png"')
+      expect(nextPrompt).toContain('AQIDBA==')
+      expect(nextPrompt).not.toContain(file.uri)
     } finally {
       await stop()
     }
