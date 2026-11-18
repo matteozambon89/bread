@@ -1,0 +1,53 @@
+{
+  "name": "@breadai/store-mongodb",
+  "version": "0.1.0",
+  "description": "MongoDB BreadStore for bread. Sessions, checkpoints, loops, task runs, memories, and documents with keyword search.",
+  "license": "MIT",
+  "author": "Matteo Zambon <matteo@yeeti.co>",
+  "keywords": [
+    "ai",
+    "agents",
+    "bread",
+    "storage",
+    "mongodb"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/matteozambon89/bread.git",
+    "directory": "stores/mongodb"
+  },
+  "homepage": "https://github.com/matteozambon89/bread",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "bread-source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "bun build ./src/index.ts --outdir dist --target node --format esm --packages external && tsc --emitDeclarationOnly --outDir dist"
+  },
+  "dependencies": {
+    "@breadai/core": "workspace:>=0.1.1 <1.0.0",
+    "mongodb": "^6.20.0",
+    "uuid": "^11.1.0"
+  },
+  "devDependencies": {
+    "@breadai/test-utils": "workspace:*",
+    "@types/bun": "latest",
+    "mongodb-memory-server": "^10.3.0",
+    "typescript": "^5.8.3"
+  }
+}
