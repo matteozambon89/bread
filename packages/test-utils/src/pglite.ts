@@ -52,7 +52,7 @@ export async function withPglite(opts?: { vector?: boolean }): Promise<PgliteHan
   const db = opts?.vector
     ? new PGlite({
         extensions: {
-          vector: (await import('@electric-sql/pglite/vector')).vector,
+          vector: (await import('@electric-sql/pglite-pgvector')).vector,
         },
       })
     : new PGlite()
