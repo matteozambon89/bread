@@ -65,9 +65,10 @@ SQLite `store()` only opens the file. Call `migrate()` before querying, or use `
 | `@breadai/store-postgres` | PostgreSQL | Recommended for production; `store()` reads `DATABASE_URL` |
 | `@breadai/store-sqlite` | SQLite via `bun:sqlite` | Local dev — works out of the box, no external service |
 | `@breadai/store-memory` | In-memory | Unit tests, ephemeral runs |
+| `@breadai/store-mssql` | SQL Server via `mssql` | `store()` reads `MSSQL_URL`; keyword search only |
 
-All three implement the same flat `BreadStore`, so swapping is a one-line change to `store`. See the
-[`store-showcase`](https://github.com/matteozambon89/bread/tree/HEAD/examples/store-showcase) example for all three side by side.
+All four implement the same flat `BreadStore`, so swapping is a one-line change to `store`. See the
+[`store-showcase`](https://github.com/matteozambon89/bread/tree/HEAD/examples/store-showcase) example for all four side by side.
 
 ## Bring your own store
 
@@ -138,7 +139,7 @@ store: store({
 ```
 
 When `embed` is set, `migrate()` also applies `0002_vector` (`CREATE EXTENSION IF NOT EXISTS vector` and the embedding columns). That step is not part of `0001_baseline`.
-SQLite and memory stay keyword-only and take no `embed` option, including when
+SQLite, memory, and SQL Server stay keyword-only and take no `embed` option, including when
 `config.embeddings` is set.
 [`examples/knowledge-graph`](https://github.com/matteozambon89/bread/tree/HEAD/examples/knowledge-graph)
 passes an `ollama` / `nomic-embed-text` ref, resolved on document ingest,

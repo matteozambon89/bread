@@ -293,6 +293,7 @@
         "@breadai/core": "workspace:*",
         "@breadai/provider-llm": "workspace:*",
         "@breadai/store-memory": "workspace:*",
+        "@breadai/store-mssql": "workspace:*",
         "@breadai/store-postgres": "workspace:*",
         "@breadai/store-sqlite": "workspace:*",
         "@breadai/transport-http-chunked": "workspace:*",

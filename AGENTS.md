@@ -63,6 +63,7 @@ Server runners do not read stdin for init or add.
 | `@breadai/store-postgres` | `stores/postgres` | Postgres `BreadStore` (default; optional pgvector) |
 | `@breadai/store-sqlite` | `stores/sqlite` | SQLite store via `bun:sqlite` |
 | `@breadai/store-memory` | `stores/memory` | In-memory store (tests, ephemeral) |
+| `@breadai/store-mssql` | `stores/mssql` | SQL Server `BreadStore` via `mssql` (`MSSQL_URL`); keyword search only |
 | `@breadai/store-s3` | `stores/s3` | S3-backed `BlobStore` — binary/file storage via presigned URLs |
 | `@breadai/graph-neo4j` | `graphs/neo4j` | Neo4j `Graph` (`graph()`). Not a `BreadStore` |
 | `@breadai/provider-llm` | `providers/llm` | The 21 language-model providers as a `ProviderRegistry` (`providerLlm`) |
@@ -170,7 +171,7 @@ The CLI loader (`packages/server/src/loader.ts`) attaches private fields to each
   missing key throws `UNKNOWN_EMBEDDING_PROVIDER`, and a store with no binding
   throws `EMBEDDINGS_NOT_BOUND`. A function is called as-is and does not read
   the registry. `embedStoreText` calls `ai.embed` with `maxRetries: 0`, so
-  `@breadai/store-postgres` does not import `ai`. SQLite and memory stay
+  `@breadai/store-postgres` does not import `ai`. SQLite, memory, and SQL Server stay
   keyword-only. See [`docs/providers.md`](./docs/providers.md) and
   [`docs/store.md`](./docs/store.md).
 - **Lifecycle unification** — `BreadPlugin.close` (renamed from `destroy`) runs on `bread.stop()`;
