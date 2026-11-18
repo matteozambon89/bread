@@ -25,6 +25,22 @@ export type {
   TaskRunRecord,
   TaskRunFilter,
 } from './storage/store.js'
+export type {
+  AppliedMigration,
+  MigrationJournal,
+  MigrationLock,
+  MigrationReport,
+  MigrationStatus,
+  MigrationStep,
+} from './storage/migrations.js'
+export {
+  assertMigrationsCurrent,
+  isMigrationStepId,
+  migrationChecksum,
+  readMigrationStatus,
+  runMigrations,
+} from './storage/migrations.js'
+export { redactConnectionSecrets, redactError } from './storage/redact.js'
 export { decodeLastOutput, encodeLastOutput } from './last-output.js'
 
 // Blob storage — a separate, optional seam for binary content (config.blobStore),
