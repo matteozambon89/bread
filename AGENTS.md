@@ -127,9 +127,9 @@ The CLI loader (`packages/server/src/loader.ts`) attaches private fields to each
   v7 is time-ordered, so DB primary-key indexes (Postgres/SQLite) stay insert-order instead of
   fragmenting like random v4 keys do.
 - **`AgentRegistry`** = `Map<string, AgentDefinition>`. Flow: `loadAgents()` → `createBread(config, agents, tasks)` → server.
-- **`TaskRegistry`** = `Map<string, TaskDefinition>` keyed by `config.name`. `loadTasks()` scans
-  `tasks/*.ts` (each a `defineTask` default export) and is threaded as the 3rd `createBread` arg into
-  `RunnerContext.tasks`.
+- **`TaskRegistry`** = `Map<string, RegisteredTask>` keyed by `config.name`. `loadTasks()` scans
+  `tasks/*.ts` (a `defineTask` or `defineImageTask` default export) and is threaded as the 3rd
+  `createBread` arg into `RunnerContext.tasks`.
 - **`_ctx()` is gone** (Plan B chunk 3). The public `BreadInstance` surface now covers every
   former use: `runPipeline(id, input)` (the pipeline-run route, mounted by `config.transport`),
   `runTask(taskId, args, opts?)`
@@ -174,8 +174,13 @@ The CLI loader (`packages/server/src/loader.ts`) attaches private fields to each
   Factories return an AI SDK `ImageModel`, not a `LanguageModel`. A pipeline step
   `{ type: 'image', provider, model }` takes a string prompt or `{ text?, images, mask? }`, calls `generateImage`
   once (`n: 1`, `maxRetries: 0`), stores the bytes with `config.blobStore`, emits
-  `file:generated`, and passes the `FileOutput` on. Topaz needs `images`. `@breadai/provider-image` supplies
-  `providerImage`. Core does not import that package.
+  `file:generated`, and passes the `FileOutput` on. Topaz needs `images`. The step and
+  `defineImageTask` share `generateAndStoreImage` (`packages/core/src/image-generate.ts`).
+  `defineImageTask` (`name`, `description`, `provider`, `model`) is opt-in: an agent or a supervisor
+  lists the name in `tasks`. The tool args are `{ prompt: string }`. It returns
+  `{ kind: 'file', uri, mimeType }`. No `blobStore` throws `BLOB_STORE_NOT_CONFIGURED` before
+  `generateImage`. An empty prompt fails before that call. `defineTask` still always calls
+  `generateObject`. `@breadai/provider-image` supplies `providerImage`. Core does not import that package.
 - **Lifecycle unification** — `BreadPlugin.close` (renamed from `destroy`) runs on `bread.stop()`;
   stores keep `migrate?`/`close?`; transports use `init?`/`close?`. `RemoteAgent` (the remote-agent
   seam) was aligned the same way in Chunk 5 (`destroy` → `close`), so every lifecycle-holding seam now
@@ -213,10 +218,11 @@ The CLI loader (`packages/server/src/loader.ts`) attaches private fields to each
   whole chain; supervisor and loop-host checkpoints themselves are not directly resumable.
 - **Tasks (one-shot)** — a `defineTask` (`{ name, description, model, instructions, schema,
   outputSchema, hooks }`) compiles to an LLM-callable tool via `createTaskTool` (`packages/core/src/task.ts`):
-  `pre(args) → generateObject → post(output)`. The runner resolves each id in `cfg.tasks` from
-  `ctx.tasks` and appends the tool (unknown id → `TASK_NOT_FOUND`); it also auto-attaches the built-in
+  `pre(args) → generateObject → post(output)`. A `defineImageTask` does not use that path. The runner
+  resolves each id in `cfg.tasks` from `ctx.tasks` and appends the tool (unknown id → `TASK_NOT_FOUND`);
+  a supervisor lists the name the same way. It also auto-attaches the built-in
   `createDocTools`/`createKgTools` when `cfg.documents`/`cfg.knowledge` is set and the store supports
-  it. Each run emits `task:start`/`task:end` crumbs and persists a `TaskRunRecord` via the optional
+  it. A `defineTask` run emits `task:start`/`task:end` crumbs and persists a `TaskRunRecord` via the optional
   `createTaskRun`/`finishTaskRun`/`getTaskRun`/`listTaskRuns` store methods, surfaced at `GET /tasks`.
   See [`docs/tasks.md`](./docs/tasks.md).
 

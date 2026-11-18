@@ -4,6 +4,8 @@ import { BreadEventBus } from './event-bus.js'
 import { assertName } from './permissions.js'
 import { runPipeline as runPipelineCore } from './pipeline.js'
 import { type AgentRegistry, buildToolCredentials, resumeRun, runAgent } from './runner.js'
+import { isImageTaskDefinition } from './define.js'
+import { createImageTaskTool } from './image-task.js'
 import { type TaskRegistry, createTaskTool } from './task.js'
 import type { BlobStore, FileOutput } from './storage/blob-store.js'
 import type { BreadStore } from './storage/store.js'
@@ -374,12 +376,14 @@ export function createBread(
       try {
         // No onCrumb: a standalone task has no host run stream, so it is
         // crumb-silent; the TaskRunRecord audit via the store applies in full.
-        const tool = createTaskTool(def, {
-          store: s,
-          providers: [config.providers],
-          pluginHooks,
-          hooks: config.hooks,
-        })
+        const tool = isImageTaskDefinition(def)
+          ? createImageTaskTool(def, { image: config.image, blobStore: config.blobStore })
+          : createTaskTool(def, {
+              store: s,
+              providers: [config.providers],
+              pluginHooks,
+              hooks: config.hooks,
+            })
         const id = uuidv7()
         const toolCtx: ToolContext = {
           agentId: opts?.agentId ?? 'standalone',

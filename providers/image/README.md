@@ -27,6 +27,8 @@ export default defineConfig({
 
 The image step needs `config.blobStore` and a prompt: a string, or `{ text?, images, mask? }` when the model needs a source image. Topaz ignores text and requires `images`. It calls `generateImage` once (`n: 1`, `maxRetries: 0`), stores the bytes, emits `file:generated`, and passes the `FileOutput` on. These factories are not `config.providers` — that registry returns a `LanguageModel`.
 
+An agent asks for an image with `defineImageTask` (`name`, `description`, `provider`, `model`) and lists that name in `tasks`. A supervisor attaches it by listing the task name. The tool args are `{ prompt }`. See [tasks](https://matteozambon89.github.io/bread/tasks.html#draw-an-image).
+
 | Key | Auth |
 | --- | --- |
 | `openai` | `OPENAI_API_KEY` |

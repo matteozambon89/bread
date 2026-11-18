@@ -8,8 +8,10 @@ import {
   type ToolDefinition,
   buildToolCredentials,
   envProvider,
+  isImageTaskDefinition,
 } from '@breadai/core'
 import { v7 as uuidv7 } from 'uuid'
+import { z } from 'zod'
 import { isObjectSchema, toMcpInputSchema, toMcpOutputSchema, toStructured, unwrapInput } from './schema.js'
 
 // The slice of the public BreadInstance this ingress consumes.
@@ -153,6 +155,27 @@ export function buildMcpServer(bread: McpBread, expose: ExposeConfig, principal?
   for (const taskId of expose.tasks ?? []) {
     const taskDef = bread.tasks.get(taskId)
     if (!taskDef) throw new Error(`mcp_server: task "${taskId}" is not registered`)
+    if (isImageTaskDefinition(taskDef)) {
+      const schema = z.object({ prompt: z.string() })
+      const outputSchema = z.object({
+        kind: z.literal('file'),
+        uri: z.string(),
+        mimeType: z.string(),
+      })
+      server.registerTool(
+        taskId,
+        toolRegistration(taskDef.config.description, toMcpInputSchema(schema), toMcpOutputSchema(outputSchema)),
+        async (args: unknown) => {
+          const input = unwrapInput(args, false)
+          const out = await bread.runTask(taskId, input, {
+            agentId: 'mcp',
+            ...(principal ? { principal } : {}),
+          })
+          return toStructured(out, false)
+        },
+      )
+      continue
+    }
     const { schema, outputSchema } = taskDef.config
     const inputWrapped = !isObjectSchema(schema)
     const outputWrapped = !isObjectSchema(outputSchema)

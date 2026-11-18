@@ -7,6 +7,9 @@ import type {
   EvalConfig,
   EvalDefinition,
   HumanToolDefinition,
+  ImageTaskConfig,
+  ImageTaskDefinition,
+  RegisteredTask,
   TaskConfig,
   TaskDefinition,
   ToolConfig,
@@ -39,4 +42,19 @@ export function defineEval(config: EvalConfig): EvalDefinition {
 
 export function defineTask<Args, Out>(config: TaskConfig<Args, Out>): TaskDefinition<Args, Out> {
   return { config, _taskDef: true }
+}
+
+// Not a defineTask. That path always calls generateObject.
+export function defineImageTask(config: ImageTaskConfig): ImageTaskDefinition {
+  return { config, _imageTaskDef: true }
+}
+
+export function isRegisteredTask(def: unknown): def is RegisteredTask {
+  if (typeof def !== 'object' || def === null) return false
+  const record = def as { _taskDef?: unknown; _imageTaskDef?: unknown }
+  return record._taskDef === true || record._imageTaskDef === true
+}
+
+export function isImageTaskDefinition(def: RegisteredTask): def is ImageTaskDefinition {
+  return '_imageTaskDef' in def && def._imageTaskDef === true
 }

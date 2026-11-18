@@ -4,6 +4,8 @@ import { buildLoopTools, loopSummary } from './loop.js'
 import type { LoopRuntime } from './loop.js'
 import { TOOL_SCOPES, gateAskDefaults, leafName, resolvePermissions } from './permissions.js'
 import type { ToolOrigin } from './permissions.js'
+import { isImageTaskDefinition } from './define.js'
+import { createImageTaskTool } from './image-task.js'
 import { createTaskTool } from './task.js'
 import {
   type SkillMeta,
@@ -83,13 +85,15 @@ export async function assembleTools(
           available: ctx.tasks ? [...ctx.tasks.keys()] : [],
         })
       }
-      const def = createTaskTool(taskDef, {
-        store: ctx.store,
-        providers: [cfg.providers, ctx.providers],
-        onCrumb,
-        pluginHooks: ctx.pluginHooks,
-        hooks: ctx.hooks,
-      })
+      const def = isImageTaskDefinition(taskDef)
+        ? createImageTaskTool(taskDef, { image: ctx.image, blobStore: ctx.blobStore })
+        : createTaskTool(taskDef, {
+            store: ctx.store,
+            providers: [cfg.providers, ctx.providers],
+            onCrumb,
+            pluginHooks: ctx.pluginHooks,
+            hooks: ctx.hooks,
+          })
       sources.push({ origin: { scope: TOOL_SCOPES.TASK, name: def.name }, def })
     }
   }

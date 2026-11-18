@@ -5,10 +5,10 @@ import {
   type AgentRegistry,
   type BreadConfig,
   type SkillMeta,
-  type TaskDefinition,
   type TaskRegistry,
   type ToolDefinition,
   assertName,
+  isRegisteredTask,
   loadSkillMeta,
   parseSelector,
 } from '@breadai/core'
@@ -109,7 +109,7 @@ export async function loadTasks(projectRoot: string): Promise<TaskRegistry> {
   for (const file of files) {
     if (!file.endsWith('.ts') && !file.endsWith('.js')) continue
     const taskPath = join(tasksDir, file)
-    let def: TaskDefinition<unknown, unknown> | undefined
+    let def: unknown
     try {
       // Cache-bust so `bread dev` re-imports fresh task code on hot reload.
       const mod = await import(`${taskPath}?t=${Date.now()}`)
@@ -118,8 +118,8 @@ export async function loadTasks(projectRoot: string): Promise<TaskRegistry> {
       console.error(`[bread] Failed to load task ${taskPath}:`, err)
       continue
     }
-    if (!def || !def._taskDef) {
-      console.error(`[bread] ${taskPath} must export a default TaskDefinition (use defineTask)`)
+    if (!isRegisteredTask(def)) {
+      console.error(`[bread] ${taskPath} must export a default task (use defineTask or defineImageTask)`)
       continue
     }
     assertName('task', def.config.name)

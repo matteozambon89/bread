@@ -172,6 +172,9 @@ degrade gracefully rather than crashing at startup. Current consumers:
 - An [image pipeline step](./pipelines.md#image) stores the bytes from `generateImage` the same way
   and emits `file:generated`. It throws `BLOB_STORE_NOT_CONFIGURED` when `blobStore` is unset,
   before it calls the image model.
+- A [`defineImageTask`](./tasks.md#draw-an-image) stores those bytes the same way. It throws
+  `BLOB_STORE_NOT_CONFIGURED` when `blobStore` is unset, before `generateImage`. An agent, including
+  a supervisor, attaches it by listing the task name in `tasks`.
 - `ToolContext.blobStore` — a tool's own `execute()` can call `ctx.blobStore.put()` directly to
   store a file it generates or fetches; see [tools.md](./tools.md#toolcontext).
 

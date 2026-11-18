@@ -1,11 +1,12 @@
 # Tasks
 
-A **task** is a one-shot, stateless unit of work that compiles to an **LLM-callable tool**. It wraps
-a single structured model call (`generateObject`) and adds `beforeRun`/`afterRun`/`onError` hooks
-for transformations. Unlike an [agent](./agents.md), a task has no tool loop, session, or HITL — it
-takes input, runs one model call, and returns a typed object. Agents opt into tasks by listing ids in
-`cfg.tasks` — the task-registry equivalent of naming an [MCP server](./mcp-client.md) under
-`cfg.plugins.mcp_client`.
+A **task** is a one-shot, stateless unit of work that compiles to an **LLM-callable tool**. `defineTask`
+wraps a single structured model call (`generateObject`) and adds `beforeRun`/`afterRun`/`onError` hooks
+for transformations. `defineImageTask` draws one image instead — see [Draw an image](#draw-an-image).
+Unlike an [agent](./agents.md), a task has no tool loop, session, or HITL — it takes input, runs one
+model call, and returns a typed object. Agents opt into tasks by listing names in `cfg.tasks` — the
+task-registry equivalent of naming an [MCP server](./mcp-client.md) under `cfg.plugins.mcp_client`.
+Neither kind is attached automatically.
 
 Use a task when the work is a bounded transformation (extract, summarize, classify, rewrite) rather
 than an open-ended, multi-step conversation. Define it once; reuse it across agents.
@@ -89,16 +90,55 @@ defineAgent({
 })
 ```
 
-The runner resolves each id from the registry, compiles it with `createTaskTool`, and adds it to the
-agent's tool set. An unknown id fails the run with `TASK_NOT_FOUND`.
+The runner resolves each id from the registry and adds it to the agent's tool set. A `defineTask`
+compiles with `createTaskTool`. A `defineImageTask` does not. An unknown id fails the run with `TASK_NOT_FOUND`.
 
 > Document and knowledge-graph **storage** tools (`core_doc_ingest`, `core_doc_read`, `core_kg_store`, …) are
 > separate: they attach automatically when the agent sets `documents` / `knowledge` and the store
 > supports them. A task uses the store directly in its hooks; it does not need those tools.
 
+## Draw an image
+
+`defineTask` always calls `generateObject`. A task file that draws uses `defineImageTask`. The fields
+are `name`, `description`, `provider`, and `model`. The tool args are `{ prompt: string }`. `provider`
+and `model` resolve through `config.image`, not `config.providers`.
+
+```ts
+import { defineImageTask } from '@breadai/core'
+
+export default defineImageTask({
+  name: 'draw_cover',
+  description: 'Draw an image from a text prompt',
+  provider: 'openai',
+  model: 'gpt-image-1',
+})
+```
+
+The task calls `generateImage` once (`n: 1`, `maxRetries: 0`) and stores the bytes with
+`config.blobStore`. The tool result is `{ kind: 'file', uri, mimeType }`. An empty prompt fails before
+that model call. No `blobStore` throws `BLOB_STORE_NOT_CONFIGURED` before `generateImage`. No `image`
+registry throws `IMAGE_NOT_CONFIGURED`. An unknown `provider` throws `UNKNOWN_IMAGE_PROVIDER`.
+
+List the task `name` on the agent that should be able to ask for an image:
+
+```ts
+defineAgent({
+  model: { provider: 'anthropic', model: 'claude-opus-4-8' },
+  inputSchema: z.string(),
+  outputSchema: z.string(),
+  output: { format: 'text' },
+  tasks: ['draw_cover'],
+})
+```
+
+A supervisor attaches it by listing the task name in that agent's `tasks`. Delegating does not add the
+task to a sub-agent. The [image pipeline step](./pipelines.md#image) is a separate caller of the same
+generate-and-store path. It is not added to an agent for you. That step still accepts a source image.
+This task takes only the text prompt.
+
 ## Observability & audit
 
-Every task invocation is both streamed and recorded:
+A `defineTask` invocation is both streamed and recorded. A `defineImageTask` returns the file reference as the tool result and does not write a task run.
 
 - **Crumbs** — `task:start` and `task:end` (with `taskRunId`, `taskId`, model, `durationMs`, token
   `usage`, and `status`) flow on the agent run's stream, SSE, and OpenTelemetry (via `@breadai/otel`).

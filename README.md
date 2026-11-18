@@ -61,7 +61,7 @@ Core has no built-in model providers — register them explicitly via `providers
 still an optional peer dep, installed only if you use it). `@breadai/provider-catalog`
 re-exports `providerLlm` and `providerEntries` from that package. Image models are a
 separate registry: `@breadai/provider-image` exports `providerImage` for `config.image`,
-used by a pipeline `{ type: 'image', provider, model }` step.
+used by a pipeline `{ type: 'image', provider, model }` step and by a `defineImageTask` an agent lists in `tasks`.
 
 ```bash
 bun add @breadai/provider-llm

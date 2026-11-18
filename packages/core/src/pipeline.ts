@@ -1,9 +1,8 @@
-import { generateImage } from 'ai'
 import { v7 as uuidv7 } from 'uuid'
 import { decisionLabel, resolveDecisionClient, toHostQuestion } from './decision.js'
 import { runWithOnErrorRetry } from './hooks.js'
+import { generateAndStoreImage, type GenerateImagePrompt } from './image-generate.js'
 import { resolveImageModel } from './image.js'
-import type { FileOutput } from './storage/blob-store.js'
 import type { BreadCrumb, LoopHostLink, PipelineCheckpointParent, PipelineStep, Principal, RunOptions, SupervisorCheckpointParent } from './types.js'
 import { BreadError } from './types.js'
 import { runAgent } from './runner.js'
@@ -197,55 +196,28 @@ export async function* runPipeline(opts: PipelineRunOpts): AsyncGenerator<BreadC
           ? { principal: { iss: opts.principal.iss, sub: opts.principal.sub } }
           : {}),
       }
-      let image: Awaited<ReturnType<typeof generateImage>>['image']
-      try {
-        const generated = await generateImage({
-          model,
-          prompt,
-          n: 1,
-          maxRetries: 0,
-          ...(ctx.signal ? { abortSignal: ctx.signal } : {}),
-        })
-        image = generated.image
-      } catch (err) {
-        if (ctx.signal?.aborted) {
-          const error = imageCancelled(pipelineId, index)
-          yield imageAgentError(stepRunId, sessionId, error)
-          throw error
-        }
-        const error = imageStepError(err, pipelineId, index)
+      const stored = await generateAndStoreImage({
+        model,
+        prompt,
+        blobStore: ctx.blobStore,
+        ...(ctx.signal ? { signal: ctx.signal } : {}),
+      })
+      if (stored.status !== 'stored') {
+        const error =
+          stored.status === 'aborted'
+            ? imageCancelled(pipelineId, index)
+            : imageStepError(stored.error, pipelineId, index)
         yield imageAgentError(stepRunId, sessionId, error)
         throw error
       }
-      // generateImage can resolve after doGenerate aborts the signal. Do not
-      // store those bytes or close the run as a success.
-      if (ctx.signal?.aborted) {
-        const error = imageCancelled(pipelineId, index)
-        yield imageAgentError(stepRunId, sessionId, error)
-        throw error
-      }
-      let url: string
-      try {
-        const stored = await ctx.blobStore.put(image.uint8Array, { mimeType: image.mediaType })
-        url = stored.url
-      } catch (err) {
-        if (ctx.signal?.aborted) {
-          const error = imageCancelled(pipelineId, index)
-          yield imageAgentError(stepRunId, sessionId, error)
-          throw error
-        }
-        const error = imageStepError(err, pipelineId, index)
-        yield imageAgentError(stepRunId, sessionId, error)
-        throw error
-      }
-      const file: FileOutput = { kind: 'file', uri: url, mimeType: image.mediaType }
+      const file = stored.file
       yield {
         type: 'file:generated',
         agentId: 'image',
         runId: stepRunId,
         sessionId,
-        uri: url,
-        mimeType: image.mediaType,
+        uri: file.uri,
+        mimeType: file.mimeType,
         timestamp: Date.now(),
       }
       yield {
@@ -388,7 +360,6 @@ async function invocationSession(
   }
 }
 
-type ImagePrompt = Parameters<typeof generateImage>[0]['prompt']
 type ImageBytes = Uint8Array | ArrayBuffer
 
 function isImageBytes(value: unknown): value is ImageBytes {
@@ -398,7 +369,7 @@ function isImageBytes(value: unknown): value is ImageBytes {
 // Bytes only. generateImage fetches http(s) strings in-process, and Bun's
 // fetch does not pin DNS, so a URL, file path, or base64 string is IMAGE_PROMPT.
 // Extra keys stay rejected so a plain agent object is not a source image.
-function imagePromptFrom(value: unknown): ImagePrompt | undefined {
+function imagePromptFrom(value: unknown): GenerateImagePrompt | undefined {
   if (typeof value === 'string') return value
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return undefined
   const record = value as Record<string, unknown>
@@ -412,7 +383,7 @@ function imagePromptFrom(value: unknown): ImagePrompt | undefined {
   if (!Array.isArray(record.images) || record.images.length === 0 || !record.images.every(isImageBytes)) {
     return undefined
   }
-  const prompt: Exclude<ImagePrompt, string> = { images: record.images }
+  const prompt: Exclude<GenerateImagePrompt, string> = { images: record.images }
   if (typeof record.text === 'string') prompt.text = record.text
   if (isImageBytes(record.mask)) prompt.mask = record.mask
   return prompt

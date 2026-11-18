@@ -72,8 +72,9 @@ describe('loadConfig', () => {
 describe('loadTasks', () => {
   test('loads a valid task, skipping an import failure and a missing export', async () => {
     const registry = await loadTasks(projectRoot)
-    expect([...registry.keys()]).toEqual(['summarize'])
+    expect(new Set(registry.keys())).toEqual(new Set(['summarize', 'draw']))
     expect(registry.get('summarize')?._taskDef).toBe(true)
+    expect(registry.get('draw')?._imageTaskDef).toBe(true)
   })
 
   test('returns an empty registry when there is no tasks/ dir', async () => {

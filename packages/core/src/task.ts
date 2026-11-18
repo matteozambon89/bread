@@ -7,6 +7,7 @@ import {
   type BreadCrumb,
   type BreadHooks,
   type GlobalHookContext,
+  type RegisteredTask,
   type TaskDefinition,
   type TaskRunContext,
   type TaskUsage,
@@ -17,7 +18,7 @@ import { BreadError } from './types.js'
 
 // Keyed by `config.name` (the tool identity the LLM sees and `config.tasks`
 // references).
-export type TaskRegistry = Map<string, TaskDefinition<unknown, unknown>>
+export type TaskRegistry = Map<string, RegisteredTask>
 
 export interface TaskToolDeps {
   store: BreadStore

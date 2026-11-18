@@ -5,7 +5,7 @@ import type {
   BreadCrumb,
   BreadInstance,
   BreadPlugin,
-  TaskDefinition,
+  RegisteredTask,
   TaskRegistry,
 } from '@breadai/core'
 import { createServer } from '@breadai/server'
@@ -18,7 +18,7 @@ export interface HarnessOpts {
   /** Agent id → definition. */
   agents: Record<string, AgentDefinition<unknown, unknown>>
   /** One-shot task definitions; registered under each task's `config.name`. */
-  tasks?: Record<string, TaskDefinition<unknown, unknown>>
+  tasks?: Record<string, RegisteredTask>
   /** Shorthand for the common single-model case — registered under id 'default'. */
   model?: LanguageModel
   /** Mock model id → fake model, for multi-model tests. Use `model` for one. */

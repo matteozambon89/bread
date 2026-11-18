@@ -71,6 +71,8 @@ No `blobStore` throws `BLOB_STORE_NOT_CONFIGURED`. No `image` registry throws `I
 
 [`examples/pipeline`](https://github.com/matteozambon89/bread/tree/HEAD/examples/pipeline) pipeline `cover` runs the writer, then this step, so the writer's paragraph is the prompt.
 
+An agent asks for an image with [`defineImageTask`](./tasks.md#draw-an-image) instead of this step. The task file sets `name`, `description`, `provider`, and `model`. `provider` and `model` resolve through `config.image`, not `config.providers`. The tool args are `{ prompt: string }`. It calls the same generate-and-store path (`generateImage` once, `n: 1`, `maxRetries: 0`, then `config.blobStore`) and returns the `FileOutput`. An empty prompt fails before the model call. No `blobStore` throws `BLOB_STORE_NOT_CONFIGURED` before `generateImage`. List the task `name` in the agent's `tasks`. A supervisor attaches it by listing the task name on its own agent config. This step is not attached automatically, and its prompt rules — a string or `{ text?, images, mask? }` — stay here.
+
 ### Branch
 
 ```ts

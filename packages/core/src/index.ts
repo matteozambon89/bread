@@ -76,8 +76,11 @@ export {
   defineConfig,
   defineEval,
   defineHumanTool,
+  defineImageTask,
   defineTask,
   defineTool,
+  isImageTaskDefinition,
+  isRegisteredTask,
 } from './define.js'
 
 // Credential providers
@@ -175,6 +178,9 @@ export type {
   SubAgentVisibility,
   SubagentRunEndCrumb,
   SubagentRunStartCrumb,
+  ImageTaskConfig,
+  ImageTaskDefinition,
+  RegisteredTask,
   TaskConfig,
   TaskDefinition,
   TaskHooks,

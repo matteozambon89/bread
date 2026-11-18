@@ -763,6 +763,7 @@ export interface AgentDefinition<I, O> {
 // `beforeRun` supersedes the old `pre` (maps tool args -> model input, or
 // short-circuits); `afterRun` supersedes `post` (maps/replaces the model's
 // structured output before it becomes the tool result).
+// defineImageTask is not this shape: it calls generateImage, not generateObject.
 export interface TaskConfig<Args, Out> {
   name: string
   description: string
@@ -779,6 +780,22 @@ export interface TaskDefinition<Args, Out> {
   config: TaskConfig<Args, Out>
   _taskDef: true
 }
+
+// Opt-in draw. The tool args are always { prompt: string }. provider and model
+// are config.image keys, not config.providers.
+export interface ImageTaskConfig {
+  name: string
+  description: string
+  provider: string
+  model: string
+}
+
+export interface ImageTaskDefinition {
+  config: ImageTaskConfig
+  _imageTaskDef: true
+}
+
+export type RegisteredTask = TaskDefinition<unknown, unknown> | ImageTaskDefinition
 
 // ---------------------------------------------------------------------------
 // Pipeline
@@ -943,10 +960,11 @@ export interface BreadConfig {
   // A Postgres embed ref reads this object on document ingest, document search,
   // knowledge-node write, and knowledge query. A function embed does not.
   embeddings?: EmbeddingRegistry
-  // Image models keyed by the image step's `provider`. Not a ProviderRegistry:
-  // those factories return a LanguageModel. Core has no built-ins — install
-  // @breadai/provider-image. Unset throws IMAGE_NOT_CONFIGURED; an unknown
-  // name throws UNKNOWN_IMAGE_PROVIDER.
+  // Image models keyed by provider name for an image pipeline step and for
+  // defineImageTask. Not a ProviderRegistry: those factories return a
+  // LanguageModel. Core has no built-ins — install @breadai/provider-image.
+  // Unset throws IMAGE_NOT_CONFIGURED; an unknown name throws
+  // UNKNOWN_IMAGE_PROVIDER.
   image?: ImageRegistry
   // The crumb fabric between replicas of this app. Defaults to the embedded
   // Stream transport (single container); set a distributed implementation
@@ -1123,7 +1141,7 @@ export interface BreadInstance extends BreadInstanceRef {
   // expose what this instance serves (agents/tasks include plugin-contributed
   // entries once start() has merged them).
   agents: ReadonlyMap<string, AgentDefinition<unknown, unknown>>
-  tasks: ReadonlyMap<string, TaskDefinition<unknown, unknown>>
+  tasks: ReadonlyMap<string, RegisteredTask>
   // Global tools contributed by plugins, tagged with the contributing plugin.
   pluginTools: ReadonlyArray<{ plugin: string; def: ToolDefinition }>
   // The run-wide default credential resolver (config.credentials), if any.

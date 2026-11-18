@@ -39,8 +39,8 @@ export default defineConfig({
 ```
 
 Image models are a separate registry, `image: providerImage` from `@breadai/provider-image`.
-A pipeline `image` step draws the current string, or `{ images }` when the model enhances a source image (Topaz). See [providers](./providers.md#image-models)
-and [pipelines](./pipelines.md#image).
+A pipeline `image` step draws the current string, or `{ images }` when the model enhances a source image (Topaz). An agent draws by listing a `defineImageTask` name in `tasks`. A supervisor attaches it the same way. See [providers](./providers.md#image-models),
+[pipelines](./pipelines.md#image), and [tasks](./tasks.md#draw-an-image).
 
 </section>
 

@@ -170,7 +170,7 @@ passes a function.
 
 ## Image models
 
-Image models are not language models. `config.image` is an `ImageRegistry`: each factory returns an AI SDK `ImageModel`, not a `LanguageModel`. A pipeline [`image` step](./pipelines.md#image) reads the current value as a string or `{ text?, images, mask? }` and calls `generateImage` once. Topaz enhances a source image passed on `images`; a text-only prompt does not reach `blobStore.put`.
+Image models are not language models. `config.image` is an `ImageRegistry`: each factory returns an AI SDK `ImageModel`, not a `LanguageModel`. A pipeline [`image` step](./pipelines.md#image) reads the current value as a string or `{ text?, images, mask? }` and calls `generateImage` once. Topaz enhances a source image passed on `images`; a text-only prompt does not reach `blobStore.put`. A [`defineImageTask`](./tasks.md#draw-an-image) is the other caller: an agent, or a supervisor, lists the task name in `tasks` and passes `{ prompt }`.
 
 Install [`@breadai/provider-image`](https://github.com/matteozambon89/bread/tree/HEAD/providers/image). Importing it does not load every SDK. The first resolve of a key lazy-imports that optional peer and throws `MISSING_PROVIDER` (naming `bun add <pkg>`) when it is absent.
 

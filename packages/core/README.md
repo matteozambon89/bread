@@ -39,7 +39,7 @@ for await (const crumb of bread.run('echo', 'hello', { mode: 'stream' })) {
 }
 ```
 
-Key exports: `defineAgent` · `defineTool` · `defineHumanTool` · `defineTask` · `defineConfig` ·
+Key exports: `defineAgent` · `defineTool` · `defineHumanTool` · `defineTask` · `defineImageTask` · `defineConfig` ·
 `createBread` · `runPipeline` · `runEvals` · `envProvider`/`vaultProvider` (credentials) ·
 `BreadError` · the `BreadStore`/`BreadPlugin`/`BreadCrumb` types.
 
