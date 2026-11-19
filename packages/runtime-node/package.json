@@ -33,7 +33,7 @@
     "@breadai/transport-http-sse": "workspace:*",
     "@types/bun": "latest",
     "@types/node": "^22.0.0",
-    "typescript": "^5.8.3"
+    "typescript": "^7.0.2"
   },
   "description": "Node.js listen adapter for @breadai/server (Hono app.fetch via @hono/node-server).",
   "license": "MIT",

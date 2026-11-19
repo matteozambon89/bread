@@ -19,7 +19,7 @@
     "@breadai/store-memory": "workspace:*",
     "@breadai/test-utils": "workspace:*",
     "@types/bun": "latest",
-    "typescript": "^5.8.3"
+    "typescript": "^7.0.2"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

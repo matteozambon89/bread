@@ -30,6 +30,6 @@
     "@electric-sql/pglite-pgvector": "^0.0.17",
     "@electric-sql/pglite-socket": "^0.2.19",
     "@types/bun": "latest",
-    "typescript": "^5.8.3"
+    "typescript": "^7.0.2"
   }
 }

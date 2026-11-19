@@ -5,6 +5,7 @@
     "moduleResolution": "bundler",
     "customConditions": ["bread-source"],
     "lib": ["ES2022"],
+    "types": ["bun"],
     "strict": true,
     "exactOptionalPropertyTypes": true,
     "noUncheckedIndexedAccess": true,

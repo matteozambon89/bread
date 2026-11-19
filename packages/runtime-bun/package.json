@@ -23,7 +23,7 @@
     "@breadai/test-utils": "workspace:*",
     "@breadai/transport-http-sse": "workspace:*",
     "@types/bun": "latest",
-    "typescript": "^5.8.3"
+    "typescript": "^7.0.2"
   },
   "description": "Bun listen adapter for @breadai/server (Hono app.fetch via Bun.serve).",
   "license": "MIT",

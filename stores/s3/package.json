@@ -50,6 +50,6 @@
     "@breadai/test-utils": "workspace:*",
     "@types/bun": "latest",
     "aws-sdk-client-mock": "^4.1.0",
-    "typescript": "^5.8.3"
+    "typescript": "^7.0.2"
   }
 }
