@@ -536,4 +536,19 @@ describe('typecheck solution', () => {
     expect(cycles).toEqual([])
   })
 
+  test('typecheck and build workflows pin Node 24 before Bun', () => {
+    const workflows = ['ci.yml', 'release.yml', 'publish.yml', 'example-check.yml']
+    const problems: string[] = []
+    for (const file of workflows) {
+      const text = readFileSync(join(root, '.github/workflows', file), 'utf8')
+      const setupNode = text.indexOf('actions/setup-node@v4')
+      const setupBun = text.indexOf('oven-sh/setup-bun')
+      if (setupNode < 0 || !/node-version:\s*["']24["']/.test(text)) {
+        problems.push(`${file} is missing actions/setup-node@v4 with node-version 24`)
+        continue
+      }
+      if (setupBun < 0 || setupNode > setupBun) problems.push(`${file} must set up Node 24 before Bun`)
+    }
+    expect(problems).toEqual([])
+  })
 })

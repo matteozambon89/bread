@@ -10,8 +10,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
       - uses: oven-sh/setup-bun@v2
       - run: bun install --frozen-lockfile
+      # typecheck and the tsc half of build are one `tsc -b` process, not a tsc per package.
       - run: bun run typecheck
       - run: bun run build
       # `bun run test` (not bare `bun test`) — the script passes
