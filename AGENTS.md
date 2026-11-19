@@ -17,8 +17,8 @@ gitignored). A bread app's runtime agents stay in `agents/<id>/` inside that app
 
 ```bash
 bun install               # install all workspace deps
-bun run typecheck         # tsc --noEmit across every package
-bun run build             # build every package to its dist/ (bun build + tsc declarations); excludes examples (those are `bread build` inside examples/*)
+bun run typecheck         # one `tsc -b` on TypeScript 7 for the whole solution
+bun run build             # that same tsc -b writes declarations, then bun build writes JavaScript. Examples stay excluded.
 bun run test              # bun test
 ```
 
@@ -88,7 +88,7 @@ Packages publish `dist/` but the workspace develops against `src/`. This is wire
 private export condition, **not** `publishConfig` (bun ignores `publishConfig.exports`):
 
 - Each `package.json` `exports` has `"bread-source": "./src/index.ts"` plus `import`/`types` → `dist`.
-- `tsconfig.base.json` sets `"customConditions": ["bread-source"]` so `tsc` resolves source — no prebuild needed for typecheck.
+- `tsconfig.base.json` sets `"customConditions": ["bread-source"]` so bread-source lets bun tests and tsc see workspace source. `tsc -b` checks each package once and feeds later packages the .d.ts from that run. Incremental state is `tsconfig.tsbuildinfo` beside each package `tsconfig.json`, gitignored, and outside `dist/`. `bun run typecheck` deletes that file when `dist/` has no `.d.ts`, because `tsc -b` would otherwise skip the declaration emit.
 - Running workspace code through bun needs `--conditions bread-source` (the cli `dev` script already passes it).
 - Published consumers never set that condition, so they resolve `dist`.
 

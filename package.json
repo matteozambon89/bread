@@ -21,8 +21,8 @@
   },
   "private": true,
   "scripts": {
-    "build": "bun run --filter='!@bread-examples/*' build",
-    "typecheck": "bun run --filter='*' typecheck",
+    "build": "bun scripts/drop-stale-buildinfo.ts && tsc -b --pretty false --builders 1 && bun run --filter='!@bread-examples/*' build",
+    "typecheck": "bun scripts/drop-stale-buildinfo.ts && tsc -b --pretty false --builders 1",
     "test": "bun test --conditions bread-source && bun test --conditions bread-source ./providers/embeddings/test/resolve.isolated.ts && bun test --conditions bread-source ./docs/.vitepress/mermaid/fence.test.ts",
     "test:coverage": "bun test --conditions bread-source --coverage",
     "knip": "knip",

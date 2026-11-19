@@ -1,0 +1,98 @@
+{
+  "files": [],
+  "references": [
+    {
+      "path": "./extensions/a2ui"
+    },
+    {
+      "path": "./extensions/auth-api-key"
+    },
+    {
+      "path": "./extensions/auth-jwt"
+    },
+    {
+      "path": "./extensions/auth-oauth2"
+    },
+    {
+      "path": "./extensions/auth-trusted"
+    },
+    {
+      "path": "./extensions/memory"
+    },
+    {
+      "path": "./extensions/otel"
+    },
+    {
+      "path": "./extensions/ui-orb"
+    },
+    {
+      "path": "./graphs/neo4j"
+    },
+    {
+      "path": "./packages/cli"
+    },
+    {
+      "path": "./packages/core"
+    },
+    {
+      "path": "./packages/runtime-bun"
+    },
+    {
+      "path": "./packages/runtime-node"
+    },
+    {
+      "path": "./packages/server"
+    },
+    {
+      "path": "./packages/test-utils"
+    },
+    {
+      "path": "./protocols/a2a-server"
+    },
+    {
+      "path": "./protocols/ag-ui"
+    },
+    {
+      "path": "./protocols/mcp-client"
+    },
+    {
+      "path": "./protocols/mcp-server"
+    },
+    {
+      "path": "./providers/catalog"
+    },
+    {
+      "path": "./providers/decisions"
+    },
+    {
+      "path": "./providers/embeddings"
+    },
+    {
+      "path": "./providers/llm"
+    },
+    {
+      "path": "./stores/memory"
+    },
+    {
+      "path": "./stores/postgres"
+    },
+    {
+      "path": "./stores/s3"
+    },
+    {
+      "path": "./stores/sqlite"
+    },
+    {
+      "path": "./transports/http-chunked"
+    },
+    {
+      "path": "./transports/http-sse"
+    },
+    {
+      "path": "./transports/redis"
+    },
+    {
+      "path": "./transports/stdout"
+    }
+  ]
+}

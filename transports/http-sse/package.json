@@ -23,8 +23,8 @@
     "@breadai/runtime-bun": "workspace:*"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit",
-    "build": "bun build ./src/index.ts --outdir dist --target node --format esm --packages external && tsc --emitDeclarationOnly --outDir dist"
+    "typecheck": "bun ../../scripts/drop-stale-buildinfo.ts && tsc -b --pretty false --builders 1",
+    "build": "bun build ./src/index.ts --outdir dist --target node --format esm --packages external"
   },
   "description": "HTTP (SSE) BreadTransport for bread — a mount()-able server ingress plus a remoteAgent() client, browser-EventSource-friendly.",
   "license": "MIT",
