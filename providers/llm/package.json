@@ -1,6 +1,6 @@
 {
   "name": "@breadai/provider-llm",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Language-model providers for bread — 21 lazily-imported AI SDK providers as a ready-made ProviderRegistry for config.providers.",
   "license": "MIT",
   "author": "Matteo Zambon <matteo@yeeti.co>",

@@ -1,6 +1,6 @@
 {
   "name": "@breadai/auth-trusted",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Trusted-identity auth for bread — verify a gateway JWT or an mTLS client certificate and set principal.",
   "license": "MIT",
   "author": "Matteo Zambon <matteo@yeeti.co>",

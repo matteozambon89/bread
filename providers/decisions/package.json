@@ -1,6 +1,6 @@
 {
   "name": "@breadai/provider-decisions",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "System One decision hosts for bread — a DecisionRegistry for config.decisions.",
   "license": "MIT",
   "author": "Matteo Zambon <matteo@yeeti.co>",

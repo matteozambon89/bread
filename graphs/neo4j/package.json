@@ -1,6 +1,6 @@
 {
   "name": "@breadai/graph-neo4j",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Neo4j Graph for bread — named catalog queries on config.graph. Not a BreadStore.",
   "license": "MIT",
   "author": "Matteo Zambon <matteo@yeeti.co>",

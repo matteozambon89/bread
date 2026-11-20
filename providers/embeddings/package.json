@@ -1,6 +1,6 @@
 {
   "name": "@breadai/provider-embeddings",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Embedding providers for bread — 16 lazily-imported AI SDK embedding models as an EmbeddingRegistry for config.embeddings.",
   "license": "MIT",
   "author": "Matteo Zambon <matteo@yeeti.co>",
