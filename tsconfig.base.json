@@ -5,6 +5,7 @@
     "moduleResolution": "bundler",
     "customConditions": ["bread-source"],
     "lib": ["ES2022"],
+    "types": ["bun"],
     "strict": true,
     "exactOptionalPropertyTypes": true,
     "noUncheckedIndexedAccess": true,
@@ -12,6 +13,7 @@
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
+    "tsBuildInfoFile": "${configDir}/tsconfig.tsbuildinfo",
     "skipLibCheck": true
   }
 }

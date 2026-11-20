@@ -39,8 +39,8 @@
     "access": "public"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit",
-    "build": "bun build ./src/index.ts --outdir dist --target node --format esm --packages external && tsc --emitDeclarationOnly --outDir dist"
+    "typecheck": "bun ../../scripts/drop-stale-buildinfo.ts && tsc -b --pretty false --builders 1",
+    "build": "bun build ./src/index.ts --outdir dist --target node --format esm --packages external"
   },
   "dependencies": {
     "@breadai/core": "workspace:>=0.1.1 <1.0.0",
@@ -55,6 +55,6 @@
     "@breadai/test-utils": "workspace:*",
     "@modelcontextprotocol/client": "^2.0.0",
     "@types/bun": "latest",
-    "typescript": "^5.8.3"
+    "typescript": "^7.0.2"
   }
 }

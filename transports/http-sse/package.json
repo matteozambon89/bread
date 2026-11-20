@@ -18,13 +18,13 @@
     "@breadai/store-memory": "workspace:*",
     "@breadai/test-utils": "workspace:*",
     "@types/bun": "latest",
-    "typescript": "^5.8.3",
+    "typescript": "^7.0.2",
     "zod": "^4.4.3",
     "@breadai/runtime-bun": "workspace:*"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit",
-    "build": "bun build ./src/index.ts --outdir dist --target node --format esm --packages external && tsc --emitDeclarationOnly --outDir dist"
+    "typecheck": "bun ../../scripts/drop-stale-buildinfo.ts && tsc -b --pretty false --builders 1",
+    "build": "bun build ./src/index.ts --outdir dist --target node --format esm --packages external"
   },
   "description": "HTTP (SSE) BreadTransport for bread — a mount()-able server ingress plus a remoteAgent() client, browser-EventSource-friendly.",
   "license": "MIT",

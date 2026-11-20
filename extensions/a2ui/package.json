@@ -15,12 +15,12 @@
   "devDependencies": {
     "@breadai/test-utils": "workspace:*",
     "@types/bun": "latest",
-    "typescript": "^5.8.3",
+    "typescript": "^7.0.2",
     "zod": "^4.4.3"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit",
-    "build": "bun build ./src/index.ts --outdir dist --target node --format esm --packages external && tsc --emitDeclarationOnly --outDir dist"
+    "typecheck": "bun ../../scripts/drop-stale-buildinfo.ts && tsc -b --pretty false --builders 1",
+    "build": "bun build ./src/index.ts --outdir dist --target node --format esm --packages external"
   },
   "description": "A2UI protocol plugin for bread — stream agent UI over the A2UI protocol.",
   "license": "MIT",

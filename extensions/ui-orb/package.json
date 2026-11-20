@@ -12,11 +12,11 @@
   "devDependencies": {
     "@types/bun": "latest",
     "@webgpu/types": "^0.1.72",
-    "typescript": "^5.8.3"
+    "typescript": "^7.0.2"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit",
-    "build": "bun build ./src/index.ts --outdir dist --target browser --format esm --packages external && tsc --emitDeclarationOnly --outDir dist"
+    "typecheck": "bun ../../scripts/drop-stale-buildinfo.ts && tsc -b --pretty false --builders 1",
+    "build": "bun build ./src/index.ts --outdir dist --target browser --format esm --packages external"
   },
   "description": "Bread's WebGPU liquid-orb UI widget — an idle/thinking status indicator for agent UIs, framework-agnostic (plain factory + optional custom element).",
   "license": "MIT",

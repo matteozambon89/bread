@@ -19,11 +19,11 @@
     "@breadai/store-memory": "workspace:*",
     "@breadai/test-utils": "workspace:*",
     "@types/bun": "latest",
-    "typescript": "^5.8.3"
+    "typescript": "^7.0.2"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit",
-    "build": "bun build ./src/index.ts --outdir dist --target node --format esm --packages external && tsc --emitDeclarationOnly --outDir dist"
+    "typecheck": "bun ../../scripts/drop-stale-buildinfo.ts && tsc -b --pretty false --builders 1",
+    "build": "bun build ./src/index.ts --outdir dist --target node --format esm --packages external"
   },
   "description": "Memory plugin for bread — memorize, recall, forget, and dream, scoped to the agent and the run principal.",
   "license": "MIT",

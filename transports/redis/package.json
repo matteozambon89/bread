@@ -16,12 +16,12 @@
   "devDependencies": {
     "@breadai/test-utils": "workspace:*",
     "@types/bun": "latest",
-    "typescript": "^5.8.3",
+    "typescript": "^7.0.2",
     "uuid": "^14.0.3"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit",
-    "build": "bun build ./src/index.ts --outdir dist --target node --format esm --packages external && tsc --emitDeclarationOnly --outDir dist"
+    "typecheck": "bun ../../scripts/drop-stale-buildinfo.ts && tsc -b --pretty false --builders 1",
+    "build": "bun build ./src/index.ts --outdir dist --target node --format esm --packages external"
   },
   "description": "Redis Streams BreadBus for bread — cross-replica crumb fan-out so passive run streams and HITL work from any container.",
   "license": "MIT",

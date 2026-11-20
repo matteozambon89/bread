@@ -4,6 +4,9 @@ node_modules/
 # Build output (CI rebuilds; publishing runs `bun run build` first)
 dist/
 
+# tsc -b incremental state, beside each package tsconfig and not in dist/
+*.tsbuildinfo
+
 # VitePress local dev cache (docs site build output is covered by dist/ above)
 docs/.vitepress/cache/
 

@@ -20,13 +20,13 @@
     "@breadai/test-utils": "workspace:*",
     "@types/bun": "latest",
     "jose": "^5.9.6",
-    "typescript": "^5.8.3",
+    "typescript": "^7.0.2",
     "zod": "^4.4.3",
     "@breadai/runtime-bun": "workspace:*"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit",
-    "build": "bun build ./src/index.ts --outdir dist --target node --format esm --packages external && tsc --emitDeclarationOnly --outDir dist"
+    "typecheck": "bun ../../scripts/drop-stale-buildinfo.ts && tsc -b --pretty false --builders 1",
+    "build": "bun build ./src/index.ts --outdir dist --target node --format esm --packages external"
   },
   "description": "HTTP (chunked NDJSON) BreadTransport for bread — a mount()-able server ingress plus a remoteAgent() client speaking the Bread protocol over one connection.",
   "license": "MIT",
