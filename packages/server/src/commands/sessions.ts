@@ -1,4 +1,4 @@
-import { BreadError } from '@breadai/core'
+import { assertMigrationsCurrent, BreadError } from '@breadai/core'
 import type { BreadStore } from '@breadai/core'
 import { loadConfig } from '../loader.js'
 
@@ -24,6 +24,7 @@ async function requireStore(cwd: string): Promise<BreadStore> {
       'STORE_NOT_CONFIGURED',
     )
   }
+  await assertMigrationsCurrent(store)
   return store
 }
 

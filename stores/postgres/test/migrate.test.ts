@@ -1,5 +1,6 @@
 import { expect, test } from 'bun:test'
 import postgres from 'postgres'
+import { BreadError } from '@breadai/core'
 import { store } from '@breadai/store-postgres'
 import { withPglite } from '@breadai/test-utils'
 
@@ -11,11 +12,21 @@ test('migrate creates bread_documents before the vector extension', async () => 
     url: pg.url,
     embed: async () => [1, 2, 3],
   })
+  let failed: unknown
   try {
     try {
       await backend.migrate?.()
-    } catch {
+    } catch (err) {
       // pglite has no pgvector. The extension may fail after the tables exist.
+      failed = err
+    }
+    if (failed) {
+      expect(failed).toBeInstanceOf(BreadError)
+      expect((failed as BreadError).code).toBe('MIGRATION_FAILED')
+      expect((failed as BreadError).message).toBe('Migration 0002_vector failed.')
+      expect((failed as BreadError).message).not.toMatch(/postgres:\/\//)
+      const cause = (failed as BreadError).cause
+      if (cause instanceof Error) expect(cause.message).not.toMatch(/postgres:\/\/[^/]*@/)
     }
   } finally {
     await backend.close?.()

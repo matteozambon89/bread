@@ -29,12 +29,14 @@ against an in-process pglite (no Docker/DB) via `withPglite()`.
 
 Inside an example or app: `bread dev` (hot-reload server), `bread build`, `bread start`,
 `bread chat` (interactive REPL, HITL), `bread invoke` (one-shot, no HITL), `bread eval`,
+`bread migrate` (apply the store journal and print ids; ignores `server.migrate`),
 `bread sessions`, `bread init` (TTY wizard below; an existing `bread.config.ts`, `package.json`, or `agents/` throws `SCAFFOLD_EXISTS` before the first question; without a TTY the runtime, store, transport, agent, and install keep their defaults, and missing `--provider` or `--model` throws and writes nothing; a flag-only init that never asks is unchanged; cancel exits 0, and before any write the directory is unchanged),
 `bread agent add` (a TTY asks for a missing id, `--provider`, and `--model`; without a TTY those are required), `bread agent eval`, `bread tool add`, `bread skill add`, `bread mcp list`, `bread mcp add` (prints a server entry to paste into `bread.config.ts` and does not edit the project; an `api_key` add prints `import { envProvider } from '@breadai/core'` and `const mcpCredentials = envProvider()` before the object, and the banner says to paste that import and const into `bread.config.ts` and the object into `mcpClient({ servers })`; an `oauth` add logs that per-user OAuth waits on issue #41 as its own line before the object and still sets `askWrites`; `--name` is only valid with `--url`; `--url` with `--name` is the unconstrained opt-in and does not set `askWrites`; an allowlisted add does). Agent ids match
 `assistant` / `ticket-lookup`; tool, skill, and eval names match `^[a-z][a-z0-9_]*$`.
 `agent add` only edits a plain quoted `entrypoints` list. Add commands use text only for a
 missing name (`--human` and `--description` stay flags). Tool, skill, and eval do not ask for a provider or model.
 Server runners do not read stdin for init or add.
+`dev`, `start`, `chat`, `invoke`, and `eval` accept `--no-migrate`, which forces `server.migrate: false` for that process (including the node listen child) and wins over config. Omitted, the flag does not change config. `bread sessions list` and `cleanup` only check the journal and do not apply DDL. `bread build` does not migrate. SQLite `store()` only opens the file; direct callers query after `migrate()`, and `bread start` still migrates by default.
 
 | Order | Question | Prompt | Default |
 |-------|----------|--------|---------|
@@ -172,9 +174,15 @@ The CLI loader (`packages/server/src/loader.ts`) attaches private fields to each
   keyword-only. See [`docs/providers.md`](./docs/providers.md) and
   [`docs/store.md`](./docs/store.md).
 - **Lifecycle unification** — `BreadPlugin.close` (renamed from `destroy`) runs on `bread.stop()`;
-  stores keep `migrate?`/`close?`; transports use `init?`/`close?`. `RemoteAgent` (the remote-agent
+  stores keep `migrate?`/`migrations?`/`close?`; transports use `init?`/`close?`. `RemoteAgent` (the remote-agent
   seam) was aligned the same way in Chunk 5 (`destroy` → `close`), so every lifecycle-holding seam now
   speaks `init?`/`close?` consistently.
+- **Store migrations** — `packages/core/src/storage/migrations.ts` runs steps `{ id, checksum, up }`
+  against a journal the store owns. `0001_baseline` is the idempotent schema. Postgres `0002_vector`
+  runs only when `embed` is set and is a known optional id otherwise. The journal is `bread_migrations`
+  (`ensure()`, not a numbered step). `bread.start()` migrates before plugins, remote agents, and the
+  transport unless `server.migrate === false`. A missing journal is `MIGRATIONS_PENDING`, not success.
+  See [`docs/store.md`](./docs/store.md) and [`docs/cli.md`](./docs/cli.md#migrations).
 - **Core strictness** — no auto-wired or interactive fallback anywhere, for either seam:
   `bread.start()`/`createServer()` throw `STORE_NOT_CONFIGURED` when `config.store` is unset (the
   old interactive `bread dev`/`start` setup wizard, `packages/server/src/store-setup.ts`, is

@@ -6,6 +6,7 @@ import { runPipeline as runPipelineCore } from './pipeline.js'
 import { type AgentRegistry, buildToolCredentials, resumeRun, runAgent } from './runner.js'
 import { type TaskRegistry, createTaskTool } from './task.js'
 import type { BlobStore, FileOutput } from './storage/blob-store.js'
+import { assertMigrationsCurrent } from './storage/migrations.js'
 import type { BreadStore } from './storage/store.js'
 import { type BreadTransport, streamTransport, toWireCrumb } from './transport.js'
 import {
@@ -122,10 +123,6 @@ export function createBread(
 
   const instance = {
     async start() {
-      events = await BreadEventBus.create()
-      fabric = config.transport ?? streamTransport()
-      await fabric.init?.()
-
       if (!config.store) {
         throw new BreadError(
           'No store configured. Set `store` in your config — e.g. `store()` from ' +
@@ -134,8 +131,15 @@ export function createBread(
           'STORE_NOT_CONFIGURED',
         )
       }
+      // Schema before plugins, remote agents, and the transport. A failed
+      // journal must not leave those running.
       store = config.store
-      await store.migrate?.()
+      if (config.server?.migrate === false) await assertMigrationsCurrent(store)
+      else await store.migrate?.()
+
+      events = await BreadEventBus.create()
+      fabric = config.transport ?? streamTransport()
+      await fabric.init?.()
 
       if (config.plugins) {
         for (const plugin of config.plugins) {

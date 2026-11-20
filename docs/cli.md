@@ -6,12 +6,13 @@ through the same core `bread.run(agentId, input, opts)` the HTTP server uses.
 
 | Command | What it does |
 |---------|--------------|
-| `bread dev` | Dev server with hot reload (`-p` port, `-H` host, `--runtime bun or node` — omitted flags fall through to `config.server.{port,host,runtime}`, then `3000`/`localhost`/`bun`) |
-| `bread build` | Validate every agent has an `inputSchema`, `outputSchema`, and complete `model` config |
-| `bread start` | Production server (no watch; same port/host/runtime flags as `dev`) |
-| `bread chat [agent]` | Interactive REPL with an agent (supports HITL) |
-| `bread invoke <agent> [input]` | Run an agent once, non-interactively (no HITL) |
-| `bread eval [path]` | Run evals in `agents/**/evals/*.eval.ts` |
+| `bread dev` | Dev server with hot reload (`-p` port, `-H` host, `--runtime bun or node`, `--no-migrate` — omitted flags fall through to `config.server.{port,host,runtime}`, then `3000`/`localhost`/`bun`; omitted `--no-migrate` leaves `server.migrate` alone) |
+| `bread build` | Validate every agent has an `inputSchema`, `outputSchema`, and complete `model` config. Does not migrate |
+| `bread start` | Production server (no watch; same port/host/runtime/`--no-migrate` flags as `dev`) |
+| `bread chat [agent]` | Interactive REPL with an agent (supports HITL). Accepts `--no-migrate` |
+| `bread invoke <agent> [input]` | Run an agent once, non-interactively (no HITL). Accepts `--no-migrate` |
+| `bread eval [path]` | Run evals in `agents/**/evals/*.eval.ts`. Accepts `--no-migrate` |
+| `bread migrate` | Apply the store journal and print `applied <id>` / `skipped <id>`. Ignores `server.migrate` |
 | `bread sessions list` | List sessions (`--tag key=value`) |
 | `bread sessions cleanup` | Bulk delete (`--older-than <days>`, `--tag`) |
 | `bread provider list` | List catalog providers with install/env status for this project |
@@ -76,6 +77,14 @@ Resolution: `--runtime` → `config.server.runtime` → `bun`. `@breadai/runtime
 The node child loads `bread.config.ts` and agents, so `bun:` imports (`@breadai/store-sqlite`) fail and the postgres or memory store is required.
 
 When `config.server.tls` is set, `bread dev` and `bread start` listen with mutual TLS on either runtime. `key`, `cert`, and `ca` are PEM contents, not paths. Omit `tls` and the bind stays plain HTTP. See [auth](./auth.md#mtls).
+
+## Migrations
+
+`bread migrate` loads `bread.config.ts`, calls `store.migrate()`, prints one `applied <id>` or `skipped <id>` line per id, and `close()`s the store. It does not listen, mount a transport, or init plugins or remote agents. It always applies, even when `server.migrate` is `false`. A failed step exits non-zero. The message is the step id and the error code, not the connection URL or the SQL.
+
+`dev`, `start`, `chat`, `invoke`, and `eval` accept `--no-migrate`. The flag forces `server.migrate: false` for that process and wins over config. Omitted, it does not change config: `server.migrate` omitted still migrates. The node listen child receives the flag too. `sessions list` and `sessions cleanup` only check the journal and never apply DDL. No request, header, or tool argument turns migration on or off.
+
+See [Storage](./store.md#what-is-stored).
 
 ## `build`
 

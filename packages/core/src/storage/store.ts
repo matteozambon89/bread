@@ -1,3 +1,4 @@
+import type { MigrationReport } from './migrations.js'
 import type {
   CheckpointParent,
   CleanupOptions,
@@ -278,7 +279,11 @@ export interface BreadStore {
   }): Promise<{ title: string; content: string } | undefined>
 
   // --- Lifecycle -------------------------------------------------------------
-  // Create schema / run migrations. Called once at startup if present.
-  migrate?(): Promise<void>
+  // Apply the journal. Returns the ids applied and the ids already present.
+  // `bread.start()` calls this unless `server.migrate` is false.
+  migrate?(): Promise<MigrationReport>
+  // Read the journal. Does not create it and does not run steps. A missing
+  // journal throws MIGRATIONS_PENDING.
+  migrations?(): Promise<{ pending: string[] }>
   close?(): Promise<void>
 }

@@ -38,8 +38,10 @@ store: store({ embed: { provider: 'openai', model: 'text-embedding-3-small' } })
 store: store({ embed: async (text) => [text.length, 1] })
 ```
 
-Tables are `bread_`-prefixed and created by `migrate()` (the server runs it at boot). Works on
-both Bun and Node. When `embed` is set, `migrate()` also creates the `vector` extension.
+Tables are `bread_`-prefixed and created by `migrate()` (`bread start` runs it unless `--no-migrate`
+or `server.migrate` is false). Works on both Bun and Node. `0001_baseline` is the idempotent schema.
+When `embed` is set, `migrate()` also applies `0002_vector` (`CREATE EXTENSION vector`). An
+already-applied `0002_vector` stays valid when `embed` is unset.
 
 Part of **[bread](https://github.com/matteozambon89/bread)** — an explicit-by-design framework for AI agents.
 Docs: [store](https://matteozambon89.github.io/bread/store.html#semantic-vector-search) ·

@@ -4,14 +4,21 @@ import { BreadError, type BreadConfig, type BreadInstance, type BreadPlugin, cre
 import { store } from '@breadai/store-memory'
 import { defineTestAgent, mockErrorModel, mockObjectModel, mockProvider, mockTextModel } from '@breadai/test-utils'
 
-// A memory store augmented with the optional migrate/close hooks the lifecycle
-// calls — store itself defines neither, so these track the calls.
+// Replaces migrate so the test can count startup calls. The memory store's
+// own migrate is an empty journal and would not increment the counter.
 function spyStore() {
   const base = store()
   let migrated = 0
   let closed = 0
   return {
-    store: { ...base, migrate: async () => void migrated++, close: async () => void closed++ },
+    store: {
+      ...base,
+      migrate: async () => {
+        migrated++
+        return { applied: [], skipped: [] }
+      },
+      close: async () => void closed++,
+    },
     get migrated() {
       return migrated
     },
@@ -101,6 +108,93 @@ describe('createBread — start/stop wiring', () => {
     await bread.stop()
     expect(destroyed).toBe(1)
     expect(spy.closed).toBe(1)
+  })
+
+  test('start migrates before transport init and plugin init', async () => {
+    const order: string[] = []
+    const bread = createBread(
+      baseConfig({
+        store: {
+          ...store(),
+          migrate: async () => {
+            order.push('migrate')
+            return { applied: [], skipped: [] }
+          },
+        },
+        transport: {
+          capability: 'sink',
+          publish() {},
+          init: async () => {
+            order.push('transport')
+          },
+        },
+        plugins: [{ name: 'order_plugin', init: async () => void order.push('plugin') }],
+      }),
+    )
+    await bread.start()
+    expect(order).toEqual(['migrate', 'transport', 'plugin'])
+    await bread.stop()
+  })
+
+  test('server.migrate false checks the journal and does not apply it', async () => {
+    const calls: string[] = []
+    const bread = createBread(
+      baseConfig({
+        server: { migrate: false },
+        store: {
+          ...store(),
+          migrate: async () => {
+            calls.push('migrate')
+            return { applied: ['0001_baseline'], skipped: [] }
+          },
+          migrations: async () => {
+            calls.push('check')
+            return { pending: [] }
+          },
+        },
+        plugins: [{ name: 'order_plugin', init: async () => void calls.push('plugin') }],
+      }),
+    )
+    await bread.start()
+    expect(calls).toEqual(['check', 'plugin'])
+    await bread.stop()
+  })
+
+  test('server.migrate false stops before plugins, remote agents, and the transport', async () => {
+    const calls: string[] = []
+    const base = store()
+    const { migrations: _drop, ...unchecked } = base
+    const bread = createBread(
+      baseConfig({
+        server: { migrate: false },
+        store: {
+          ...unchecked,
+          migrations: async () => ({ pending: ['0001_baseline'] }),
+        },
+        transport: {
+          capability: 'sink',
+          publish() {},
+          init: async () => void calls.push('transport'),
+        },
+        plugins: [{ name: 'order_plugin', init: async () => void calls.push('plugin') }],
+        remoteAgents: {
+          remote: {
+            async *run() {},
+            init: async () => void calls.push('remote'),
+          },
+        },
+      }),
+    )
+    await expect(bread.start()).rejects.toMatchObject({ code: 'MIGRATIONS_PENDING' })
+    expect(calls).toEqual([])
+
+    const missing = createBread(
+      baseConfig({
+        server: { migrate: false },
+        store: unchecked,
+      }),
+    )
+    await expect(missing.start()).rejects.toMatchObject({ code: 'MIGRATIONS_PENDING' })
   })
 })
 

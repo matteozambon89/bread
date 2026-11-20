@@ -1,16 +1,20 @@
 import { v7 as uuidv7 } from 'uuid'
-import { principalVisible, requireExecutionId } from '@breadai/core'
-import type {
-  BreadStore,
-  CheckpointRecord,
-  CleanupOptions,
-  CrumbLogEntry,
-  DocumentRecord,
-  LoopIteration,
-  LoopRecord,
-  Session,
-  SessionMessage,
-  TaskRunRecord,
+import {
+  principalVisible,
+  readMigrationStatus,
+  requireExecutionId,
+  runMigrations,
+  type BreadStore,
+  type CheckpointRecord,
+  type CleanupOptions,
+  type CrumbLogEntry,
+  type DocumentRecord,
+  type LoopIteration,
+  type LoopRecord,
+  type MigrationJournal,
+  type Session,
+  type SessionMessage,
+  type TaskRunRecord,
 } from '@breadai/core'
 
 interface MemoryRow {
@@ -361,6 +365,26 @@ export function store(): BreadStore {
     async readDocument({ agentId, id }) {
       const d = docs.find((doc) => doc.id === id && doc.agentId === agentId)
       return d ? { title: d.title, content: d.content } : undefined
+    },
+
+    async migrate() {
+      return runMigrations(emptyJournal(), [], [])
+    },
+
+    async migrations() {
+      return readMigrationStatus(emptyJournal(), [], [])
+    },
+  }
+}
+
+function emptyJournal(): MigrationJournal {
+  return {
+    async applied() {
+      return []
+    },
+    async ensure() {},
+    async record() {
+      return true
     },
   }
 }

@@ -5,6 +5,7 @@ import {
   cleanupSessions,
   listSessions,
   loadConfig,
+  runMigrate,
   runAgentAdd,
   runAgentEval,
   runBuild,
@@ -53,6 +54,13 @@ function enterProjectRoot(dir: string): string {
 // flag falls through to config.server.{port,host,idleTimeout} (then
 // 3000/localhost/Bun's own default) in the listen adapter — a flag default here
 // would silently shadow the config.
+const NO_MIGRATE_OPTION =
+  'Check the migration journal and do not apply schema changes'
+
+function skippedMigrations(opts: { migrate?: boolean }): { noMigrate?: true } {
+  return opts.migrate === false ? { noMigrate: true } : {}
+}
+
 function serveOverrides(opts: { port?: string; host?: string; idleTimeout?: string }): {
   port?: number
   host?: string
@@ -70,7 +78,7 @@ const RUNTIME_OPTION =
 
 async function runServe(
   command: 'dev' | 'start',
-  opts: { cwd: string; runtime?: string; port?: string; host?: string; idleTimeout?: string },
+  opts: { cwd: string; runtime?: string; port?: string; host?: string; idleTimeout?: string; migrate?: boolean },
 ): Promise<void> {
   const cwd = enterProjectRoot(opts.cwd)
   const overrides = serveOverrides(opts)
@@ -82,16 +90,17 @@ async function runServe(
 
   // Bun-hosted CLI: in-process only for bun. Node listen always spawns a child
   // so @hono/node-server never runs inside the Bun process.
+  const skip = skippedMigrations(opts)
   if (runtime === 'node') {
-    await spawnNodeServe({ command, cwd, ...overrides })
+    await spawnNodeServe({ command, cwd, ...overrides, ...skip })
     return
   }
 
   const listen = await loadBunListen()
   if (command === 'dev') {
-    await runDev({ cwd, listen, ...overrides })
+    await runDev({ cwd, listen, ...overrides, ...skip })
   } else {
-    await runStart({ cwd, listen, ...overrides })
+    await runStart({ cwd, listen, ...overrides, ...skip })
   }
 }
 
@@ -110,9 +119,18 @@ program
     'Connection idle timeout (seconds). The 10s default is Bun only; node leaves the socket timeout unset unless this flag or config.server.idleTimeout is set',
   )
   .option('--runtime <name>', RUNTIME_OPTION)
+  .option('--no-migrate', NO_MIGRATE_OPTION)
   .option('--cwd <dir>', 'Project root directory', process.cwd())
   .action(async (opts) => {
     await runServe('dev', opts)
+  })
+
+program
+  .command('migrate')
+  .description('Apply store migrations and print the ids. Ignores server.migrate')
+  .option('--cwd <dir>', 'Project root directory', process.cwd())
+  .action(async (opts) => {
+    await runMigrate({ cwd: enterProjectRoot(opts.cwd) })
   })
 
 program
@@ -133,6 +151,7 @@ program
     'Connection idle timeout (seconds). The 10s default is Bun only; node leaves the socket timeout unset unless this flag or config.server.idleTimeout is set',
   )
   .option('--runtime <name>', RUNTIME_OPTION)
+  .option('--no-migrate', NO_MIGRATE_OPTION)
   .option('--cwd <dir>', 'Project root directory', process.cwd())
   .action(async (opts) => {
     await runServe('start', opts)
@@ -141,9 +160,14 @@ program
 program
   .command('eval [path]')
   .description('Run evals in agents/**/evals/*.eval.ts (or scoped path)')
+  .option('--no-migrate', NO_MIGRATE_OPTION)
   .option('--cwd <dir>', 'Project root directory', process.cwd())
   .action(async (path, opts) => {
-    await runEvalCommand({ cwd: enterProjectRoot(opts.cwd), path })
+    await runEvalCommand({
+      cwd: enterProjectRoot(opts.cwd),
+      path,
+      ...skippedMigrations(opts),
+    })
   })
 
 program
@@ -151,10 +175,12 @@ program
   .description('Interactive chat with an agent (supports human-in-the-loop)')
   .option('--skill <skill>', 'Skill to scope the run')
   .option('-s, --session <id>', 'Resume an existing session id')
+  .option('--no-migrate', NO_MIGRATE_OPTION)
   .option('--cwd <dir>', 'Project root directory', process.cwd())
   .action(async (agent, opts) => {
     await runChat({
       cwd: enterProjectRoot(opts.cwd),
+      ...skippedMigrations(opts),
       ...(agent ? { agentId: agent } : {}),
       ...(opts.skill ? { skill: opts.skill } : {}),
       ...(opts.session ? { session: opts.session } : {}),
@@ -168,6 +194,7 @@ program
   .option('-s, --session <id>', 'Session id to attach the run to')
   .option('--json', 'Print the final structured output instead of streamed text')
   .option('--trace', 'Print tool calls to stderr as they happen')
+  .option('--no-migrate', NO_MIGRATE_OPTION)
   .option('--cwd <dir>', 'Project root directory', process.cwd())
   .action(async (agent, input, opts) => {
     const resolved = input ?? (process.stdin.isTTY ? undefined : await readStdin())
@@ -181,6 +208,7 @@ program
       input: resolved,
       json: Boolean(opts.json),
       trace: Boolean(opts.trace),
+      ...skippedMigrations(opts),
       ...(opts.skill ? { skill: opts.skill } : {}),
       ...(opts.session ? { session: opts.session } : {}),
     })

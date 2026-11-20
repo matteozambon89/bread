@@ -50,8 +50,13 @@ them).
 | Documents | `bread_documents` | optional |
 | Task runs (audit) | `bread_task_runs` | optional; see [tasks.md](./tasks.md) |
 
-`migrate()` runs `CREATE TABLE IF NOT EXISTS` at startup, so the schema is created automatically.
-It does not drop leftover `bread_kg_*` tables.
+`bread start` applies the store journal unless `server.migrate` is `false` or the process was started with `--no-migrate`. The check runs before plugins, remote agents, and the transport. A missing journal, a checksum change (`MIGRATION_CHANGED`), a history that is ahead (`MIGRATION_AHEAD`), or pending steps (`MIGRATIONS_PENDING`) fails closed. A missing journal is not an empty history.
+
+The journal relation is `bread_migrations` (`id`, `checksum`, `applied_at`). Creating it is not a numbered step. `0001_baseline` is the current idempotent schema. Postgres keeps `CREATE EXTENSION vector` on `0002_vector`, and runs that step only when `embed` is set. An already-applied `0002_vector` is accepted when `embed` is unset. Checksums are SHA-256 of the step text. A changed step does not rewrite a stored checksum. There is no down migration. `migrate()` does not drop leftover `bread_kg_*` tables. SQLite does not drop leftover `kg_nodes` or `kg_edges`.
+
+SQLite `store()` only opens the file. Call `migrate()` before querying, or use `bread start`, which still migrates by default. `bread build` loads config and does not require a migrated database. The memory store's journal is empty: no lock and no relation.
+
+`bread migrate` loads config, applies the journal, prints `applied <id>` and `skipped <id>`, and closes the store. It does not listen or init plugins, and it ignores `server.migrate`. `bread sessions list` and `bread sessions cleanup` only read the journal. See [CLI](./cli.md#migrations).
 
 ## Store packages
 
@@ -132,7 +137,7 @@ store: store({
 })
 ```
 
-When `embed` is set, `migrate()` also runs `CREATE EXTENSION IF NOT EXISTS vector`.
+When `embed` is set, `migrate()` also applies `0002_vector` (`CREATE EXTENSION IF NOT EXISTS vector` and the embedding columns). That step is not part of `0001_baseline`.
 SQLite and memory stay keyword-only and take no `embed` option, including when
 `config.embeddings` is set.
 [`examples/knowledge-graph`](https://github.com/matteozambon89/bread/tree/HEAD/examples/knowledge-graph)

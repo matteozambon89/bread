@@ -1,14 +1,16 @@
-import { runEvals } from '@breadai/core'
+import { createBread, runEvals } from '@breadai/core'
 import { loadAgents, loadConfig, loadEvals, loadTasks } from '../loader.js'
-import { createBread } from '@breadai/core'
+import { applyNoMigrate } from './migrate.js'
 
 export interface EvalCommandOptions {
   cwd: string
   path?: string
+  noMigrate?: boolean
 }
 
 export async function runEvalCommand(opts: EvalCommandOptions): Promise<void> {
   const config = await loadConfig(opts.cwd)
+  applyNoMigrate(config, opts.noMigrate)
   const agents = await loadAgents(opts.cwd, config.entrypoints)
   const evalDefs = await loadEvals(opts.cwd, opts.path)
 
