@@ -21,7 +21,7 @@
     "@breadai/store-memory": "workspace:*",
     "@breadai/transport-http-sse": "workspace:*",
     "ai": "^7.0.93",
-    "postgres": "^3.4.5",
+    "postgres": "^4.1.1",
     "uuid": "^14.0.3",
     "zod": "^4.4.3"
   },
