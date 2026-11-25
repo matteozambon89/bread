@@ -16,7 +16,7 @@
   "dependencies": {
     "@breadai/core": "workspace:>=0.1.1 <1.0.0",
     "@breadai/provider-llm": "workspace:>=0.1.0 <1.0.0",
-    "chokidar": "^4.0.3",
+    "chokidar": "^6.0.0",
     "hono": "^4.8.4",
     "uuid": "^14.0.3"
   },
