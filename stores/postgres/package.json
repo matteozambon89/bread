@@ -42,7 +42,7 @@
   },
   "dependencies": {
     "@breadai/core": "workspace:>=0.1.1 <1.0.0",
-    "postgres": "^3.4.5",
+    "postgres": "^4.1.1",
     "uuid": "^14.0.3"
   },
   "devDependencies": {
