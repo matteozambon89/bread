@@ -19,7 +19,7 @@
     "@breadai/store-memory": "workspace:*",
     "@breadai/test-utils": "workspace:*",
     "@types/bun": "latest",
-    "jose": "^5.9.6",
+    "jose": "^6.2.18",
     "typescript": "^7.0.2",
     "zod": "^4.4.3",
     "@breadai/runtime-bun": "workspace:*"
