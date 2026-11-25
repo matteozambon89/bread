@@ -316,7 +316,7 @@
     },
     "extensions/a2ui": {
       "name": "@breadai/a2ui",
-      "version": "0.1.3",
+      "version": "0.1.4",
       "dependencies": {
         "@breadai/core": "workspace:>=0.1.1 <1.0.0",
       },
@@ -329,7 +329,7 @@
     },
     "extensions/auth-api-key": {
       "name": "@breadai/auth-api-key",
-      "version": "0.1.4",
+      "version": "0.1.5",
       "dependencies": {
         "@breadai/core": "workspace:>=0.1.1 <1.0.0",
       },
@@ -340,10 +340,10 @@
     },
     "extensions/auth-jwt": {
       "name": "@breadai/auth-jwt",
-      "version": "0.1.4",
+      "version": "0.1.5",
       "dependencies": {
         "@breadai/core": "workspace:>=0.1.1 <1.0.0",
-        "jose": "^5.9.6",
+        "jose": "^6.2.18",
       },
       "devDependencies": {
         "@types/bun": "latest",
@@ -352,23 +352,23 @@
     },
     "extensions/auth-oauth2": {
       "name": "@breadai/auth-oauth2",
-      "version": "0.1.3",
+      "version": "0.1.4",
       "dependencies": {
         "@breadai/auth-jwt": "workspace:>=0.1.1 <1.0.0",
         "@breadai/core": "workspace:>=0.1.1 <1.0.0",
       },
       "devDependencies": {
         "@types/bun": "latest",
-        "jose": "^5.9.6",
+        "jose": "^6.2.18",
         "typescript": "^7.0.2",
       },
     },
     "extensions/auth-trusted": {
       "name": "@breadai/auth-trusted",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "dependencies": {
         "@breadai/core": "workspace:>=0.1.1 <1.0.0",
-        "jose": "^5.9.6",
+        "jose": "^6.2.18",
       },
       "devDependencies": {
         "@types/bun": "latest",
@@ -377,7 +377,7 @@
     },
     "extensions/memory": {
       "name": "@breadai/memory",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "dependencies": {
         "@breadai/core": "workspace:>=0.1.1 <1.0.0",
         "ai": "^7.0.93",
@@ -393,7 +393,7 @@
     },
     "extensions/otel": {
       "name": "@breadai/otel",
-      "version": "0.1.4",
+      "version": "0.1.5",
       "dependencies": {
         "@breadai/core": "workspace:>=0.1.1 <1.0.0",
         "@opentelemetry/api": "^1.9.0",
@@ -407,7 +407,7 @@
     },
     "extensions/ui-orb": {
       "name": "@breadai/ui-orb",
-      "version": "0.1.2",
+      "version": "0.1.3",
       "devDependencies": {
         "@types/bun": "latest",
         "@webgpu/types": "^0.1.72",
@@ -416,7 +416,7 @@
     },
     "graphs/neo4j": {
       "name": "@breadai/graph-neo4j",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "dependencies": {
         "@breadai/core": "workspace:>=0.1.1 <1.0.0",
         "neo4j-driver": "^6.3.2",
@@ -428,7 +428,7 @@
     },
     "packages/cli": {
       "name": "@breadai/cli",
-      "version": "0.1.5",
+      "version": "0.1.6",
       "bin": {
         "bread": "./dist/bin.js",
       },
@@ -458,7 +458,7 @@
     },
     "packages/core": {
       "name": "@breadai/core",
-      "version": "0.1.7",
+      "version": "0.1.8",
       "dependencies": {
         "ai": "^7.0.93",
         "effect": "^4.1.4",
@@ -475,7 +475,7 @@
     },
     "packages/runtime-bun": {
       "name": "@breadai/runtime-bun",
-      "version": "0.1.3",
+      "version": "0.1.4",
       "dependencies": {
         "@breadai/core": "workspace:>=0.1.1 <1.0.0",
         "@breadai/server": "workspace:>=0.1.3 <1.0.0",
@@ -490,7 +490,7 @@
     },
     "packages/runtime-node": {
       "name": "@breadai/runtime-node",
-      "version": "0.1.3",
+      "version": "0.1.4",
       "bin": {
         "bread-runtime-node": "./dist/bin.js",
       },
@@ -511,7 +511,7 @@
     },
     "packages/server": {
       "name": "@breadai/server",
-      "version": "0.1.7",
+      "version": "0.1.8",
       "dependencies": {
         "@breadai/core": "workspace:>=0.1.1 <1.0.0",
         "@breadai/provider-llm": "workspace:>=0.1.0 <1.0.0",
@@ -552,7 +552,7 @@
     },
     "protocols/a2a-server": {
       "name": "@breadai/protocol-a2a-server",
-      "version": "0.1.4",
+      "version": "0.1.5",
       "dependencies": {
         "@breadai/core": "workspace:>=0.1.1 <1.0.0",
         "uuid": "^14.0.3",
@@ -568,7 +568,7 @@
     },
     "protocols/ag-ui": {
       "name": "@breadai/protocol-ag-ui",
-      "version": "0.1.5",
+      "version": "0.1.6",
       "dependencies": {
         "@breadai/core": "workspace:>=0.1.1 <1.0.0",
       },
@@ -582,7 +582,7 @@
     },
     "protocols/mcp-client": {
       "name": "@breadai/protocol-mcp-client",
-      "version": "0.1.4",
+      "version": "0.1.5",
       "dependencies": {
         "@breadai/core": "workspace:>=0.1.1 <1.0.0",
         "@modelcontextprotocol/client": "^2.0.0",
@@ -598,7 +598,7 @@
     },
     "protocols/mcp-server": {
       "name": "@breadai/protocol-mcp-server",
-      "version": "0.1.5",
+      "version": "0.1.6",
       "dependencies": {
         "@breadai/core": "workspace:>=0.1.1 <1.0.0",
         "@modelcontextprotocol/hono": "^2.0.0",
@@ -617,7 +617,7 @@
     },
     "providers/catalog": {
       "name": "@breadai/provider-catalog",
-      "version": "0.1.4",
+      "version": "0.1.5",
       "dependencies": {
         "@breadai/provider-llm": "workspace:>=0.1.0 <1.0.0",
       },
@@ -628,7 +628,7 @@
     },
     "providers/decisions": {
       "name": "@breadai/provider-decisions",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "dependencies": {
         "@breadai/core": "workspace:>=0.1.1 <1.0.0",
         "@typesafe-ai/sdk": "^0.7.0",
@@ -640,7 +640,7 @@
     },
     "providers/embeddings": {
       "name": "@breadai/provider-embeddings",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "dependencies": {
         "@breadai/core": "workspace:>=0.1.1 <1.0.0",
       },
@@ -688,7 +688,7 @@
     },
     "providers/llm": {
       "name": "@breadai/provider-llm",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "dependencies": {
         "@breadai/core": "workspace:>=0.1.1 <1.0.0",
       },
@@ -746,7 +746,7 @@
     },
     "stores/memory": {
       "name": "@breadai/store-memory",
-      "version": "0.1.5",
+      "version": "0.1.6",
       "dependencies": {
         "@breadai/core": "workspace:>=0.1.1 <1.0.0",
         "uuid": "^14.0.3",
@@ -759,7 +759,7 @@
     },
     "stores/postgres": {
       "name": "@breadai/store-postgres",
-      "version": "0.1.5",
+      "version": "0.1.6",
       "dependencies": {
         "@breadai/core": "workspace:>=0.1.1 <1.0.0",
         "postgres": "^3.4.5",
@@ -773,7 +773,7 @@
     },
     "stores/s3": {
       "name": "@breadai/store-s3",
-      "version": "0.1.3",
+      "version": "0.1.4",
       "dependencies": {
         "@aws-sdk/client-s3": "^3.700.0",
         "@aws-sdk/s3-request-presigner": "^3.700.0",
@@ -789,7 +789,7 @@
     },
     "stores/sqlite": {
       "name": "@breadai/store-sqlite",
-      "version": "0.1.5",
+      "version": "0.1.6",
       "dependencies": {
         "@breadai/core": "workspace:>=0.1.1 <1.0.0",
         "uuid": "^14.0.3",
@@ -802,7 +802,7 @@
     },
     "transports/http-chunked": {
       "name": "@breadai/transport-http-chunked",
-      "version": "0.1.6",
+      "version": "0.1.7",
       "dependencies": {
         "@breadai/core": "workspace:>=0.1.1 <1.0.0",
         "hono": "^4.8.4",
@@ -814,14 +814,14 @@
         "@breadai/store-memory": "workspace:*",
         "@breadai/test-utils": "workspace:*",
         "@types/bun": "latest",
-        "jose": "^5.9.6",
+        "jose": "^6.2.18",
         "typescript": "^7.0.2",
         "zod": "^4.4.3",
       },
     },
     "transports/http-sse": {
       "name": "@breadai/transport-http-sse",
-      "version": "0.1.6",
+      "version": "0.1.7",
       "dependencies": {
         "@breadai/core": "workspace:>=0.1.1 <1.0.0",
         "hono": "^4.8.4",
@@ -838,7 +838,7 @@
     },
     "transports/redis": {
       "name": "@breadai/transport-redis",
-      "version": "0.1.3",
+      "version": "0.1.4",
       "dependencies": {
         "@breadai/core": "workspace:>=0.1.1 <1.0.0",
         "ioredis": "^6.0.0",
@@ -852,7 +852,7 @@
     },
     "transports/stdout": {
       "name": "@breadai/transport-stdout",
-      "version": "0.1.3",
+      "version": "0.1.4",
       "dependencies": {
         "@breadai/core": "workspace:>=0.1.1 <1.0.0",
       },
@@ -1801,7 +1801,7 @@
 
     "jiti": ["jiti@2.7.0", "", { "bin": { "jiti": "lib/jiti-cli.mjs" } }, "sha512-AC/7JofJvZGrrneWNaEnJeOLUx+JlGt7tNa0wZiRPT4MY1wmfKjt2+6O2p2uz2+skll8OZZmJMNqeke7kKbNgQ=="],
 
-    "jose": ["jose@5.10.0", "", {}, "sha512-s+3Al/p9g32Iq+oqXxkW//7jk2Vig6FF1CFqzVXoTUXt2qz89YWbL+OwS17NFYEvxC35n0FKeGO2LGYSxeM2Gg=="],
+    "jose": ["jose@6.2.18", "", {}, "sha512-doV4thUwgkrycJH4yLeqwTGIIZphHl+pk7CPReuMIhYhncmgzdko85MaCG4YQFTxqMFr1/oEH32tZuKKovcDEg=="],
 
     "json-schema": ["json-schema@0.4.0", "", {}, "sha512-es94M3nTIfsEPisRafak+HDLfHXnKBhV3vU5eqPcS3flIWqcxJWgXHXiey3YrpaNsanY5ei1VoYEbOzijuq9BA=="],
 
@@ -2069,11 +2069,15 @@
 
     "@breadai/auth-api-key/@types/bun": ["@types/bun@1.4.4", "", { "dependencies": { "bun-types": "1.4.4" } }, "sha512-9wkRDXUXK124pEnAutE6n/l18j+i9GC5IAHK8TmX/2nlySETmky0OU6yL5U8pW1AoKh++AN9auDCr647BfurjQ=="],
 
-    "@breadai/auth-trusted/@types/bun": ["@types/bun@1.4.4", "", { "dependencies": { "bun-types": "1.4.4" } }, "sha512-9wkRDXUXK124pEnAutE6n/l18j+i9GC5IAHK8TmX/2nlySETmky0OU6yL5U8pW1AoKh++AN9auDCr647BfurjQ=="],
+    "@breadai/auth-jwt/@types/bun": ["@types/bun@1.4.5", "", { "dependencies": { "bun-types": "1.4.5" } }, "sha512-DpgwNI9z0L1S0gtb45QLCWgwCUcMLnsHYMJHQvpNj7erGiCGBvpggltAIeARrtobNMKMuy0UP7i56tKKgwFs/Q=="],
+
+    "@breadai/auth-oauth2/@types/bun": ["@types/bun@1.4.5", "", { "dependencies": { "bun-types": "1.4.5" } }, "sha512-DpgwNI9z0L1S0gtb45QLCWgwCUcMLnsHYMJHQvpNj7erGiCGBvpggltAIeARrtobNMKMuy0UP7i56tKKgwFs/Q=="],
+
+    "@breadai/auth-trusted/@types/bun": ["@types/bun@1.4.5", "", { "dependencies": { "bun-types": "1.4.5" } }, "sha512-DpgwNI9z0L1S0gtb45QLCWgwCUcMLnsHYMJHQvpNj7erGiCGBvpggltAIeARrtobNMKMuy0UP7i56tKKgwFs/Q=="],
 
     "@breadai/cli/@types/bun": ["@types/bun@1.4.4", "", { "dependencies": { "bun-types": "1.4.4" } }, "sha512-9wkRDXUXK124pEnAutE6n/l18j+i9GC5IAHK8TmX/2nlySETmky0OU6yL5U8pW1AoKh++AN9auDCr647BfurjQ=="],
 
-    "@breadai/core/@types/bun": ["@types/bun@1.4.4", "", { "dependencies": { "bun-types": "1.4.4" } }, "sha512-9wkRDXUXK124pEnAutE6n/l18j+i9GC5IAHK8TmX/2nlySETmky0OU6yL5U8pW1AoKh++AN9auDCr647BfurjQ=="],
+    "@breadai/core/@types/bun": ["@types/bun@1.4.5", "", { "dependencies": { "bun-types": "1.4.5" } }, "sha512-DpgwNI9z0L1S0gtb45QLCWgwCUcMLnsHYMJHQvpNj7erGiCGBvpggltAIeARrtobNMKMuy0UP7i56tKKgwFs/Q=="],
 
     "@breadai/graph-neo4j/@types/bun": ["@types/bun@1.4.4", "", { "dependencies": { "bun-types": "1.4.4" } }, "sha512-9wkRDXUXK124pEnAutE6n/l18j+i9GC5IAHK8TmX/2nlySETmky0OU6yL5U8pW1AoKh++AN9auDCr647BfurjQ=="],
 
@@ -2095,27 +2099,27 @@
 
     "@breadai/provider-embeddings/@types/bun": ["@types/bun@1.4.4", "", { "dependencies": { "bun-types": "1.4.4" } }, "sha512-9wkRDXUXK124pEnAutE6n/l18j+i9GC5IAHK8TmX/2nlySETmky0OU6yL5U8pW1AoKh++AN9auDCr647BfurjQ=="],
 
-    "@breadai/provider-llm/@types/bun": ["@types/bun@1.4.4", "", { "dependencies": { "bun-types": "1.4.4" } }, "sha512-9wkRDXUXK124pEnAutE6n/l18j+i9GC5IAHK8TmX/2nlySETmky0OU6yL5U8pW1AoKh++AN9auDCr647BfurjQ=="],
+    "@breadai/provider-llm/@types/bun": ["@types/bun@1.4.5", "", { "dependencies": { "bun-types": "1.4.5" } }, "sha512-DpgwNI9z0L1S0gtb45QLCWgwCUcMLnsHYMJHQvpNj7erGiCGBvpggltAIeARrtobNMKMuy0UP7i56tKKgwFs/Q=="],
 
-    "@breadai/runtime-bun/@types/bun": ["@types/bun@1.4.4", "", { "dependencies": { "bun-types": "1.4.4" } }, "sha512-9wkRDXUXK124pEnAutE6n/l18j+i9GC5IAHK8TmX/2nlySETmky0OU6yL5U8pW1AoKh++AN9auDCr647BfurjQ=="],
+    "@breadai/runtime-bun/@types/bun": ["@types/bun@1.4.5", "", { "dependencies": { "bun-types": "1.4.5" } }, "sha512-DpgwNI9z0L1S0gtb45QLCWgwCUcMLnsHYMJHQvpNj7erGiCGBvpggltAIeARrtobNMKMuy0UP7i56tKKgwFs/Q=="],
 
     "@breadai/runtime-node/@types/bun": ["@types/bun@1.4.4", "", { "dependencies": { "bun-types": "1.4.4" } }, "sha512-9wkRDXUXK124pEnAutE6n/l18j+i9GC5IAHK8TmX/2nlySETmky0OU6yL5U8pW1AoKh++AN9auDCr647BfurjQ=="],
 
-    "@breadai/server/@types/bun": ["@types/bun@1.4.4", "", { "dependencies": { "bun-types": "1.4.4" } }, "sha512-9wkRDXUXK124pEnAutE6n/l18j+i9GC5IAHK8TmX/2nlySETmky0OU6yL5U8pW1AoKh++AN9auDCr647BfurjQ=="],
+    "@breadai/server/@types/bun": ["@types/bun@1.4.5", "", { "dependencies": { "bun-types": "1.4.5" } }, "sha512-DpgwNI9z0L1S0gtb45QLCWgwCUcMLnsHYMJHQvpNj7erGiCGBvpggltAIeARrtobNMKMuy0UP7i56tKKgwFs/Q=="],
 
-    "@breadai/store-memory/@types/bun": ["@types/bun@1.4.4", "", { "dependencies": { "bun-types": "1.4.4" } }, "sha512-9wkRDXUXK124pEnAutE6n/l18j+i9GC5IAHK8TmX/2nlySETmky0OU6yL5U8pW1AoKh++AN9auDCr647BfurjQ=="],
+    "@breadai/store-memory/@types/bun": ["@types/bun@1.4.5", "", { "dependencies": { "bun-types": "1.4.5" } }, "sha512-DpgwNI9z0L1S0gtb45QLCWgwCUcMLnsHYMJHQvpNj7erGiCGBvpggltAIeARrtobNMKMuy0UP7i56tKKgwFs/Q=="],
 
     "@breadai/store-postgres/@types/bun": ["@types/bun@1.4.4", "", { "dependencies": { "bun-types": "1.4.4" } }, "sha512-9wkRDXUXK124pEnAutE6n/l18j+i9GC5IAHK8TmX/2nlySETmky0OU6yL5U8pW1AoKh++AN9auDCr647BfurjQ=="],
 
     "@breadai/store-s3/@types/bun": ["@types/bun@1.4.4", "", { "dependencies": { "bun-types": "1.4.4" } }, "sha512-9wkRDXUXK124pEnAutE6n/l18j+i9GC5IAHK8TmX/2nlySETmky0OU6yL5U8pW1AoKh++AN9auDCr647BfurjQ=="],
 
-    "@breadai/store-sqlite/@types/bun": ["@types/bun@1.4.4", "", { "dependencies": { "bun-types": "1.4.4" } }, "sha512-9wkRDXUXK124pEnAutE6n/l18j+i9GC5IAHK8TmX/2nlySETmky0OU6yL5U8pW1AoKh++AN9auDCr647BfurjQ=="],
+    "@breadai/store-sqlite/@types/bun": ["@types/bun@1.4.5", "", { "dependencies": { "bun-types": "1.4.5" } }, "sha512-DpgwNI9z0L1S0gtb45QLCWgwCUcMLnsHYMJHQvpNj7erGiCGBvpggltAIeARrtobNMKMuy0UP7i56tKKgwFs/Q=="],
 
-    "@breadai/test-utils/@types/bun": ["@types/bun@1.4.4", "", { "dependencies": { "bun-types": "1.4.4" } }, "sha512-9wkRDXUXK124pEnAutE6n/l18j+i9GC5IAHK8TmX/2nlySETmky0OU6yL5U8pW1AoKh++AN9auDCr647BfurjQ=="],
+    "@breadai/test-utils/@types/bun": ["@types/bun@1.4.5", "", { "dependencies": { "bun-types": "1.4.5" } }, "sha512-DpgwNI9z0L1S0gtb45QLCWgwCUcMLnsHYMJHQvpNj7erGiCGBvpggltAIeARrtobNMKMuy0UP7i56tKKgwFs/Q=="],
 
-    "@breadai/transport-http-chunked/@types/bun": ["@types/bun@1.4.4", "", { "dependencies": { "bun-types": "1.4.4" } }, "sha512-9wkRDXUXK124pEnAutE6n/l18j+i9GC5IAHK8TmX/2nlySETmky0OU6yL5U8pW1AoKh++AN9auDCr647BfurjQ=="],
+    "@breadai/transport-http-chunked/@types/bun": ["@types/bun@1.4.5", "", { "dependencies": { "bun-types": "1.4.5" } }, "sha512-DpgwNI9z0L1S0gtb45QLCWgwCUcMLnsHYMJHQvpNj7erGiCGBvpggltAIeARrtobNMKMuy0UP7i56tKKgwFs/Q=="],
 
-    "@breadai/transport-http-sse/@types/bun": ["@types/bun@1.4.4", "", { "dependencies": { "bun-types": "1.4.4" } }, "sha512-9wkRDXUXK124pEnAutE6n/l18j+i9GC5IAHK8TmX/2nlySETmky0OU6yL5U8pW1AoKh++AN9auDCr647BfurjQ=="],
+    "@breadai/transport-http-sse/@types/bun": ["@types/bun@1.4.5", "", { "dependencies": { "bun-types": "1.4.5" } }, "sha512-DpgwNI9z0L1S0gtb45QLCWgwCUcMLnsHYMJHQvpNj7erGiCGBvpggltAIeARrtobNMKMuy0UP7i56tKKgwFs/Q=="],
 
     "@breadai/transport-redis/@types/bun": ["@types/bun@1.4.4", "", { "dependencies": { "bun-types": "1.4.4" } }, "sha512-9wkRDXUXK124pEnAutE6n/l18j+i9GC5IAHK8TmX/2nlySETmky0OU6yL5U8pW1AoKh++AN9auDCr647BfurjQ=="],
 
@@ -2165,11 +2169,15 @@
 
     "@breadai/auth-api-key/@types/bun/bun-types": ["bun-types@1.4.4", "", { "dependencies": { "@types/node": "*", "undici-types": "*" } }, "sha512-yjrJh5oGX7mMPKGd19YXyIjmEuj4G4zNC30bs7PM9Az7NQ3ndF3j6hbeRdvJTRQEhJ/FYQwW0a2moweEi2hMxQ=="],
 
-    "@breadai/auth-trusted/@types/bun/bun-types": ["bun-types@1.4.4", "", { "dependencies": { "@types/node": "*", "undici-types": "*" } }, "sha512-yjrJh5oGX7mMPKGd19YXyIjmEuj4G4zNC30bs7PM9Az7NQ3ndF3j6hbeRdvJTRQEhJ/FYQwW0a2moweEi2hMxQ=="],
+    "@breadai/auth-jwt/@types/bun/bun-types": ["bun-types@1.4.5", "", { "dependencies": { "@types/node": "*", "undici-types": "*" } }, "sha512-ECHn+9dhL3wv0G6u0+7dQvrnaimXiRDxxerYBmhTaLyJEEuvTPWk2Fye3XIf5Y++JIIiHKfQw4Z7V5D8KuiXbg=="],
+
+    "@breadai/auth-oauth2/@types/bun/bun-types": ["bun-types@1.4.5", "", { "dependencies": { "@types/node": "*", "undici-types": "*" } }, "sha512-ECHn+9dhL3wv0G6u0+7dQvrnaimXiRDxxerYBmhTaLyJEEuvTPWk2Fye3XIf5Y++JIIiHKfQw4Z7V5D8KuiXbg=="],
+
+    "@breadai/auth-trusted/@types/bun/bun-types": ["bun-types@1.4.5", "", { "dependencies": { "@types/node": "*", "undici-types": "*" } }, "sha512-ECHn+9dhL3wv0G6u0+7dQvrnaimXiRDxxerYBmhTaLyJEEuvTPWk2Fye3XIf5Y++JIIiHKfQw4Z7V5D8KuiXbg=="],
 
     "@breadai/cli/@types/bun/bun-types": ["bun-types@1.4.4", "", { "dependencies": { "@types/node": "*", "undici-types": "*" } }, "sha512-yjrJh5oGX7mMPKGd19YXyIjmEuj4G4zNC30bs7PM9Az7NQ3ndF3j6hbeRdvJTRQEhJ/FYQwW0a2moweEi2hMxQ=="],
 
-    "@breadai/core/@types/bun/bun-types": ["bun-types@1.4.4", "", { "dependencies": { "@types/node": "*", "undici-types": "*" } }, "sha512-yjrJh5oGX7mMPKGd19YXyIjmEuj4G4zNC30bs7PM9Az7NQ3ndF3j6hbeRdvJTRQEhJ/FYQwW0a2moweEi2hMxQ=="],
+    "@breadai/core/@types/bun/bun-types": ["bun-types@1.4.5", "", { "dependencies": { "@types/node": "*", "undici-types": "*" } }, "sha512-ECHn+9dhL3wv0G6u0+7dQvrnaimXiRDxxerYBmhTaLyJEEuvTPWk2Fye3XIf5Y++JIIiHKfQw4Z7V5D8KuiXbg=="],
 
     "@breadai/graph-neo4j/@types/bun/bun-types": ["bun-types@1.4.4", "", { "dependencies": { "@types/node": "*", "undici-types": "*" } }, "sha512-yjrJh5oGX7mMPKGd19YXyIjmEuj4G4zNC30bs7PM9Az7NQ3ndF3j6hbeRdvJTRQEhJ/FYQwW0a2moweEi2hMxQ=="],
 
@@ -2191,27 +2199,27 @@
 
     "@breadai/provider-embeddings/@types/bun/bun-types": ["bun-types@1.4.4", "", { "dependencies": { "@types/node": "*", "undici-types": "*" } }, "sha512-yjrJh5oGX7mMPKGd19YXyIjmEuj4G4zNC30bs7PM9Az7NQ3ndF3j6hbeRdvJTRQEhJ/FYQwW0a2moweEi2hMxQ=="],
 
-    "@breadai/provider-llm/@types/bun/bun-types": ["bun-types@1.4.4", "", { "dependencies": { "@types/node": "*", "undici-types": "*" } }, "sha512-yjrJh5oGX7mMPKGd19YXyIjmEuj4G4zNC30bs7PM9Az7NQ3ndF3j6hbeRdvJTRQEhJ/FYQwW0a2moweEi2hMxQ=="],
+    "@breadai/provider-llm/@types/bun/bun-types": ["bun-types@1.4.5", "", { "dependencies": { "@types/node": "*", "undici-types": "*" } }, "sha512-ECHn+9dhL3wv0G6u0+7dQvrnaimXiRDxxerYBmhTaLyJEEuvTPWk2Fye3XIf5Y++JIIiHKfQw4Z7V5D8KuiXbg=="],
 
-    "@breadai/runtime-bun/@types/bun/bun-types": ["bun-types@1.4.4", "", { "dependencies": { "@types/node": "*", "undici-types": "*" } }, "sha512-yjrJh5oGX7mMPKGd19YXyIjmEuj4G4zNC30bs7PM9Az7NQ3ndF3j6hbeRdvJTRQEhJ/FYQwW0a2moweEi2hMxQ=="],
+    "@breadai/runtime-bun/@types/bun/bun-types": ["bun-types@1.4.5", "", { "dependencies": { "@types/node": "*", "undici-types": "*" } }, "sha512-ECHn+9dhL3wv0G6u0+7dQvrnaimXiRDxxerYBmhTaLyJEEuvTPWk2Fye3XIf5Y++JIIiHKfQw4Z7V5D8KuiXbg=="],
 
     "@breadai/runtime-node/@types/bun/bun-types": ["bun-types@1.4.4", "", { "dependencies": { "@types/node": "*", "undici-types": "*" } }, "sha512-yjrJh5oGX7mMPKGd19YXyIjmEuj4G4zNC30bs7PM9Az7NQ3ndF3j6hbeRdvJTRQEhJ/FYQwW0a2moweEi2hMxQ=="],
 
-    "@breadai/server/@types/bun/bun-types": ["bun-types@1.4.4", "", { "dependencies": { "@types/node": "*", "undici-types": "*" } }, "sha512-yjrJh5oGX7mMPKGd19YXyIjmEuj4G4zNC30bs7PM9Az7NQ3ndF3j6hbeRdvJTRQEhJ/FYQwW0a2moweEi2hMxQ=="],
+    "@breadai/server/@types/bun/bun-types": ["bun-types@1.4.5", "", { "dependencies": { "@types/node": "*", "undici-types": "*" } }, "sha512-ECHn+9dhL3wv0G6u0+7dQvrnaimXiRDxxerYBmhTaLyJEEuvTPWk2Fye3XIf5Y++JIIiHKfQw4Z7V5D8KuiXbg=="],
 
-    "@breadai/store-memory/@types/bun/bun-types": ["bun-types@1.4.4", "", { "dependencies": { "@types/node": "*", "undici-types": "*" } }, "sha512-yjrJh5oGX7mMPKGd19YXyIjmEuj4G4zNC30bs7PM9Az7NQ3ndF3j6hbeRdvJTRQEhJ/FYQwW0a2moweEi2hMxQ=="],
+    "@breadai/store-memory/@types/bun/bun-types": ["bun-types@1.4.5", "", { "dependencies": { "@types/node": "*", "undici-types": "*" } }, "sha512-ECHn+9dhL3wv0G6u0+7dQvrnaimXiRDxxerYBmhTaLyJEEuvTPWk2Fye3XIf5Y++JIIiHKfQw4Z7V5D8KuiXbg=="],
 
     "@breadai/store-postgres/@types/bun/bun-types": ["bun-types@1.4.4", "", { "dependencies": { "@types/node": "*", "undici-types": "*" } }, "sha512-yjrJh5oGX7mMPKGd19YXyIjmEuj4G4zNC30bs7PM9Az7NQ3ndF3j6hbeRdvJTRQEhJ/FYQwW0a2moweEi2hMxQ=="],
 
     "@breadai/store-s3/@types/bun/bun-types": ["bun-types@1.4.4", "", { "dependencies": { "@types/node": "*", "undici-types": "*" } }, "sha512-yjrJh5oGX7mMPKGd19YXyIjmEuj4G4zNC30bs7PM9Az7NQ3ndF3j6hbeRdvJTRQEhJ/FYQwW0a2moweEi2hMxQ=="],
 
-    "@breadai/store-sqlite/@types/bun/bun-types": ["bun-types@1.4.4", "", { "dependencies": { "@types/node": "*", "undici-types": "*" } }, "sha512-yjrJh5oGX7mMPKGd19YXyIjmEuj4G4zNC30bs7PM9Az7NQ3ndF3j6hbeRdvJTRQEhJ/FYQwW0a2moweEi2hMxQ=="],
+    "@breadai/store-sqlite/@types/bun/bun-types": ["bun-types@1.4.5", "", { "dependencies": { "@types/node": "*", "undici-types": "*" } }, "sha512-ECHn+9dhL3wv0G6u0+7dQvrnaimXiRDxxerYBmhTaLyJEEuvTPWk2Fye3XIf5Y++JIIiHKfQw4Z7V5D8KuiXbg=="],
 
-    "@breadai/test-utils/@types/bun/bun-types": ["bun-types@1.4.4", "", { "dependencies": { "@types/node": "*", "undici-types": "*" } }, "sha512-yjrJh5oGX7mMPKGd19YXyIjmEuj4G4zNC30bs7PM9Az7NQ3ndF3j6hbeRdvJTRQEhJ/FYQwW0a2moweEi2hMxQ=="],
+    "@breadai/test-utils/@types/bun/bun-types": ["bun-types@1.4.5", "", { "dependencies": { "@types/node": "*", "undici-types": "*" } }, "sha512-ECHn+9dhL3wv0G6u0+7dQvrnaimXiRDxxerYBmhTaLyJEEuvTPWk2Fye3XIf5Y++JIIiHKfQw4Z7V5D8KuiXbg=="],
 
-    "@breadai/transport-http-chunked/@types/bun/bun-types": ["bun-types@1.4.4", "", { "dependencies": { "@types/node": "*", "undici-types": "*" } }, "sha512-yjrJh5oGX7mMPKGd19YXyIjmEuj4G4zNC30bs7PM9Az7NQ3ndF3j6hbeRdvJTRQEhJ/FYQwW0a2moweEi2hMxQ=="],
+    "@breadai/transport-http-chunked/@types/bun/bun-types": ["bun-types@1.4.5", "", { "dependencies": { "@types/node": "*", "undici-types": "*" } }, "sha512-ECHn+9dhL3wv0G6u0+7dQvrnaimXiRDxxerYBmhTaLyJEEuvTPWk2Fye3XIf5Y++JIIiHKfQw4Z7V5D8KuiXbg=="],
 
-    "@breadai/transport-http-sse/@types/bun/bun-types": ["bun-types@1.4.4", "", { "dependencies": { "@types/node": "*", "undici-types": "*" } }, "sha512-yjrJh5oGX7mMPKGd19YXyIjmEuj4G4zNC30bs7PM9Az7NQ3ndF3j6hbeRdvJTRQEhJ/FYQwW0a2moweEi2hMxQ=="],
+    "@breadai/transport-http-sse/@types/bun/bun-types": ["bun-types@1.4.5", "", { "dependencies": { "@types/node": "*", "undici-types": "*" } }, "sha512-ECHn+9dhL3wv0G6u0+7dQvrnaimXiRDxxerYBmhTaLyJEEuvTPWk2Fye3XIf5Y++JIIiHKfQw4Z7V5D8KuiXbg=="],
 
     "@breadai/transport-redis/@types/bun/bun-types": ["bun-types@1.4.4", "", { "dependencies": { "@types/node": "*", "undici-types": "*" } }, "sha512-yjrJh5oGX7mMPKGd19YXyIjmEuj4G4zNC30bs7PM9Az7NQ3ndF3j6hbeRdvJTRQEhJ/FYQwW0a2moweEi2hMxQ=="],
 
@@ -2234,6 +2242,14 @@
     "@breadai/auth-api-key/@types/bun/bun-types/@types/node": ["@types/node@26.0.0", "", { "dependencies": { "undici-types": "~8.3.0" } }, "sha512-vf2YFi1iY9lHGwNJMs01biZFbKJkrZR1T6/MlzjhJLPdntOHLhTrDSnSVcdtvjihi4VQNlrFRIxLsDBlQpAipA=="],
 
     "@breadai/auth-api-key/@types/bun/bun-types/undici-types": ["undici-types@8.3.0", "", {}, "sha512-j375ScV60dom+YkPFIfTLcOiPxkN/buHz5GobjLhixFuANaNs3C9l4GmrWqejgXWJ7BbJcFYpTEUkS1Ge8bpZQ=="],
+
+    "@breadai/auth-jwt/@types/bun/bun-types/@types/node": ["@types/node@26.0.0", "", { "dependencies": { "undici-types": "~8.3.0" } }, "sha512-vf2YFi1iY9lHGwNJMs01biZFbKJkrZR1T6/MlzjhJLPdntOHLhTrDSnSVcdtvjihi4VQNlrFRIxLsDBlQpAipA=="],
+
+    "@breadai/auth-jwt/@types/bun/bun-types/undici-types": ["undici-types@8.3.0", "", {}, "sha512-j375ScV60dom+YkPFIfTLcOiPxkN/buHz5GobjLhixFuANaNs3C9l4GmrWqejgXWJ7BbJcFYpTEUkS1Ge8bpZQ=="],
+
+    "@breadai/auth-oauth2/@types/bun/bun-types/@types/node": ["@types/node@26.0.0", "", { "dependencies": { "undici-types": "~8.3.0" } }, "sha512-vf2YFi1iY9lHGwNJMs01biZFbKJkrZR1T6/MlzjhJLPdntOHLhTrDSnSVcdtvjihi4VQNlrFRIxLsDBlQpAipA=="],
+
+    "@breadai/auth-oauth2/@types/bun/bun-types/undici-types": ["undici-types@8.3.0", "", {}, "sha512-j375ScV60dom+YkPFIfTLcOiPxkN/buHz5GobjLhixFuANaNs3C9l4GmrWqejgXWJ7BbJcFYpTEUkS1Ge8bpZQ=="],
 
     "@breadai/auth-trusted/@types/bun/bun-types/@types/node": ["@types/node@26.0.0", "", { "dependencies": { "undici-types": "~8.3.0" } }, "sha512-vf2YFi1iY9lHGwNJMs01biZFbKJkrZR1T6/MlzjhJLPdntOHLhTrDSnSVcdtvjihi4VQNlrFRIxLsDBlQpAipA=="],
 
